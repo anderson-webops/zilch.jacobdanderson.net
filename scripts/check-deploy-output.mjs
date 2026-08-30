@@ -62,6 +62,7 @@ assert(!apiApp.includes('sourceMappingURL') && !apiServer.includes('sourceMappin
 assert(/^User=zilch-site$/m.test(directService), 'Direct API service must use its dedicated unprivileged account')
 assert(/^Environment=PORT=3016$/m.test(directService), 'Direct API service must use the reviewed Zilch loopback port')
 assert(/^Environment=HOST=127\.0\.0\.1$/m.test(directService), 'Direct API service must bind only to loopback')
+assert(/^ExecStart=\/usr\/bin\/node back-end\/dist\/server\.js$/m.test(directService), 'Direct API service must use the installer-verified system Node runtime')
 assert(/^NoNewPrivileges=true$/m.test(directService), 'Direct API service must deny privilege escalation')
 assert(/^ProtectSystem=strict$/m.test(directService), 'Direct API service must have a read-only system view')
 assert(!/0\.0\.0\.0|docker/i.test(directService), 'Direct API service must not depend on a container listener')

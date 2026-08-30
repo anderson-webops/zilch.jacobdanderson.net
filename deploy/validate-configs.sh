@@ -16,7 +16,15 @@ shellcheck \
 	"$project_root/deploy/systemd/promote-release.sh" \
 	"$project_root/deploy/validate-configs.sh"
 
-systemd-analyze verify "$project_root/deploy/systemd/zilch-api.service"
+service_file="$project_root/deploy/systemd/zilch-api.service"
+if ! grep -Fqx 'ExecStart=/usr/bin/node back-end/dist/server.js' "$service_file"; then
+	echo "Production service must use the installer-verified /usr/bin/node runtime." >&2
+	exit 1
+fi
+node_executable="$(command -v node)"
+sed "s#^ExecStart=/usr/bin/node #ExecStart=$node_executable #" \
+	"$service_file" >"$temporary_root/zilch-api.service"
+systemd-analyze verify "$temporary_root/zilch-api.service"
 
 mkdir -p \
 	"$temporary_root/cert" \
