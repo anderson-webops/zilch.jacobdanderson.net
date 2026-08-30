@@ -58,7 +58,7 @@ Game state is stored only in browser local storage. The API exposes no player na
 
 ## Production
 
-Production serves the generated Nuxt files directly from Nginx and proxies `/api` to a dedicated loopback-only Node process on port `3016`. Releases are immutable, version-tagged runtime trees under `/srv/zilch.jacobdanderson.net/releases`, promoted through an atomic `current` symlink with automatic rollback on failed health, identity, header, or dual-stack checks.
+Production serves the generated Nuxt files directly from Nginx and proxies `/api` to a dedicated loopback-only Node process on port `3018`. The service runs with Node 24.18.1 and npm 12.0.2 from `/opt/node-24.18.1/bin` without replacing the host-wide runtime. Releases are immutable, version-tagged runtime trees under `/srv/zilch.jacobdanderson.net/releases`, promoted through an atomic `current` symlink with automatic rollback on failed health, identity, header, or dual-stack checks.
 
 See [`deploy/README.md`](deploy/README.md) for the first-install and promotion procedure.
 

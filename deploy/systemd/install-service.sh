@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PATH=/opt/node-24.18.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
 
 if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
 	echo "Run install-service.sh with root privileges." >&2
 	exit 1
 fi
-if [[ ! -x /usr/bin/node || "$(/usr/bin/node --version)" != "v24.18.1" \
-	|| ! -x /usr/bin/npm || "$(/usr/bin/npm --version)" != "12.0.2" ]]; then
-	echo "/usr/bin/node and /usr/bin/npm must be Node 24.18.1 and npm 12.0.2." >&2
+if [[ ! -x /opt/node-24.18.1/bin/node \
+	|| "$(/opt/node-24.18.1/bin/node --version)" != "v24.18.1" \
+	|| ! -x /opt/node-24.18.1/bin/npm \
+	|| "$(/opt/node-24.18.1/bin/npm --version)" != "12.0.2" ]]; then
+	echo "/opt/node-24.18.1/bin must provide Node 24.18.1 and npm 12.0.2." >&2
 	exit 1
 fi
 
@@ -29,8 +31,8 @@ if ! flock -n 9; then
 	exit 1
 fi
 
-if ss -H -ltn 'sport = :3016' | grep -q .; then
-	echo "TCP port 3016 is already in use; choose and review a different dedicated loopback port before installing." >&2
+if ss -H -ltn 'sport = :3018' | grep -q .; then
+	echo "TCP port 3018 is already in use; choose and review a different dedicated loopback port before installing." >&2
 	exit 1
 fi
 

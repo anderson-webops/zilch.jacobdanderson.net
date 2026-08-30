@@ -18,8 +18,8 @@ The tag workflow repeats the direct-runtime preparation checks on a clean runner
 
 ## First installation
 
-1. Inventory the current A and AAAA answers, Nginx server names and listeners, TCP port `3016`, `/srv/zilch.jacobdanderson.net`, the `zilch-site` user and group, `zilch-api.service`, and `/usr/local/sbin/zilch-promote-release`. Stop if any target belongs to another application. Do not assume a prior DNS observation is still current.
-2. Install Node `24.18.1` and npm `12.0.2` at `/usr/bin/node` and `/usr/bin/npm`, together with the host commands checked by `install-service.sh`.
+1. Inventory the current A and AAAA answers, Nginx server names and listeners, TCP port `3018`, `/srv/zilch.jacobdanderson.net`, the `zilch-site` user and group, `zilch-api.service`, and `/usr/local/sbin/zilch-promote-release`. Stop if any target belongs to another application. Port `3016` belongs to NP Service Request and must remain untouched. Do not assume a prior DNS or port observation is still current.
+2. Verify `/opt/node-24.18.1/bin/node` is Node `24.18.1` and `/opt/node-24.18.1/bin/npm` is npm `12.0.2`, together with the host commands checked by `install-service.sh`. Do not replace or relink the host-wide `/usr/bin` runtime for this service.
 3. From the reviewed release source, run `sudo deploy/systemd/install-service.sh` once. The installer fails closed if any managed target already exists. It creates writable staging, root-only quarantine, immutable release, and shared cache directories; installs the disabled service; and installs the promotion program as the root-owned `/usr/local/sbin/zilch-promote-release`.
 4. Install `deploy/nginx/zilch.jacobdanderson.net.http-bootstrap.conf` using the host's existing enabled-site convention. Create `/var/lib/letsencrypt`, test the complete Nginx configuration, reload it, and obtain a certificate with the ACME webroot for exactly `zilch.jacobdanderson.net`.
 5. Install the shared header snippet at its fixed include path, then replace the bootstrap server with the TLS server configuration:
@@ -40,7 +40,7 @@ Do not rerun the first-install script as an upgrade mechanism. Changes to the in
 Choose a new staging name for the approved tag. The `zilch-site` account has no interactive shell, so run each preparation command directly through `sudo`:
 
 ```bash
-release=v1.0.0
+release=v1.0.1
 candidate="/srv/zilch.jacobdanderson.net/staging/$release"
 
 sudo -u zilch-site -- git clone \
@@ -69,7 +69,7 @@ sudo env PUBLIC_HOST=zilch.jacobdanderson.net \
 
 The immutable target is named `/srv/zilch.jacobdanderson.net/releases/<tag>-<first-12-commit-characters>`. Promotion checks the public `main` and annotated tag, exact marker bytes, the complete runtime manifest, ownership and modes, Nginx syntax, API health, HTTP redirection, TLS over local IPv4 and IPv6, security and cache headers, static assets, method denial, and reserved API denial. It then atomically selects the release and enables the service only after successful verification.
 
-If activation fails after the immutable target was created, correct the host problem and retry that exact path without rebuilding or modifying it. For example, for `v1.0.0` at commit `0123456789abcdef...`, retry `/srv/zilch.jacobdanderson.net/releases/v1.0.0-0123456789ab`. If no immutable target exists, fix the preparation failure and retry the staging candidate. Keep `main` and the tag unchanged while a release is awaiting retry.
+If activation fails after the immutable target was created, correct the host problem and retry that exact path without rebuilding or modifying it. For example, for `v1.0.1` at commit `0123456789abcdef...`, retry `/srv/zilch.jacobdanderson.net/releases/v1.0.1-0123456789ab`. If no immutable target exists, fix the preparation failure and retry the staging candidate. Keep `main` and the tag unchanged while a release is awaiting retry.
 
 When a previous immutable release exists, a failed activation attempts to restore and reverify it, including its prior boot-enablement state. On a failed first activation, the new selection is removed and the service is stopped and disabled. Treat any reported rollback degradation as an immediate operator incident. Never edit an immutable release in place.
 

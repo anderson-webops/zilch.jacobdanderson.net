@@ -10,9 +10,10 @@ Group=zilch-site
 WorkingDirectory=/srv/zilch.jacobdanderson.net/current
 Environment=HOST=127.0.0.1
 Environment=NODE_ENV=production
-Environment=PORT=3016
+Environment=PORT=3018
 Environment=TRUST_PROXY_HOPS=1
-ExecStart=/usr/bin/node back-end/dist/server.js
+Environment=PATH=/opt/node-24.18.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/opt/node-24.18.1/bin/node back-end/dist/server.js
 Restart=on-failure
 RestartSec=5s
 TimeoutStartSec=30s

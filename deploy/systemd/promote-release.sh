@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PATH=/opt/node-24.18.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
 export LC_ALL=C
+
+node_bin=/opt/node-24.18.1/bin/node
 
 staging_root=/srv/zilch.jacobdanderson.net/staging
 quarantine_root=/srv/zilch.jacobdanderson.net/quarantine
 release_root=/srv/zilch.jacobdanderson.net/releases
 current_link=/srv/zilch.jacobdanderson.net/current
 service_name=zilch-api.service
-health_url=http://127.0.0.1:3016/api/health
+health_url=http://127.0.0.1:3018/api/health
 public_host="${PUBLIC_HOST:-}"
 public_origin=https://zilch.jacobdanderson.net
 source_url=https://github.com/anderson-webops/zilch.jacobdanderson.net.git
@@ -31,8 +33,8 @@ if [[ "$0" != "/usr/local/sbin/zilch-promote-release" ]]; then
 	echo "Promotion must run from the installed root-owned command: /usr/local/sbin/zilch-promote-release" >&2
 	exit 1
 fi
-if [[ ! -x /usr/bin/node || "$(/usr/bin/node --version)" != "v24.18.1" ]]; then
-	echo "/usr/bin/node must be Node 24.18.1." >&2
+if [[ ! -x "$node_bin" || "$("$node_bin" --version)" != "v24.18.1" ]]; then
+	echo "$node_bin must be Node 24.18.1." >&2
 	exit 1
 fi
 if [[ "$public_host" != "zilch.jacobdanderson.net" ]]; then
@@ -125,7 +127,7 @@ install -m 0600 "$candidate/.zilch-release-prepared.json" "$marker_snapshot"
 install -m 0600 "$candidate/.zilch-runtime.sha256" "$manifest_snapshot"
 
 read_marker() {
-	/usr/bin/node -e '
+	"$node_bin" -e '
 const fs = require("node:fs")
 const marker = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
 if (Object.keys(marker).sort().join(",") !== "builtAt,commitSha,release,repository") process.exit(1)
@@ -215,7 +217,7 @@ verify_release_identity() {
 		echo "Private, public, and root-owned release markers must be byte-for-byte identical." >&2
 		return 1
 	fi
-	package_release="v$(/usr/bin/node -p 'require(process.argv[1]).version' "$target/package.json")"
+	package_release="v$("$node_bin" -p 'require(process.argv[1]).version' "$target/package.json")"
 	if [[ "$package_release" != "$release_name" ]]; then
 		echo "Frozen package version does not match the release marker." >&2
 		return 1
@@ -250,7 +252,7 @@ verify_rollback_identity() {
 	rollback_release="${rollback_marker[0]}"
 	rollback_commit="${rollback_marker[1]}"
 	rollback_remote_tag="$(git ls-remote --exit-code "$source_url" "refs/tags/$rollback_release^{}" | awk 'NR == 1 { print $1 }')"
-	package_release="v$(/usr/bin/node -p 'require(process.argv[1]).version' "$target/package.json")"
+	package_release="v$("$node_bin" -p 'require(process.argv[1]).version' "$target/package.json")"
 	if [[ "$rollback_remote_tag" != "$rollback_commit" || "$package_release" != "$rollback_release" ]]; then
 		echo "Rollback target is not tied to its public annotated release tag." >&2
 		return 1
@@ -351,7 +353,7 @@ restore_service_enablement() {
 
 health_is_minimal() {
 	local actual="$1"
-	/usr/bin/node -e '
+	"$node_bin" -e '
 const fs = require("node:fs")
 const body = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
 if (JSON.stringify(body) !== JSON.stringify({ ok: true })) process.exit(1)
