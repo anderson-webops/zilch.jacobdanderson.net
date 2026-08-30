@@ -55,7 +55,8 @@ fi
 # Everything below is newly owned by this first-install run. If a later step
 # fails, remove only those exact empty paths and identities so a corrected
 # installer can be run again without inheriting a partial deployment.
-# shellcheck disable=SC2329
+# ShellCheck cannot infer that EXIT traps invoke this function.
+# shellcheck disable=SC2317,SC2329
 rollback_partial_install() {
 	local exit_code="$1"
 	set +e

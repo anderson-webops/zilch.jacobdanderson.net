@@ -3,7 +3,8 @@ set -euo pipefail
 
 project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 temporary_root="$(mktemp -d)"
-# shellcheck disable=SC2329
+# ShellCheck cannot infer that EXIT traps invoke this function.
+# shellcheck disable=SC2317,SC2329
 cleanup() {
 	rm -rf -- "$temporary_root"
 }

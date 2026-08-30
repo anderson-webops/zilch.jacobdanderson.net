@@ -108,7 +108,8 @@ response_health=""
 response_release=""
 headers_ipv4=""
 headers_ipv6=""
-# shellcheck disable=SC2329
+# ShellCheck cannot infer that EXIT traps invoke this function.
+# shellcheck disable=SC2317,SC2329
 cleanup() {
 	if [[ -n "$next_link" && -L "$next_link" ]]; then unlink -- "$next_link"; fi
 	if [[ -n "$incoming" && "$incoming/" == "$quarantine_root_real/.incoming."* && -d "$incoming" ]]; then
