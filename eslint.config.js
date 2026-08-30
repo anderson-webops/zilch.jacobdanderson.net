@@ -3,7 +3,6 @@ import antfu from '@antfu/eslint-config'
 export default antfu(
   {
     root: true,
-    unocss: true,
     formatters: true,
     ignores: ['**/*.d.ts', '**/dist/**', '**/.nuxt/**', '**/.output/**'],
   },

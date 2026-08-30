@@ -31,20 +31,19 @@
 
 ## Testing & Verification
 
-- Run `npm run lint`, `npm run typecheck`, and `npm run build` before pushing template changes.
+- Run `npm run lint`, `npm run typecheck`, and `npm run build` before pushing game or deployment changes.
 - When changing API behavior, verify both the front-end call site and the Express route behavior together.
 - Keep browser API traffic same-origin at `/api`; deployment adapters must route that path to the Express app.
 - Preserve both Docker-free production adapters: direct Nginx/systemd and Netlify. Do not compile and discard the
   backend in either production path.
-- Treat template breakage as high impact: small config changes can affect every downstream repo created from this
-  template.
+- Treat rules-engine and deployment breakage as high impact: both can invalidate a complete game or production release.
 
-## Template Workflow
+## Repository Lineage
 
-- `origin` is the published template repo for this monorepo pattern.
-- `upstream` must continue to point to `antfu/vitesse-nuxt`.
-- Preserve the front-end/back-end workspace structure when evolving the template unless a deliberate template version
-  change is being made.
+- `origin` is the dedicated `anderson-webops/zilch.jacobdanderson.net` repository.
+- `template` preserves the hardened Nuxt monorepo template lineage.
+- `upstream` continues to point to `antfu/vitesse-nuxt` for selective upstream review.
+- Preserve the front-end/back-end workspace structure and both Docker-free production adapters.
 
 ## Agent Delivery Workflow
 

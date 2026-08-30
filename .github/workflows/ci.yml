@@ -20,6 +20,7 @@ env:
 
 jobs:
   validate:
+    name: Validate Zilch
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -34,10 +35,17 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Align npm with the repository policy
-        run: |
+        # Node 24 does not bundle the exact npm version required by this repository.
+        run: | # zizmor: ignore[adhoc-packages]
           npm install --global "npm@${NPM_VERSION}" --allow-scripts=npm
           node --version
           npm --version
+
+      - name: Validate direct deployment configuration syntax
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install --yes --no-install-recommends nginx
+          deploy/validate-configs.sh
 
       - name: Install locked dependencies
         run: npm ci --include=optional --strict-allow-scripts

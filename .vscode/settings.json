@@ -39,7 +39,5 @@
     "jsonc",
     "yaml"
   ],
-  "interline-translate.knownPopularWordCount": 6000,
-  "iconify.annotations": true,
-  "iconify.inplace": true
+  "interline-translate.knownPopularWordCount": 6000
 }

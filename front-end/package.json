@@ -1,12 +1,16 @@
 {
-  "name": "front-end",
+  "name": "zilch-front-end",
   "type": "module",
-  "version": "2.1.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "Static Nuxt frontend for the Vitesse full-stack template.",
+  "description": "Responsive Nuxt frontend and rules engine for the Zilch browser game.",
   "author": "Jacob Anderson",
   "license": "MIT",
-  "keywords": [],
+  "keywords": [
+    "dice-game",
+    "zilch",
+    "nuxt"
+  ],
   "scripts": {
     "build": "nuxt generate",
     "dev": "nuxt dev --port 3333 --open",
@@ -19,28 +23,18 @@
     "prepare": "nuxt prepare"
   },
   "dependencies": {
-    "@vueuse/core": "^14.0.0",
-    "pinia": "^4.0.2",
-    "vue": "^3.5.22"
+    "vue": "^3.5.42"
   },
   "devDependencies": {
-    "@iconify-json/carbon": "^1.2.25",
-    "@iconify-json/twemoji": "^1.2.4",
-    "@nuxt/devtools": "^3.4.0",
-    "@nuxt/eslint": "^1.16.0",
-    "@nuxtjs/color-mode": "^4.0.1",
-    "@pinia/nuxt": "^1.0.1",
+    "@nuxt/devtools": "^3.4.2",
+    "@nuxt/eslint": "^1.17.0",
     "@types/node": "^24.13.3",
-    "@unocss/eslint-config": "^66.5.4",
-    "@unocss/nuxt": "^66.5.4",
-    "@vue/compiler-sfc": "^3.5.40",
-    "@vueuse/nuxt": "^14.0.0",
+    "@vue/compiler-sfc": "^3.5.42",
     "c12": "^3.3.4",
-    "nuxt": "^4.5.1",
+    "nuxt": "^4.5.2",
     "nuxt-security": "^2.6.0",
-    "unocss": "^66.5.4",
-    "vue-router": "^5.2.0",
-    "vue-tsc": "^3.3.9"
+    "vue-router": "^5.3.0",
+    "vue-tsc": "^3.3.11"
   },
   "browserslist": [
     "> 1%",

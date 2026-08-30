@@ -60,8 +60,7 @@ for (const [parentKey, parent] of Object.entries(packages)) {
   }
 }
 
-for (const family of ['oxc-parser', 'rolldown'])
-  assert(resolvedFamilies.has(family), `package-lock.json must include Linux ARM64 bindings for ${family}`)
+assert(resolvedFamilies.has('rolldown'), 'package-lock.json must include Linux ARM64 bindings for rolldown')
 
 assert(verifiedBindings > 0, 'package-lock.json does not contain Linux ARM64 native optional packages')
 console.log(`Native binding lockfile check passed for ${verifiedBindings} Linux ARM64 packages.`)

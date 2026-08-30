@@ -1,2 +1,2 @@
-export const appName = 'Vitesse for Nuxt 4'
-export const appDescription = 'Vitesse for Nuxt 4'
+export const appName = 'Zilch'
+export const appDescription = 'A fast, faithful browser edition of the classic six-dice push-your-luck game.'

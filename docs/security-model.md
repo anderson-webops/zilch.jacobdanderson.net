@@ -2,7 +2,7 @@
 
 ## Current boundary
 
-This template has no identity system, login, session, role, administrator, promotion, demotion, or privileged mutation workflow. Its only API response is a public, read-only liveness signal. The former process-local page-view counter was removed because a state-changing `GET` endpoint without an authorization or persistence model is not a safe example for downstream applications.
+Zilch has no identity system, login, session, role, administrator, promotion, demotion, or privileged mutation workflow. Its only API response is a public, read-only liveness signal. Player names, scores, settings, and saved games remain in browser-local storage and are never sent to the API.
 
 The security boundary is the Express application, not the Nuxt UI. The browser uses the same-origin `/api` route in every supported deployment. Cross-origin credential sharing is disabled, and CORS is not treated as authentication.
 
@@ -19,9 +19,9 @@ The security boundary is the Express application, not the Nuxt UI. The browser u
   view; Nginx is the only public listener.
 - npm optional dependencies and Linux ARM64 native lock entries are checked, while unreviewed dependency install scripts fail installation.
 
-## Requirements for downstream authentication
+## Requirements before adding authentication
 
-Before adding any protected data or mutation, a downstream repository must:
+Before adding any protected data or mutation, this repository must:
 
 1. Authenticate on the backend using a reviewed session or token design.
 2. Authorize every protected route on the server using deny-by-default role or capability checks.

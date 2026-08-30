@@ -9,7 +9,9 @@
 .playwright-cli
 playwright-report
 test-results
-.vitesse-release-prepared.json
+.zilch-release-prepared.json
+.zilch-runtime.sha256
+.zilch-runtime.sha256.tmp
 
 # local env files
 **/.env

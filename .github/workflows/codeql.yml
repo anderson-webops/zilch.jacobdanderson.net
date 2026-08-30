@@ -9,14 +9,20 @@ on:
     - cron: "31 8 * * 6"
 
 permissions:
-  actions: read
-  contents: read
-  packages: read
-  security-events: write
+  contents: read # CodeQL and checkout need repository source access.
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
+    permissions:
+      actions: read # CodeQL reads workflow details for Actions analysis.
+      contents: read # CodeQL reads repository source.
+      packages: read # CodeQL may resolve packages from GitHub Packages.
+      security-events: write # CodeQL uploads SARIF results.
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
