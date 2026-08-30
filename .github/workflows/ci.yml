@@ -45,7 +45,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install --yes --no-install-recommends nginx
-          deploy/validate-configs.sh
+          sudo env "PATH=$PATH" deploy/validate-configs.sh
 
       - name: Install locked dependencies
         run: npm ci --include=optional --strict-allow-scripts
