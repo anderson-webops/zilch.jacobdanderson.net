@@ -414,6 +414,10 @@ onMounted(focusCurrentPhase)
   display: block;
 }
 
+.score-copy {
+  min-width: 0;
+}
+
 .score-copy strong {
   overflow: hidden;
   font-size: 0.78rem;
@@ -502,7 +506,12 @@ onMounted(focusCurrentPhase)
   gap: 20px;
 }
 
+.table-topline > div:first-child {
+  min-width: 0;
+}
+
 .table-topline h1 {
+  width: 100%;
   max-width: 410px;
   margin: 3px 0 0;
   overflow: hidden;
@@ -517,6 +526,7 @@ onMounted(focusCurrentPhase)
 
 .turn-score {
   display: grid;
+  flex: 0 0 auto;
   text-align: right;
 }
 
@@ -553,6 +563,11 @@ onMounted(focusCurrentPhase)
   color: #fff4d8;
   background: rgb(169 104 22 / 27%);
   border-color: rgb(231 173 74 / 35%);
+}
+
+.status-banner > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .status-dot {
@@ -742,7 +757,9 @@ onMounted(focusCurrentPhase)
   inset: 0;
   display: grid;
   padding: 22px;
+  overflow-y: auto;
   background: rgb(5 28 21 / 76%);
+  overscroll-behavior: contain;
   place-items: center;
   backdrop-filter: blur(8px);
 }
@@ -756,6 +773,12 @@ onMounted(focusCurrentPhase)
   border-radius: 22px;
   box-shadow: 0 25px 65px rgb(0 0 0 / 34%);
   text-align: center;
+}
+
+.overlay-card h2,
+.overlay-card p,
+.overlay-card button {
+  overflow-wrap: anywhere;
 }
 
 .phase-dialog:focus {
@@ -819,6 +842,8 @@ onMounted(focusCurrentPhase)
 }
 
 .log-heading button {
+  min-width: 44px;
+  min-height: 44px;
   padding: 7px 0 2px;
   color: var(--ink);
   background: transparent;
@@ -860,9 +885,11 @@ onMounted(focusCurrentPhase)
 
 .turn-log p {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .new-game-link {
+  min-height: 44px;
   margin-top: auto;
   padding: 14px 0 0;
   color: var(--muted-ink);
@@ -948,6 +975,12 @@ onMounted(focusCurrentPhase)
 
   .dice-grid {
     gap: 15px 11px;
+  }
+
+  .waiting-dice {
+    grid-template-columns: repeat(3, 64px);
+    gap: 15px 11px;
+    transform: none;
   }
 
   .action-panel {

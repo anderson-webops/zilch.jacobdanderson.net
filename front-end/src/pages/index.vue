@@ -166,6 +166,7 @@ function confirmNewGame() {
 }
 
 .header-link {
+  min-height: 44px;
   padding: 10px 0;
   color: var(--muted-ink);
   background: transparent;

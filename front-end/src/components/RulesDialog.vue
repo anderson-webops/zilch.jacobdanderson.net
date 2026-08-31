@@ -131,8 +131,9 @@ onMounted(() => {
 
 .dialog-header button {
   display: grid;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
   color: var(--ink);
   background: transparent;
   border: 1px solid var(--line);

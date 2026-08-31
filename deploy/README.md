@@ -40,7 +40,7 @@ Do not rerun the first-install script as an upgrade mechanism. Changes to the in
 Choose a new staging name for the approved tag. The `zilch-site` account has no interactive shell, so run each preparation command directly through `sudo`:
 
 ```bash
-release=v1.0.1
+release=v1.0.2
 candidate="/srv/zilch.jacobdanderson.net/staging/$release"
 
 sudo -u zilch-site -- git clone \
@@ -69,7 +69,7 @@ sudo env PUBLIC_HOST=zilch.jacobdanderson.net \
 
 The immutable target is named `/srv/zilch.jacobdanderson.net/releases/<tag>-<first-12-commit-characters>`. Promotion checks the public `main` and annotated tag, exact marker bytes, the complete runtime manifest, ownership and modes, Nginx syntax, API health, HTTP redirection, TLS over local IPv4 and IPv6, security and cache headers, static assets, method denial, and reserved API denial. It then atomically selects the release and enables the service only after successful verification.
 
-If activation fails after the immutable target was created, correct the host problem and retry that exact path without rebuilding or modifying it. For example, for `v1.0.1` at commit `0123456789abcdef...`, retry `/srv/zilch.jacobdanderson.net/releases/v1.0.1-0123456789ab`. If no immutable target exists, fix the preparation failure and retry the staging candidate. Keep `main` and the tag unchanged while a release is awaiting retry.
+If activation fails after the immutable target was created, correct the host problem and retry that exact path without rebuilding or modifying it. For example, for `v1.0.2` at commit `0123456789abcdef...`, retry `/srv/zilch.jacobdanderson.net/releases/v1.0.2-0123456789ab`. If no immutable target exists, fix the preparation failure and retry the staging candidate. Keep `main` and the tag unchanged while a release is awaiting retry.
 
 When a previous immutable release exists, a failed activation attempts to restore and reverify it, including its prior boot-enablement state. On a failed first activation, the new selection is removed and the service is stopped and disabled. Treat any reported rollback degradation as an immediate operator incident. Never edit an immutable release in place.
 

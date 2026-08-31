@@ -21,6 +21,8 @@ const colorSchemes = (process.env.A11Y_COLOR_SCHEMES || 'light,dark')
   .split(',')
   .map(scheme => scheme.trim())
   .filter(Boolean)
+const desktopViewport = { name: 'desktop', width: 1280, height: 1000 }
+const mobileViewport = { name: 'iphone-reflow', width: 320, height: 852 }
 
 const chromeCandidates = [
   process.env.PUPPETEER_EXECUTABLE_PATH,
@@ -151,7 +153,101 @@ async function verifyHydratedSetup(page) {
   })
 }
 
-async function analyzePage(browser, route, scheme) {
+async function findReflowIssues(page, label, selectors) {
+  return await page.evaluate(({ label: stateLabel, selectors: checkedSelectors }) => {
+    const viewportWidth = document.documentElement.clientWidth
+    const issues = []
+
+    for (const selector of checkedSelectors) {
+      for (const element of document.querySelectorAll(selector)) {
+        const rect = element.getBoundingClientRect()
+        if (rect.left < -0.5 || rect.right > viewportWidth + 0.5)
+          issues.push(`${stateLabel}: ${selector} extends from ${rect.left.toFixed(1)}px to ${rect.right.toFixed(1)}px in a ${viewportWidth}px viewport`)
+      }
+    }
+
+    return issues
+  }, { label, selectors })
+}
+
+async function findTapTargetIssues(page, label) {
+  return await page.evaluate((stateLabel) => {
+    return [...document.querySelectorAll('button, summary')]
+      .map((element) => {
+        const rect = element.getBoundingClientRect()
+        return {
+          height: rect.height,
+          label: element.getAttribute('aria-label') || element.textContent?.trim().replace(/\s+/g, ' ') || element.tagName.toLowerCase(),
+          width: rect.width,
+        }
+      })
+      .filter(target => target.height > 0 && target.width > 0 && (target.height < 44 || target.width < 44))
+      .map(target => `${stateLabel}: ${target.label} has a ${target.width.toFixed(1)}px by ${target.height.toFixed(1)}px touch target`)
+  }, label)
+}
+
+async function verifyMobileGameFlow(page) {
+  const issues = await findReflowIssues(page, 'landing', [
+    '.game-frame',
+    '.welcome-card',
+    '.welcome-card h1',
+    '.setup-card',
+    '.mode-picker',
+    '.player-row',
+  ])
+  issues.push(...await findTapTargetIssues(page, 'landing'))
+
+  const undersizedFields = await page.evaluate(() => {
+    return [...document.querySelectorAll('input:not([type="radio"]), select')]
+      .filter(element => Number.parseFloat(getComputedStyle(element).fontSize) < 16)
+      .map(element => element.getAttribute('aria-label') || element.tagName.toLowerCase())
+  })
+  for (const field of undersizedFields)
+    issues.push(`landing: ${field} uses text smaller than 16px and can trigger iOS form zoom`)
+
+  await page.click('[aria-label="Your player name"]', { clickCount: 3 })
+  await page.keyboard.type('ABCDEFGHIJKLMNOPQRSTUVWXYZABCD')
+  await page.click('.setup-card .primary-button')
+  await page.waitForSelector('.play-layout')
+  issues.push(...await findReflowIssues(page, 'ready game', [
+    '.play-layout',
+    '.scoreboard',
+    '.felt-table',
+    '.turn-log',
+    '.table-topline',
+    '.table-topline h1',
+    '.turn-score',
+    '.waiting-dice',
+    '.action-panel',
+  ]))
+  issues.push(...await findTapTargetIssues(page, 'ready game'))
+
+  await page.click('.roll-button')
+  await delay(250)
+  issues.push(...await findReflowIssues(page, 'rolled game', [
+    '.play-layout',
+    '.scoreboard',
+    '.felt-table',
+    '.turn-log',
+    '.dice-zone',
+    '.action-panel',
+  ]))
+  issues.push(...await findTapTargetIssues(page, 'rolled game'))
+
+  await page.click('.log-heading button')
+  await page.waitForSelector('.rules-dialog[open]')
+  issues.push(...await findReflowIssues(page, 'rules dialog', [
+    '.rules-dialog',
+    '.dialog-header',
+    '.rules-copy',
+  ]))
+  issues.push(...await findTapTargetIssues(page, 'rules dialog'))
+  await page.click('[aria-label="Close rules"]')
+
+  return issues
+}
+
+async function analyzePage(browser, route, scheme, viewport) {
   const url = `${baseUrl}${route}`
   const page = await browser.newPage()
   const runtimeFailures = new Set()
@@ -173,7 +269,7 @@ async function analyzePage(browser, route, scheme) {
 
   page.setDefaultTimeout(30_000)
   try {
-    await page.setViewport({ width: 1280, height: 1000, deviceScaleFactor: 1 })
+    await page.setViewport({ width: viewport.width, height: viewport.height, deviceScaleFactor: 1 })
     if (scheme === 'dark' || scheme === 'light')
       await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: scheme }])
 
@@ -190,9 +286,14 @@ async function analyzePage(browser, route, scheme) {
         },
       })
     })
+    const reflowIssues = viewport.name === mobileViewport.name
+      ? await verifyMobileGameFlow(page)
+      : []
     return {
       url,
       scheme,
+      viewport: viewport.name,
+      reflowIssues,
       runtimeFailures: [...runtimeFailures],
       violations: result.violations.filter(violation => violation.id !== 'frame-tested'),
     }
@@ -215,22 +316,28 @@ try {
   })
 
   const failures = []
+  const scenarios = [
+    ...colorSchemes.map(scheme => ({ scheme, viewport: desktopViewport })),
+    { scheme: 'light', viewport: mobileViewport },
+  ]
   for (const route of routes) {
-    for (const scheme of colorSchemes) {
-      const result = await analyzePage(browser, route, scheme)
-      if (result.violations.length || result.runtimeFailures.length) {
+    for (const scenario of scenarios) {
+      const result = await analyzePage(browser, route, scenario.scheme, scenario.viewport)
+      if (result.violations.length || result.runtimeFailures.length || result.reflowIssues.length) {
         failures.push(result)
         continue
       }
-      console.log(`a11y and hydrated setup interaction ok: ${result.url} [${scheme}]`)
+      console.log(`a11y and hydrated interaction ok: ${result.url} [${result.scheme}; ${result.viewport}]`)
     }
   }
 
   if (failures.length) {
     for (const failure of failures) {
-      console.error(`\nBrowser smoke issues for ${siteName} at ${failure.url} [${failure.scheme}]`)
+      console.error(`\nBrowser smoke issues for ${siteName} at ${failure.url} [${failure.scheme}; ${failure.viewport}]`)
       for (const runtimeFailure of failure.runtimeFailures)
         console.error(`- ${runtimeFailure}`)
+      for (const reflowIssue of failure.reflowIssues)
+        console.error(`- ${reflowIssue}`)
       for (const violation of failure.violations) {
         console.error(`- [${violation.impact ?? 'unknown'}] ${violation.id}: ${violation.help}`)
         console.error(`  ${violation.helpUrl}`)

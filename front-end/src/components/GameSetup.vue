@@ -250,6 +250,8 @@ async function submit() {
 
 <style scoped>
 .setup-card {
+  width: 100%;
+  min-width: 0;
   max-width: 620px;
   margin-top: 32px;
   padding: clamp(18px, 3vw, 26px);
@@ -283,6 +285,7 @@ async function submit() {
 }
 
 .resume-button {
+  min-height: 44px;
   padding: 9px 11px;
   color: var(--ink);
   background: transparent;
@@ -325,6 +328,11 @@ fieldset {
   cursor: pointer;
 }
 
+.mode-picker label > span:last-child,
+.setup-heading > div {
+  min-width: 0;
+}
+
 .mode-picker label.active {
   background: rgb(231 173 74 / 10%);
   border-color: var(--gold-dark);
@@ -345,6 +353,7 @@ fieldset {
   display: grid;
   width: 34px;
   height: 34px;
+  flex: 0 0 34px;
   color: white;
   background: var(--ink);
   border-radius: 10px;
@@ -399,6 +408,13 @@ fieldset {
   border-radius: 9px;
 }
 
+.player-row input[aria-invalid='true'],
+.name-grid input[aria-invalid='true'] {
+  background: #fff4f1;
+  border-color: var(--coral);
+  box-shadow: 0 0 0 2px rgb(169 66 47 / 14%);
+}
+
 .player-row input {
   flex: 1;
   padding: 9px 10px;
@@ -427,8 +443,8 @@ fieldset {
 
 .count-control button {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   background: transparent;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -482,6 +498,7 @@ fieldset {
 
 .house-rules summary {
   justify-content: space-between;
+  min-height: 44px;
   cursor: pointer;
   font-size: 0.78rem;
   font-weight: 800;
@@ -578,6 +595,12 @@ fieldset {
 
   .player-kind {
     width: auto;
+  }
+
+  .player-row input,
+  .name-grid input,
+  .score-settings select {
+    font-size: 1rem;
   }
 }
 </style>

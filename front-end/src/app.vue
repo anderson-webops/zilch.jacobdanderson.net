@@ -73,6 +73,8 @@ body,
 html {
   color: var(--ink);
   background: var(--paper);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -104,13 +106,14 @@ summary:focus-visible {
 .site-shell,
 .game-page {
   min-height: 100vh;
+  min-height: 100svh;
 }
 
 .game-page {
   display: flex;
   flex-direction: column;
   padding: 22px clamp(18px, 4vw, 64px) 18px;
-  overflow: hidden;
+  overflow-x: clip;
   background:
     radial-gradient(circle at 12% 8%, rgb(231 173 74 / 16%), transparent 28rem),
     linear-gradient(135deg, #f8f3e7 0%, #eee4d1 100%);
@@ -132,6 +135,7 @@ summary:focus-visible {
 .wordmark {
   display: inline-flex;
   gap: 11px;
+  min-height: 44px;
   align-items: center;
   color: var(--ink);
   font-family: 'DM Serif Display', serif;
@@ -154,6 +158,7 @@ summary:focus-visible {
 }
 
 .quiet-button {
+  min-height: 44px;
   padding: 10px 2px;
   color: var(--ink);
   background: transparent;
@@ -170,7 +175,13 @@ summary:focus-visible {
   grid-template-columns: minmax(0, 0.95fr) minmax(380px, 1.05fr);
   gap: clamp(34px, 6vw, 84px);
   align-items: center;
+  min-width: 0;
   padding-block: clamp(34px, 7vh, 84px);
+}
+
+.welcome-card,
+.table-preview {
+  min-width: 0;
 }
 
 .eyebrow,
@@ -397,7 +408,7 @@ summary:focus-visible {
 
 @media (max-width: 900px) {
   .game-frame {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .welcome-card h1 {
@@ -419,7 +430,7 @@ summary:focus-visible {
   }
 
   .welcome-card h1 {
-    font-size: 3.25rem;
+    font-size: clamp(2.55rem, 13vw, 3.25rem);
   }
 
   .setup-preview {
