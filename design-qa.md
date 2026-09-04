@@ -29,3 +29,35 @@
 ## Final result
 
 passed
+
+# Gameplay and strategy design QA, 2026-09-04
+
+## Visual source of truth
+
+- Gameplay evidence: `/var/folders/l2/hs_3m4zd08d89jp_dzj2fqmw0000gn/T/TemporaryItems/NSIRD_screencaptureui_4LtDbp/Screenshot 2026-09-04 at 16.00.55.png` and `/var/folders/l2/hs_3m4zd08d89jp_dzj2fqmw0000gn/T/TemporaryItems/NSIRD_screencaptureui_PktvSb/Screenshot 2026-09-04 at 16.02.01.png`.
+- Preserved detailed Tips capture: `/tmp/zilch-design-qa-20260904-beta1/tips-mobile.png` from tagged source `v1.1.0-beta.1`.
+- Compact Tips implementation: `/tmp/zilch-design-qa-20260904-final/tips-mobile.png`.
+- Full before-and-after comparison input: `/tmp/zilch-tips-comparison-beta1-to-compact.png`.
+- Focused gameplay comparison input: `/tmp/zilch-gameplay-mobile-comparison.png`, containing the scoring-choice and visible-bust states together.
+- Viewports: 320 by 852 CSS pixels at device scale 1 for iPhone reflow, plus 1280 by 1000 CSS pixels for desktop checks. Light and dark desktop schemes were checked. The visual captures use the light scheme.
+
+## Findings and iteration history
+
+1. The original scoring state muted whole die controls, which made selectable dice look disabled in WebKit. Availability is now expressed with explicit solid colors rather than control opacity. The combined gameplay input shows high-contrast available dice beside intentionally muted non-scoring dice.
+2. A bust originally advanced straight to the pass prompt. The finished bust state now keeps all six rolled dice visible, provides a direct “Zilch. Nothing scores.” result, and waits for acknowledgement before advancing.
+3. The default human label “You” produced awkward pass and winner copy. New games now use “Player 1,” while legacy or custom “You” names still receive grammatical second-person text.
+4. The first Tips implementation was intentionally retained as `v1.1.0-beta.1`. Its long hero, reminder card, endgame essays, and evidence sections pushed the actionable strategy well below the first phone viewport.
+5. The compact revision removes the repeated reminder and secondary essays. The combined before-and-after input shows all six standard banking targets in the initial 320 by 852 viewport while retaining the established palette, type, cards, and spacing language.
+6. Stealing remains a separate compact table because simulation found a materially different policy. Three Pairs is reduced to one sentence because it did not change the recommended policy.
+
+## Interaction, accessibility, and console checks
+
+- Hydrated navigation from an active table to Tips and back preserved the table, including saved-game restoration and computer-turn scheduling.
+- Ready, scoring-choice, bust, pass, rules-dialog, and finished-game states were exercised at the iPhone viewport. The bust acknowledgement, phase-dialog focus trap, touch targets, and horizontal score-table access all passed.
+- Automated accessibility scans passed on `/` and `/tips` for light and dark desktop schemes and the 320-pixel iPhone reflow scenario.
+- The browser checks watched for console errors and uncaught page errors; none were reported.
+- The compact Tips page has no horizontal reflow, retains semantic tables and headings, and keeps the primary navigation target at least 44 pixels tall.
+
+## Final result
+
+passed
