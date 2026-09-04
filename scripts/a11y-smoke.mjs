@@ -96,6 +96,16 @@ async function captureScreenshot(page, filename) {
   await page.screenshot({ path: resolve(screenshotDir, filename), fullPage: false })
 }
 
+async function stageSavedGame(page, gameState) {
+  await page.goto(`${baseUrl}/tips`, { waitUntil: 'domcontentloaded' })
+  await page.waitForSelector('#tips-title')
+  await page.evaluate((nextState) => {
+    localStorage.setItem('zilch-browser-game-v1', JSON.stringify(nextState))
+  }, gameState)
+  await page.goto(baseUrl, { waitUntil: 'domcontentloaded' })
+  await page.waitForSelector('.resume-button')
+}
+
 function signalProcessTree(child, signal) {
   if (!child.pid)
     return false
@@ -294,42 +304,39 @@ async function verifyMobileGameFlow(page) {
   issues.push(...await findAxeIssues(page, 'rules dialog'))
   await page.click('[aria-label="Close rules"]')
 
-  await page.evaluate(() => {
-    localStorage.setItem('zilch-browser-game-v1', JSON.stringify({
-      schemaVersion: 2,
-      settings: {
-        winningScore: 5000,
-        openingScore: 1000,
-        firstRollBust: true,
-        finalChase: true,
-        allowTies: true,
-        stealing: false,
-      },
-      players: [
-        { id: 'player-1', name: 'Player 1', kind: 'human', difficulty: null, score: 0, scoreReachedAt: 0 },
-        { id: 'player-2', name: 'Computer', kind: 'computer', difficulty: 'hard', score: 0, scoreReachedAt: 0 },
-      ],
-      currentPlayerIndex: 0,
-      nextPlayerIndex: null,
-      phase: 'selecting',
-      dice: [6, 1, 4, 6, 6, 3].map((value, index) => ({ id: 10 + index, value })),
-      diceInPlay: 6,
-      selectedDieIds: [],
-      turnScore: 0,
-      scoredMultiples: {},
-      rollNumber: 1,
-      bankSequence: 0,
-      eventSequence: 2,
-      message: 'Player 1 rolled. Choose scoring dice.',
-      events: [
-        { id: 2, text: 'Player 1 rolled. Choose scoring dice.', tone: 'neutral' },
-      ],
-      continuation: null,
-      endgame: null,
-      winnerIds: [],
-    }))
+  await stageSavedGame(page, {
+    schemaVersion: 2,
+    settings: {
+      winningScore: 5000,
+      openingScore: 1000,
+      firstRollBust: true,
+      finalChase: true,
+      allowTies: true,
+      stealing: false,
+    },
+    players: [
+      { id: 'player-1', name: 'Player 1', kind: 'human', difficulty: null, score: 0, scoreReachedAt: 0 },
+      { id: 'player-2', name: 'Computer', kind: 'computer', difficulty: 'hard', score: 0, scoreReachedAt: 0 },
+    ],
+    currentPlayerIndex: 0,
+    nextPlayerIndex: null,
+    phase: 'selecting',
+    dice: [6, 1, 4, 6, 6, 3].map((value, index) => ({ id: 10 + index, value })),
+    diceInPlay: 6,
+    selectedDieIds: [],
+    turnScore: 0,
+    scoredMultiples: {},
+    rollNumber: 1,
+    bankSequence: 0,
+    eventSequence: 2,
+    message: 'Player 1 rolled. Choose scoring dice.',
+    events: [
+      { id: 2, text: 'Player 1 rolled. Choose scoring dice.', tone: 'neutral' },
+    ],
+    continuation: null,
+    endgame: null,
+    winnerIds: [],
   })
-  await page.reload({ waitUntil: 'domcontentloaded' })
   await page.click('.resume-button')
   await page.waitForSelector('.selection-actions')
   await delay(600)
@@ -359,42 +366,39 @@ async function verifyMobileGameFlow(page) {
   issues.push(...await findAxeIssues(page, 'scoring result'))
   await captureScreenshot(page, 'scoring-mobile.png')
 
-  await page.evaluate(() => {
-    localStorage.setItem('zilch-browser-game-v1', JSON.stringify({
-      schemaVersion: 2,
-      settings: {
-        winningScore: 5000,
-        openingScore: 1000,
-        firstRollBust: true,
-        finalChase: true,
-        allowTies: true,
-        stealing: false,
-      },
-      players: [
-        { id: 'player-1', name: 'Player 1', kind: 'human', difficulty: null, score: 0, scoreReachedAt: 0 },
-        { id: 'player-2', name: 'Computer', kind: 'computer', difficulty: 'hard', score: 0, scoreReachedAt: 0 },
-      ],
-      currentPlayerIndex: 0,
-      nextPlayerIndex: 1,
-      phase: 'bust',
-      dice: [2, 3, 3, 4, 4, 6].map((value, index) => ({ id: 10 + index, value })),
-      diceInPlay: 6,
-      selectedDieIds: [],
-      turnScore: 0,
-      scoredMultiples: {},
-      rollNumber: 1,
-      bankSequence: 0,
-      eventSequence: 2,
-      message: 'Bust! Player 1 rolled no scoring dice and lost the turn points.',
-      events: [
-        { id: 2, text: 'Bust! Player 1 rolled no scoring dice and lost the turn points.', tone: 'risk' },
-      ],
-      continuation: null,
-      endgame: null,
-      winnerIds: [],
-    }))
+  await stageSavedGame(page, {
+    schemaVersion: 2,
+    settings: {
+      winningScore: 5000,
+      openingScore: 1000,
+      firstRollBust: true,
+      finalChase: true,
+      allowTies: true,
+      stealing: false,
+    },
+    players: [
+      { id: 'player-1', name: 'Player 1', kind: 'human', difficulty: null, score: 0, scoreReachedAt: 0 },
+      { id: 'player-2', name: 'Computer', kind: 'computer', difficulty: 'hard', score: 0, scoreReachedAt: 0 },
+    ],
+    currentPlayerIndex: 0,
+    nextPlayerIndex: 1,
+    phase: 'bust',
+    dice: [2, 3, 3, 4, 4, 6].map((value, index) => ({ id: 10 + index, value })),
+    diceInPlay: 6,
+    selectedDieIds: [],
+    turnScore: 0,
+    scoredMultiples: {},
+    rollNumber: 1,
+    bankSequence: 0,
+    eventSequence: 2,
+    message: 'Bust! Player 1 rolled no scoring dice and lost the turn points.',
+    events: [
+      { id: 2, text: 'Bust! Player 1 rolled no scoring dice and lost the turn points.', tone: 'risk' },
+    ],
+    continuation: null,
+    endgame: null,
+    winnerIds: [],
   })
-  await page.reload({ waitUntil: 'domcontentloaded' })
   await page.click('.resume-button')
   await page.waitForSelector('.bust-actions')
   await delay(600)
@@ -423,42 +427,39 @@ async function verifyMobileGameFlow(page) {
   issues.push(...await findAxeIssues(page, 'bust result'))
   await captureScreenshot(page, 'bust-mobile.png')
 
-  await page.evaluate(() => {
-    localStorage.setItem('zilch-browser-game-v1', JSON.stringify({
-      schemaVersion: 2,
-      settings: {
-        winningScore: 5000,
-        openingScore: 1000,
-        firstRollBust: true,
-        finalChase: true,
-        allowTies: true,
-        stealing: false,
-      },
-      players: [
-        { id: 'player-1', name: 'Alice', kind: 'human', difficulty: null, score: 1000, scoreReachedAt: 1 },
-        { id: 'player-2', name: 'You', kind: 'human', difficulty: null, score: 0, scoreReachedAt: 0 },
-      ],
-      currentPlayerIndex: 0,
-      nextPlayerIndex: 1,
-      phase: 'pass',
-      dice: [],
-      diceInPlay: 6,
-      selectedDieIds: [],
-      turnScore: 0,
-      scoredMultiples: {},
-      rollNumber: 1,
-      bankSequence: 1,
-      eventSequence: 2,
-      message: 'Alice banked 1,000 points.',
-      events: [
-        { id: 2, text: 'Alice banked 1,000 points.', tone: 'good' },
-      ],
-      continuation: null,
-      endgame: null,
-      winnerIds: [],
-    }))
+  await stageSavedGame(page, {
+    schemaVersion: 2,
+    settings: {
+      winningScore: 5000,
+      openingScore: 1000,
+      firstRollBust: true,
+      finalChase: true,
+      allowTies: true,
+      stealing: false,
+    },
+    players: [
+      { id: 'player-1', name: 'Alice', kind: 'human', difficulty: null, score: 1000, scoreReachedAt: 1 },
+      { id: 'player-2', name: 'You', kind: 'human', difficulty: null, score: 0, scoreReachedAt: 0 },
+    ],
+    currentPlayerIndex: 0,
+    nextPlayerIndex: 1,
+    phase: 'pass',
+    dice: [],
+    diceInPlay: 6,
+    selectedDieIds: [],
+    turnScore: 0,
+    scoredMultiples: {},
+    rollNumber: 1,
+    bankSequence: 1,
+    eventSequence: 2,
+    message: 'Alice banked 1,000 points.',
+    events: [
+      { id: 2, text: 'Alice banked 1,000 points.', tone: 'good' },
+    ],
+    continuation: null,
+    endgame: null,
+    winnerIds: [],
   })
-  await page.reload({ waitUntil: 'domcontentloaded' })
   await page.click('.resume-button')
   await page.waitForSelector('.phase-dialog')
   await delay(50)
@@ -481,42 +482,39 @@ async function verifyMobileGameFlow(page) {
     issues.push('pass result: reverse tab navigation escaped the modal turn handoff')
   issues.push(...await findAxeIssues(page, 'pass result'))
 
-  await page.evaluate(() => {
-    localStorage.setItem('zilch-browser-game-v1', JSON.stringify({
-      schemaVersion: 2,
-      settings: {
-        winningScore: 5000,
-        openingScore: 1000,
-        firstRollBust: true,
-        finalChase: true,
-        allowTies: true,
-        stealing: false,
-      },
-      players: [
-        { id: 'player-1', name: 'You', kind: 'human', difficulty: null, score: 5000, scoreReachedAt: 1 },
-        { id: 'player-2', name: 'Computer', kind: 'computer', difficulty: 'medium', score: 4200, scoreReachedAt: 2 },
-      ],
-      currentPlayerIndex: 0,
-      nextPlayerIndex: null,
-      phase: 'finished',
-      dice: [],
-      diceInPlay: 6,
-      selectedDieIds: [],
-      turnScore: 0,
-      scoredMultiples: {},
-      rollNumber: 1,
-      bankSequence: 2,
-      eventSequence: 2,
-      message: 'You win with 5,000 points.',
-      events: [
-        { id: 2, text: 'You win with 5,000 points.', tone: 'special' },
-      ],
-      continuation: null,
-      endgame: { triggerPlayerId: 'player-1', remainingTurns: 0 },
-      winnerIds: ['player-1'],
-    }))
+  await stageSavedGame(page, {
+    schemaVersion: 2,
+    settings: {
+      winningScore: 5000,
+      openingScore: 1000,
+      firstRollBust: true,
+      finalChase: true,
+      allowTies: true,
+      stealing: false,
+    },
+    players: [
+      { id: 'player-1', name: 'You', kind: 'human', difficulty: null, score: 5000, scoreReachedAt: 1 },
+      { id: 'player-2', name: 'Computer', kind: 'computer', difficulty: 'medium', score: 4200, scoreReachedAt: 2 },
+    ],
+    currentPlayerIndex: 0,
+    nextPlayerIndex: null,
+    phase: 'finished',
+    dice: [],
+    diceInPlay: 6,
+    selectedDieIds: [],
+    turnScore: 0,
+    scoredMultiples: {},
+    rollNumber: 1,
+    bankSequence: 2,
+    eventSequence: 2,
+    message: 'You win with 5,000 points.',
+    events: [
+      { id: 2, text: 'You win with 5,000 points.', tone: 'special' },
+    ],
+    continuation: null,
+    endgame: { triggerPlayerId: 'player-1', remainingTurns: 0 },
+    winnerIds: ['player-1'],
   })
-  await page.reload({ waitUntil: 'domcontentloaded' })
   await page.click('.resume-button')
   await page.waitForSelector('#winner-title')
   const winnerTitle = await page.$eval('#winner-title', element => element.textContent?.trim())
