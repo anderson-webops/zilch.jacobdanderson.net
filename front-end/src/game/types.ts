@@ -1,8 +1,10 @@
 export type DieValue = 1 | 2 | 3 | 4 | 5 | 6
 
-export type GamePhase = 'ready' | 'selecting' | 'pass' | 'steal' | 'finished'
+export type GamePhase = 'ready' | 'selecting' | 'bust' | 'pass' | 'steal' | 'finished'
 
 export type PlayerKind = 'human' | 'computer'
+
+export type ComputerDifficulty = 'easy' | 'medium' | 'hard'
 
 export interface Die {
   id: number
@@ -12,12 +14,14 @@ export interface Die {
 export interface PlayerDraft {
   name: string
   kind: PlayerKind
+  difficulty?: ComputerDifficulty
 }
 
 export interface Player {
   id: string
   name: string
   kind: PlayerKind
+  difficulty: ComputerDifficulty | null
   score: number
   scoreReachedAt: number
 }
@@ -53,7 +57,7 @@ export interface GameEvent {
 }
 
 export interface GameState {
-  schemaVersion: 1
+  schemaVersion: 2
   settings: GameSettings
   players: Player[]
   currentPlayerIndex: number

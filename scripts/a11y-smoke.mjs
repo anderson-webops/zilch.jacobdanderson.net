@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { mkdir } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import process from 'node:process'
@@ -16,6 +17,7 @@ const frontendPort = Number(process.env.A11Y_FRONTEND_PORT || 3356)
 const baseUrl = `http://127.0.0.1:${frontendPort}`
 const routes = [
   '/',
+  '/tips',
 ]
 const colorSchemes = (process.env.A11Y_COLOR_SCHEMES || 'light,dark')
   .split(',')
@@ -23,6 +25,7 @@ const colorSchemes = (process.env.A11Y_COLOR_SCHEMES || 'light,dark')
   .filter(Boolean)
 const desktopViewport = { name: 'desktop', width: 1280, height: 1000 }
 const mobileViewport = { name: 'iphone-reflow', width: 320, height: 852 }
+const screenshotDir = process.env.DESIGN_QA_SCREENSHOT_DIR
 
 const chromeCandidates = [
   process.env.PUPPETEER_EXECUTABLE_PATH,
@@ -84,6 +87,13 @@ function startFrontend() {
 
 function delay(durationMs) {
   return new Promise(resolveDelay => setTimeout(resolveDelay, durationMs))
+}
+
+async function captureScreenshot(page, filename) {
+  if (!screenshotDir)
+    return
+  await mkdir(screenshotDir, { recursive: true })
+  await page.screenshot({ path: resolve(screenshotDir, filename), fullPage: false })
 }
 
 function signalProcessTree(child, signal) {
@@ -149,6 +159,7 @@ async function verifyHydratedSetup(page) {
     return computerMode instanceof HTMLInputElement
       && computerMode.checked
       && document.querySelector('[aria-label="Computer player name"]') !== null
+      && document.querySelector('[aria-label="Computer difficulty"]')?.value === 'medium'
       && document.querySelector('.players-list') !== null
   })
 }
@@ -186,6 +197,28 @@ async function findTapTargetIssues(page, label) {
   }, label)
 }
 
+async function findAxeIssues(page, label) {
+  const hasAxe = await page.evaluate(() => typeof globalThis.axe !== 'undefined')
+  if (!hasAxe)
+    await page.addScriptTag({ path: axeSourcePath })
+  const result = await page.evaluate(async () => {
+    return await globalThis.axe.run(document, {
+      resultTypes: ['violations'],
+      runOnly: {
+        type: 'tag',
+        values: ['wcag2a', 'wcag2aa'],
+      },
+    })
+  })
+  return result.violations
+    .filter(violation => violation.id !== 'frame-tested')
+    .map((violation) => {
+      const targets = violation.nodes.flatMap(node => node.target).join(', ')
+      const sample = violation.nodes[0]?.html ?? ''
+      return `${label}: [${violation.id}] ${violation.help} (${targets}; ${sample}; ${violation.helpUrl})`
+    })
+}
+
 async function verifyMobileGameFlow(page) {
   const issues = await findReflowIssues(page, 'landing', [
     '.game-frame',
@@ -204,11 +237,16 @@ async function verifyMobileGameFlow(page) {
   })
   for (const field of undersizedFields)
     issues.push(`landing: ${field} uses text smaller than 16px and can trigger iOS form zoom`)
+  await captureScreenshot(page, 'setup-mobile.png')
 
+  await page.select('[aria-label="Computer difficulty"]', 'hard')
   await page.click('[aria-label="Your player name"]', { clickCount: 3 })
   await page.keyboard.type('ABCDEFGHIJKLMNOPQRSTUVWXYZABCD')
   await page.click('.setup-card .primary-button')
   await page.waitForSelector('.play-layout')
+  const computerLabel = await page.$eval('.scoreboard li:nth-child(2) .score-copy small', element => element.textContent?.trim())
+  if (computerLabel !== 'Hard computer')
+    issues.push(`ready game: expected Hard computer in the scoreboard, found ${computerLabel || 'nothing'}`)
   issues.push(...await findReflowIssues(page, 'ready game', [
     '.play-layout',
     '.scoreboard',
@@ -221,6 +259,16 @@ async function verifyMobileGameFlow(page) {
     '.action-panel',
   ]))
   issues.push(...await findTapTargetIssues(page, 'ready game'))
+  issues.push(...await findAxeIssues(page, 'ready game'))
+
+  const playerNameBeforeTips = await page.$eval('#turn-title', element => element.textContent?.trim())
+  await page.click('.site-header .tips-link')
+  await page.waitForFunction(() => location.pathname === '/tips')
+  await page.click('.play-link')
+  await page.waitForSelector('.play-layout')
+  const playerNameAfterTips = await page.$eval('#turn-title', element => element.textContent?.trim())
+  if (playerNameAfterTips !== playerNameBeforeTips)
+    issues.push('ready game: returning from Tips did not preserve the active table')
 
   await page.click('.roll-button')
   await delay(250)
@@ -233,6 +281,7 @@ async function verifyMobileGameFlow(page) {
     '.action-panel',
   ]))
   issues.push(...await findTapTargetIssues(page, 'rolled game'))
+  issues.push(...await findAxeIssues(page, 'rolled game'))
 
   await page.click('.log-heading button')
   await page.waitForSelector('.rules-dialog[open]')
@@ -242,8 +291,264 @@ async function verifyMobileGameFlow(page) {
     '.rules-copy',
   ]))
   issues.push(...await findTapTargetIssues(page, 'rules dialog'))
+  issues.push(...await findAxeIssues(page, 'rules dialog'))
   await page.click('[aria-label="Close rules"]')
 
+  await page.evaluate(() => {
+    localStorage.setItem('zilch-browser-game-v1', JSON.stringify({
+      schemaVersion: 2,
+      settings: {
+        winningScore: 5000,
+        openingScore: 1000,
+        firstRollBust: true,
+        finalChase: true,
+        allowTies: true,
+        stealing: false,
+      },
+      players: [
+        { id: 'player-1', name: 'Player 1', kind: 'human', difficulty: null, score: 0, scoreReachedAt: 0 },
+        { id: 'player-2', name: 'Computer', kind: 'computer', difficulty: 'hard', score: 0, scoreReachedAt: 0 },
+      ],
+      currentPlayerIndex: 0,
+      nextPlayerIndex: null,
+      phase: 'selecting',
+      dice: [6, 1, 4, 6, 6, 3].map((value, index) => ({ id: 10 + index, value })),
+      diceInPlay: 6,
+      selectedDieIds: [],
+      turnScore: 0,
+      scoredMultiples: {},
+      rollNumber: 1,
+      bankSequence: 0,
+      eventSequence: 2,
+      message: 'Player 1 rolled. Choose scoring dice.',
+      events: [
+        { id: 2, text: 'Player 1 rolled. Choose scoring dice.', tone: 'neutral' },
+      ],
+      continuation: null,
+      endgame: null,
+      winnerIds: [],
+    }))
+  })
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.click('.resume-button')
+  await page.waitForSelector('.selection-actions')
+  await delay(600)
+  const diceContrastIssues = await page.evaluate(() => {
+    const issues = []
+    const available = [...document.querySelectorAll('.dice-grid .die.available')]
+    const muted = [...document.querySelectorAll('.dice-grid .die.muted')]
+    const total = document.querySelectorAll('.dice-grid .die').length
+    if (available.length !== 4 || muted.length !== 2 || total !== 6) {
+      issues.push(`scoring result: expected 4 available and 2 muted dice, found ${available.length} available, ${muted.length} muted, and ${total} total`)
+      return issues
+    }
+
+    const availableStyle = getComputedStyle(available[0])
+    const mutedStyle = getComputedStyle(muted[0])
+    if (availableStyle.opacity !== '1' || mutedStyle.opacity !== '1')
+      issues.push(`scoring result: die opacity must remain 1, found ${availableStyle.opacity} available and ${mutedStyle.opacity} muted`)
+    if (availableStyle.backgroundColor === mutedStyle.backgroundColor)
+      issues.push('scoring result: available and muted dice do not have distinct backgrounds')
+    if (getComputedStyle(available[0].querySelector('.pip')).backgroundColor
+      === getComputedStyle(muted[0].querySelector('.pip')).backgroundColor) {
+      issues.push('scoring result: available and muted dice do not have distinct pip colors')
+    }
+    return issues
+  })
+  issues.push(...diceContrastIssues)
+  issues.push(...await findAxeIssues(page, 'scoring result'))
+  await captureScreenshot(page, 'scoring-mobile.png')
+
+  await page.evaluate(() => {
+    localStorage.setItem('zilch-browser-game-v1', JSON.stringify({
+      schemaVersion: 2,
+      settings: {
+        winningScore: 5000,
+        openingScore: 1000,
+        firstRollBust: true,
+        finalChase: true,
+        allowTies: true,
+        stealing: false,
+      },
+      players: [
+        { id: 'player-1', name: 'Player 1', kind: 'human', difficulty: null, score: 0, scoreReachedAt: 0 },
+        { id: 'player-2', name: 'Computer', kind: 'computer', difficulty: 'hard', score: 0, scoreReachedAt: 0 },
+      ],
+      currentPlayerIndex: 0,
+      nextPlayerIndex: 1,
+      phase: 'bust',
+      dice: [2, 3, 3, 4, 4, 6].map((value, index) => ({ id: 10 + index, value })),
+      diceInPlay: 6,
+      selectedDieIds: [],
+      turnScore: 0,
+      scoredMultiples: {},
+      rollNumber: 1,
+      bankSequence: 0,
+      eventSequence: 2,
+      message: 'Bust! Player 1 rolled no scoring dice and lost the turn points.',
+      events: [
+        { id: 2, text: 'Bust! Player 1 rolled no scoring dice and lost the turn points.', tone: 'risk' },
+      ],
+      continuation: null,
+      endgame: null,
+      winnerIds: [],
+    }))
+  })
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.click('.resume-button')
+  await page.waitForSelector('.bust-actions')
+  await delay(600)
+  const bustStateIssues = await page.evaluate(() => {
+    const issues = []
+    if (document.querySelectorAll('.dice-grid .die').length !== 6)
+      issues.push('bust result: rolled dice are not all visible')
+    if (document.querySelectorAll('.dice-grid .die.muted').length !== 0)
+      issues.push('bust result: rolled dice are visually muted')
+    if ([...document.querySelectorAll('.dice-grid .die')]
+      .some(die => getComputedStyle(die).opacity !== '1')) {
+      issues.push('bust result: one or more rolled dice are translucent')
+    }
+    if (document.querySelector('.bust-action')?.textContent?.trim() !== 'Watch Computer play')
+      issues.push('bust result: next action is unclear')
+    return issues
+  })
+  issues.push(...bustStateIssues)
+  issues.push(...await findReflowIssues(page, 'bust result', [
+    '.play-layout',
+    '.felt-table',
+    '.dice-grid',
+    '.bust-actions',
+  ]))
+  issues.push(...await findTapTargetIssues(page, 'bust result'))
+  issues.push(...await findAxeIssues(page, 'bust result'))
+  await captureScreenshot(page, 'bust-mobile.png')
+
+  await page.evaluate(() => {
+    localStorage.setItem('zilch-browser-game-v1', JSON.stringify({
+      schemaVersion: 2,
+      settings: {
+        winningScore: 5000,
+        openingScore: 1000,
+        firstRollBust: true,
+        finalChase: true,
+        allowTies: true,
+        stealing: false,
+      },
+      players: [
+        { id: 'player-1', name: 'Alice', kind: 'human', difficulty: null, score: 1000, scoreReachedAt: 1 },
+        { id: 'player-2', name: 'You', kind: 'human', difficulty: null, score: 0, scoreReachedAt: 0 },
+      ],
+      currentPlayerIndex: 0,
+      nextPlayerIndex: 1,
+      phase: 'pass',
+      dice: [],
+      diceInPlay: 6,
+      selectedDieIds: [],
+      turnScore: 0,
+      scoredMultiples: {},
+      rollNumber: 1,
+      bankSequence: 1,
+      eventSequence: 2,
+      message: 'Alice banked 1,000 points.',
+      events: [
+        { id: 2, text: 'Alice banked 1,000 points.', tone: 'good' },
+      ],
+      continuation: null,
+      endgame: null,
+      winnerIds: [],
+    }))
+  })
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.click('.resume-button')
+  await page.waitForSelector('.phase-dialog')
+  await delay(50)
+  const passCopy = await page.evaluate(() => ({
+    action: document.querySelector('.phase-dialog button')?.textContent?.trim(),
+    title: document.querySelector('#pass-title')?.textContent?.trim(),
+  }))
+  if (passCopy.title !== 'You are up next')
+    issues.push(`pass result: expected "You are up next", found "${passCopy.title || 'nothing'}"`)
+  if (passCopy.action !== 'Start your turn')
+    issues.push(`pass result: expected "Start your turn", found "${passCopy.action || 'nothing'}"`)
+  await page.keyboard.down('Shift')
+  await page.keyboard.press('Tab')
+  await page.keyboard.up('Shift')
+  const focusStayedInDialog = await page.evaluate(() => {
+    const dialog = document.querySelector('.phase-dialog')
+    return dialog instanceof HTMLElement && dialog.contains(document.activeElement)
+  })
+  if (!focusStayedInDialog)
+    issues.push('pass result: reverse tab navigation escaped the modal turn handoff')
+  issues.push(...await findAxeIssues(page, 'pass result'))
+
+  await page.evaluate(() => {
+    localStorage.setItem('zilch-browser-game-v1', JSON.stringify({
+      schemaVersion: 2,
+      settings: {
+        winningScore: 5000,
+        openingScore: 1000,
+        firstRollBust: true,
+        finalChase: true,
+        allowTies: true,
+        stealing: false,
+      },
+      players: [
+        { id: 'player-1', name: 'You', kind: 'human', difficulty: null, score: 5000, scoreReachedAt: 1 },
+        { id: 'player-2', name: 'Computer', kind: 'computer', difficulty: 'medium', score: 4200, scoreReachedAt: 2 },
+      ],
+      currentPlayerIndex: 0,
+      nextPlayerIndex: null,
+      phase: 'finished',
+      dice: [],
+      diceInPlay: 6,
+      selectedDieIds: [],
+      turnScore: 0,
+      scoredMultiples: {},
+      rollNumber: 1,
+      bankSequence: 2,
+      eventSequence: 2,
+      message: 'You win with 5,000 points.',
+      events: [
+        { id: 2, text: 'You win with 5,000 points.', tone: 'special' },
+      ],
+      continuation: null,
+      endgame: { triggerPlayerId: 'player-1', remainingTurns: 0 },
+      winnerIds: ['player-1'],
+    }))
+  })
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.click('.resume-button')
+  await page.waitForSelector('#winner-title')
+  const winnerTitle = await page.$eval('#winner-title', element => element.textContent?.trim())
+  if (winnerTitle !== 'You win')
+    issues.push(`finished result: expected "You win", found "${winnerTitle || 'nothing'}"`)
+  issues.push(...await findAxeIssues(page, 'finished result'))
+
+  return issues
+}
+
+async function verifyMobileTips(page) {
+  const issues = await findReflowIssues(page, 'tips', [
+    '.tips-page',
+    '.site-header',
+    '.tips-main',
+    '.tips-hero',
+    '.hero-rule',
+    '.threshold-card',
+    '.strategy-grid',
+    '.variants',
+    '.evidence-card',
+    '.tips-cta',
+  ])
+  const facts = await page.evaluate(() => ({
+    heading: document.querySelector('#tips-title')?.textContent?.trim(),
+    rows: document.querySelectorAll('.threshold-card tbody tr').length,
+  }))
+  if (!facts.heading)
+    issues.push('tips: page heading is missing')
+  if (facts.rows !== 6)
+    issues.push(`tips: expected 6 dice-threshold rows, found ${facts.rows}`)
+  await captureScreenshot(page, 'tips-mobile.png')
   return issues
 }
 
@@ -275,7 +580,10 @@ async function analyzePage(browser, route, scheme, viewport) {
 
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 })
     await page.waitForNetworkIdle({ idleTime: 500, timeout: 8_000 }).catch(() => {})
-    await verifyHydratedSetup(page)
+    if (route === '/')
+      await verifyHydratedSetup(page)
+    else
+      await page.waitForSelector('#tips-title')
     await page.addScriptTag({ path: axeSourcePath })
     const result = await page.evaluate(async () => {
       return await globalThis.axe.run(document, {
@@ -287,7 +595,9 @@ async function analyzePage(browser, route, scheme, viewport) {
       })
     })
     const reflowIssues = viewport.name === mobileViewport.name
-      ? await verifyMobileGameFlow(page)
+      ? route === '/'
+        ? await verifyMobileGameFlow(page)
+        : await verifyMobileTips(page)
       : []
     return {
       url,

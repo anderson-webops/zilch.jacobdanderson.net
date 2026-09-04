@@ -82,10 +82,13 @@ onMounted(() => {
       <section>
         <h3>Computer play</h3>
         <p>
-          The computer uses a risk-aware heuristic adapted from the companion Zilch simulator. It weighs
-          the points at risk, dice remaining, the lead, and the winning score. It is a trained strategy,
-          not perfect play.
+          Easy uses a simple banking target. Medium responds to the scores and finish line. Hard uses the
+          strongest tested policies from the companion Zilch simulator, including a separate policy when
+          Stealing is on. These are tested strategies, not perfect play.
         </p>
+        <NuxtLink class="tips-link" to="/tips" @click="dialog?.close()">
+          Read the strategy guide
+        </NuxtLink>
       </section>
     </div>
   </dialog>
@@ -178,6 +181,16 @@ onMounted(() => {
   line-height: 1.65;
 }
 
+.tips-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  margin-top: 9px;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
 .rules-copy ol {
   padding-left: 20px;
 }
@@ -203,7 +216,7 @@ onMounted(() => {
 
 .score-list dd {
   padding-left: 14px;
-  color: var(--gold-dark);
+  color: var(--ink);
   font-weight: 850;
   text-align: right;
 }

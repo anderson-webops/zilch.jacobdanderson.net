@@ -1,8 +1,10 @@
 import type {
+  ComputerDifficulty,
   DieValue,
   GameEvent,
   GameSettings,
   GameState,
+  MultipleChains,
   PlayerDraft,
   SelectionResult,
 } from './types.ts'
@@ -22,9 +24,97 @@ export const defaultSettings: GameSettings = {
   stealing: false,
 }
 
+export const defaultComputerDifficulty: ComputerDifficulty = 'medium'
+
+export interface ComputerPolicy {
+  readonly name: string
+  readonly bankThresholdByDice: Readonly<Record<number, number>>
+  readonly scoreWeight: number
+  readonly remainingDiceWeight: number
+  readonly hotDiceWeight: number
+  readonly multipleWeight: number
+  readonly leadFactor: number
+  readonly trailFactor: number
+  readonly closingFactor: number
+  readonly rollBias: number
+}
+
+const easyComputerPolicy: ComputerPolicy = {
+  name: 'Easy',
+  bankThresholdByDice: { 1: 600, 2: 600, 3: 600, 4: 600, 5: 600, 6: 600 },
+  scoreWeight: 1,
+  remainingDiceWeight: 0,
+  hotDiceWeight: 0,
+  multipleWeight: 0,
+  leadFactor: 0,
+  trailFactor: 0,
+  closingFactor: 0,
+  rollBias: 0,
+}
+
+const mediumComputerPolicy: ComputerPolicy = {
+  name: 'Medium',
+  bankThresholdByDice: { 1: 350, 2: 500, 3: 700, 4: 850, 5: 1_000, 6: 1_150 },
+  scoreWeight: 1,
+  remainingDiceWeight: 55,
+  hotDiceWeight: 240,
+  multipleWeight: 95,
+  leadFactor: 0.08,
+  trailFactor: 0.1,
+  closingFactor: 0.25,
+  rollBias: 15,
+}
+
+/**
+ * The policy produced by the Computers vs Zilch self-play trainer. Keeping the
+ * complete policy here makes future simulator results a data-only update.
+ */
+export const simulationDerivedHardPolicy: ComputerPolicy = {
+  name: 'Hard',
+  bankThresholdByDice: { 1: 200, 2: 1_021, 3: 1_128, 4: 1_506, 5: 2_130, 6: 2_130 },
+  scoreWeight: 1.0045,
+  remainingDiceWeight: 36.0805,
+  hotDiceWeight: 354.561,
+  multipleWeight: 91.9329,
+  leadFactor: 0,
+  trailFactor: 0.293194,
+  closingFactor: 0.193316,
+  rollBias: 136.066,
+}
+
+/**
+ * The strongest holdout-tested policy trained with stealing enabled. Stealing
+ * materially changes the value of preserving dice, so Hard uses this complete
+ * policy whenever that house rule is active.
+ */
+export const simulationDerivedHardStealingPolicy: ComputerPolicy = {
+  name: 'Hard with stealing',
+  bankThresholdByDice: { 1: 313, 2: 313, 3: 1_106, 4: 1_360, 5: 1_360, 6: 1_376 },
+  scoreWeight: 0.88553,
+  remainingDiceWeight: 91.2663,
+  hotDiceWeight: 229.628,
+  multipleWeight: 94.2546,
+  leadFactor: 0,
+  trailFactor: 0.187935,
+  closingFactor: 0.20764,
+  rollBias: -26.2974,
+}
+
+export const computerPolicies: Readonly<Record<ComputerDifficulty, ComputerPolicy>> = {
+  easy: easyComputerPolicy,
+  medium: mediumComputerPolicy,
+  hard: simulationDerivedHardPolicy,
+}
+
+function computerPolicy(state: GameState, difficulty: ComputerDifficulty) {
+  return difficulty === 'hard' && state.settings.stealing
+    ? simulationDerivedHardStealingPolicy
+    : computerPolicies[difficulty]
+}
+
 export const defaultPlayers: PlayerDraft[] = [
-  { name: 'You', kind: 'human' },
-  { name: 'Computer', kind: 'computer' },
+  { name: 'Player 1', kind: 'human' },
+  { name: 'Computer', kind: 'computer', difficulty: defaultComputerDifficulty },
 ]
 
 function clone(state: GameState) {
@@ -33,6 +123,22 @@ function clone(state: GameState) {
 
 function currentPlayer(state: GameState) {
   return state.players[state.currentPlayerIndex]!
+}
+
+function isSecondPersonName(name: string) {
+  return name.trim().toLocaleLowerCase() === 'you'
+}
+
+function withPresentVerb(name: string, secondPersonVerb: string, thirdPersonVerb: string) {
+  return `${name} ${isSecondPersonName(name) ? secondPersonVerb : thirdPersonVerb}`
+}
+
+function possessiveName(name: string) {
+  return isSecondPersonName(name) ? 'your' : `${name}'s`
+}
+
+function turnOwner(name: string) {
+  return isSecondPersonName(name) ? 'Your' : `${name}'s`
 }
 
 function addEvent(state: GameState, text: string, tone: GameEvent['tone'] = 'neutral') {
@@ -61,6 +167,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
+function isComputerDifficulty(value: unknown): value is ComputerDifficulty {
+  return value === 'easy' || value === 'medium' || value === 'hard'
+}
+
 function isNonNegativeInteger(value: unknown): value is number {
   return Number.isSafeInteger(value) && Number(value) >= 0
 }
@@ -86,6 +196,9 @@ function isPlayer(value: unknown): value is GameState['players'][number] {
     && value.name.trim().length > 0
     && value.name.length <= 30
     && (value.kind === 'human' || value.kind === 'computer')
+    && (value.kind === 'human'
+      ? value.difficulty === null
+      : isComputerDifficulty(value.difficulty))
     && isNonNegativeInteger(value.score)
     && isNonNegativeInteger(value.scoreReachedAt)
 }
@@ -139,6 +252,7 @@ function isEndgame(value: unknown): value is NonNullable<GameState['endgame']> {
 function isGamePhase(value: unknown): value is GameState['phase'] {
   return value === 'ready'
     || value === 'selecting'
+    || value === 'bust'
     || value === 'pass'
     || value === 'steal'
     || value === 'finished'
@@ -146,7 +260,7 @@ function isGamePhase(value: unknown): value is GameState['phase'] {
 
 function isRestorableGameState(value: unknown): value is GameState {
   if (!isRecord(value)
-    || value.schemaVersion !== 1
+    || value.schemaVersion !== 2
     || !isGameSettings(value.settings)
     || !Array.isArray(value.players)
     || value.players.length < 1
@@ -187,8 +301,9 @@ function isRestorableGameState(value: unknown): value is GameState {
     && currentPlayerIndex < value.players.length
     && (value.nextPlayerIndex === null
       || (Number.isSafeInteger(value.nextPlayerIndex) && nextPlayerIndex! >= 0 && nextPlayerIndex! < value.players.length))
-    && (value.phase === 'pass' ? nextPlayerIndex !== null : nextPlayerIndex === null)
+    && (value.phase === 'pass' || value.phase === 'bust' ? nextPlayerIndex !== null : nextPlayerIndex === null)
     && (value.phase !== 'selecting' || value.dice.length > 0)
+    && (value.phase !== 'bust' || value.dice.length > 0)
     && (value.phase !== 'steal' || value.continuation !== null)
     && new Set(playerIds).size === playerIds.length
     && new Set(dieIds).size === dieIds.length
@@ -208,6 +323,11 @@ export function createGame(playerDrafts: PlayerDraft[], settings: GameSettings =
     throw new RangeError('Zilch supports between one and six players.')
   if (!playerDrafts.some(player => player.kind === 'human'))
     throw new RangeError('At least one human player is required.')
+  if (playerDrafts.some(player => player.kind === 'computer'
+    && player.difficulty !== undefined
+    && !isComputerDifficulty(player.difficulty))) {
+    throw new RangeError('Computer difficulty must be easy, medium, or hard.')
+  }
 
   const normalizedNames = playerDrafts.map((player, index) => player.name.trim().slice(0, 30) || `Player ${index + 1}`)
   if (new Set(normalizedNames.map(name => name.toLocaleLowerCase())).size !== normalizedNames.length)
@@ -217,12 +337,15 @@ export function createGame(playerDrafts: PlayerDraft[], settings: GameSettings =
     id: `player-${index + 1}`,
     name: normalizedNames[index]!,
     kind: player.kind,
+    difficulty: player.kind === 'computer'
+      ? player.difficulty ?? defaultComputerDifficulty
+      : null,
     score: 0,
     scoreReachedAt: 0,
   }))
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     settings: { ...settings },
     players,
     currentPlayerIndex: 0,
@@ -236,8 +359,12 @@ export function createGame(playerDrafts: PlayerDraft[], settings: GameSettings =
     rollNumber: 0,
     bankSequence: 0,
     eventSequence: 1,
-    message: `${players[0]!.name} starts. Roll all six dice.`,
-    events: [{ id: 1, text: `${players[0]!.name} starts. Roll all six dice.`, tone: 'neutral' }],
+    message: `${withPresentVerb(players[0]!.name, 'start', 'starts')}. Roll all six dice.`,
+    events: [{
+      id: 1,
+      text: `${withPresentVerb(players[0]!.name, 'start', 'starts')}. Roll all six dice.`,
+      tone: 'neutral',
+    }],
     continuation: null,
     endgame: null,
     winnerIds: [],
@@ -280,18 +407,18 @@ export function rollDice(state: GameState, random: () => number = Math.random, f
 
   if (isFirstRoll && next.settings.firstRollBust) {
     next.turnScore = 50
-    next.dice = []
     next.diceInPlay = 6
-    addEvent(next, 'First-roll Zilch: 50 points at risk and one fresh roll.', 'special')
+    addEvent(next, 'First-roll Zilch: this roll is a bust, but mercy puts 50 points at risk for one fresh roll.', 'special')
     return next
   }
 
   next.turnScore = 0
   next.scoredMultiples = {}
   next.continuation = null
-  next.dice = []
-  addEvent(next, `${player.name} zilched and lost the turn's points.`, 'risk')
-  return completeTurn(next, false)
+  next.nextPlayerIndex = (next.currentPlayerIndex + 1) % next.players.length
+  next.phase = 'bust'
+  addEvent(next, `Bust! ${player.name} rolled no scoring dice and lost the turn's points.`, 'risk')
+  return next
 }
 
 export function toggleDie(state: GameState, dieId: number) {
@@ -343,7 +470,8 @@ function applySelection(state: GameState) {
   }
   else {
     state.diceInPlay = remainingDice
-    addEvent(state, `${result.label} scored ${result.score.toLocaleString()}. ${remainingDice} dice remain.`, 'good')
+    const diceMessage = remainingDice === 1 ? '1 die remains' : `${remainingDice} dice remain`
+    addEvent(state, `${result.label} scored ${result.score.toLocaleString()}. ${diceMessage}.`, 'good')
   }
 
   state.phase = 'ready'
@@ -397,7 +525,7 @@ function finishGame(state: GameState) {
     state,
     winners.length > 1
       ? `${names} tie at ${highScore.toLocaleString()} points.`
-      : `${names} wins with ${highScore.toLocaleString()} points.`,
+      : `${withPresentVerb(names, 'win', 'wins')} with ${highScore.toLocaleString()} points.`,
     'special',
   )
   return state
@@ -486,14 +614,26 @@ export function acknowledgePass(state: GameState) {
 
   if (canSteal) {
     next.phase = 'steal'
-    addEvent(next, `${player.name} may continue ${next.continuation!.sourcePlayerName}'s banked turn.`, 'risk')
+    addEvent(next, `${player.name} may continue ${possessiveName(next.continuation!.sourcePlayerName)} banked turn.`, 'risk')
   }
   else {
     next.continuation = null
     next.phase = 'ready'
-    addEvent(next, `${player.name}'s turn. Roll all six dice.`, 'neutral')
+    addEvent(next, `${turnOwner(player.name)} turn. Roll all six dice.`, 'neutral')
   }
   return next
+}
+
+export function acknowledgeBust(state: GameState) {
+  if (state.phase !== 'bust')
+    return state
+
+  const next = clone(state)
+  next.nextPlayerIndex = null
+  next.dice = []
+  next.selectedDieIds = []
+  const completed = completeTurn(next, false)
+  return completed.phase === 'pass' ? acknowledgePass(completed) : completed
 }
 
 export function chooseSteal(state: GameState, accept: boolean) {
@@ -509,60 +649,249 @@ export function chooseSteal(state: GameState, accept: boolean) {
     next.turnScore = continuation.inheritedScore
     next.diceInPlay = continuation.diceInPlay
     next.scoredMultiples = { ...continuation.scoredMultiples }
-    addEvent(next, `${player.name} puts ${next.turnScore.toLocaleString()} inherited points at risk.`, 'risk')
+    addEvent(next, `${withPresentVerb(player.name, 'put', 'puts')} ${next.turnScore.toLocaleString()} inherited points at risk.`, 'risk')
   }
   else {
     next.turnScore = 0
     next.diceInPlay = 6
     next.scoredMultiples = {}
-    addEvent(next, `${player.name} declined the steal and starts fresh.`, 'neutral')
+    const freshVerb = isSecondPersonName(player.name) ? 'start' : 'starts'
+    addEvent(next, `${withPresentVerb(player.name, 'decline', 'declines')} the steal and ${freshVerb} fresh.`, 'neutral')
   }
   next.continuation = null
   next.phase = 'ready'
   return next
 }
 
+interface ComputerScoringOption {
+  dieIds: number[]
+  score: number
+  nextDiceCount: number
+  resetsToFullSet: boolean
+  isMultiple: boolean
+  extendsMultiple: boolean
+}
+
+function scoringOptions(dice: GameState['dice'], scoredMultiples: MultipleChains) {
+  const options: ComputerScoringOption[] = []
+  const allDieIds = dice.map(die => die.id)
+  const allDiceResult = scoreSelection(dice, allDieIds, scoredMultiples)
+  if (allDiceResult.valid && (allDiceResult.label === 'Straight' || allDiceResult.label === 'Three pairs')) {
+    options.push({
+      dieIds: allDieIds,
+      score: allDiceResult.score,
+      nextDiceCount: 6,
+      resetsToFullSet: true,
+      isMultiple: false,
+      extendsMultiple: false,
+    })
+  }
+
+  for (let value = 1 as DieValue; value <= 6; value = (value + 1) as DieValue) {
+    const matchingDice = dice.filter(die => die.value === value)
+    if (matchingDice.length === 0)
+      continue
+
+    const priorMultiple = scoredMultiples[value] ?? 0
+    const dieIds = priorMultiple >= 3 || matchingDice.length >= 3
+      ? matchingDice.map(die => die.id)
+      : value === 1 || value === 5
+        ? [matchingDice[0]!.id]
+        : []
+    if (dieIds.length === 0)
+      continue
+
+    const result = scoreSelection(dice, dieIds, scoredMultiples)
+    if (!result.valid)
+      continue
+
+    const resetsToFullSet = dieIds.length === dice.length
+    options.push({
+      dieIds,
+      score: result.score,
+      nextDiceCount: resetsToFullSet ? 6 : dice.length - dieIds.length,
+      resetsToFullSet,
+      isMultiple: Object.keys(result.multipleUpdates).length > 0,
+      extendsMultiple: Object.keys(result.multipleUpdates)
+        .some(face => (scoredMultiples[Number(face) as DieValue] ?? 0) >= 3),
+    })
+  }
+  return options
+}
+
+function optionUtility(option: ComputerScoringOption, policy: ComputerPolicy) {
+  let utility = policy.scoreWeight * option.score
+    + policy.remainingDiceWeight * option.nextDiceCount
+  if (option.resetsToFullSet)
+    utility += policy.hotDiceWeight
+  if (option.isMultiple)
+    utility += policy.multipleWeight
+  if (option.extendsMultiple)
+    utility += policy.multipleWeight * 0.5
+  return utility
+}
+
+function bestScoringOption(options: ComputerScoringOption[], policy: ComputerPolicy) {
+  return options.reduce((best, option) => (
+    optionUtility(option, policy) > optionUtility(best, policy) ? option : best
+  ))
+}
+
+export function recommendedComputerDieIds(state: GameState) {
+  const player = currentPlayer(state)
+  if (state.phase !== 'selecting' || player.kind !== 'computer')
+    return []
+  if (player.difficulty !== 'hard')
+    return recommendedDieIds(state.dice, state.scoredMultiples)
+
+  const policy = computerPolicy(state, 'hard')
+  let dice = [...state.dice]
+  let scoredMultiples = { ...state.scoredMultiples }
+  const selectedDieIds: number[] = []
+
+  while (dice.length > 0) {
+    const options = scoringOptions(dice, scoredMultiples)
+    if (options.length === 0)
+      break
+
+    const choice = bestScoringOption(options, policy)
+    selectedDieIds.push(...choice.dieIds)
+    const result = scoreSelection(dice, choice.dieIds, scoredMultiples)
+    scoredMultiples = { ...scoredMultiples, ...result.multipleUpdates }
+    dice = dice.filter(die => !choice.dieIds.includes(die.id))
+
+    if (dice.length === 0)
+      break
+    const remainingOptions = scoringOptions(dice, scoredMultiples)
+    if (remainingOptions.length === 0)
+      break
+    const bestContinuation = bestScoringOption(remainingOptions, policy)
+    const rollUtility = policy.rollBias + policy.remainingDiceWeight * dice.length
+    if (optionUtility(bestContinuation, policy) < rollUtility)
+      break
+  }
+
+  return selectedDieIds
+}
+
+export function selectComputerRecommended(state: GameState) {
+  if (state.phase !== 'selecting' || currentPlayer(state).kind !== 'computer')
+    return state
+  const next = clone(state)
+  next.selectedDieIds = recommendedComputerDieIds(next)
+  return next
+}
+
+function maxOpponentScore(state: GameState) {
+  const player = currentPlayer(state)
+  return Math.max(0, ...state.players
+    .filter(candidate => candidate.id !== player.id)
+    .map(candidate => candidate.score))
+}
+
+function endgameBankDecision(
+  state: GameState,
+  difficulty: ComputerDifficulty,
+  projected: number,
+  remainingDice: number,
+): boolean | null {
+  const player = currentPlayer(state)
+  const projectedTotal = player.score + projected
+  const opponentScore = maxOpponentScore(state)
+  const winningScore = state.settings.winningScore
+
+  if (state.endgame) {
+    const canTie = state.settings.allowTies && projectedTotal >= opponentScore
+    return canTie || projectedTotal > opponentScore
+  }
+
+  if (projectedTotal >= winningScore) {
+    if (!state.settings.finalChase || state.players.length === 1 || difficulty === 'easy')
+      return true
+
+    const opponentDistance = Math.max(0, winningScore - opponentScore)
+    const desiredBuffer = opponentDistance <= 500
+      ? 1_000
+      : opponentDistance <= 1_000
+        ? 500
+        : 0
+    if (desiredBuffer === 0 || projectedTotal >= winningScore + desiredBuffer)
+      return true
+
+    const minimumDiceToPress = difficulty === 'hard' ? 3 : 4
+    return remainingDice < minimumDiceToPress
+  }
+
+  if (!state.settings.finalChase || difficulty === 'easy')
+    return null
+
+  const distanceToTarget = winningScore - projectedTotal
+  if (distanceToTarget <= 150) {
+    if (projectedTotal - opponentScore >= 500)
+      return true
+    if (remainingDice >= 3)
+      return false
+  }
+
+  return null
+}
+
+function policyBankThreshold(state: GameState, policy: ComputerPolicy, projected: number, remainingDice: number) {
+  const player = currentPlayer(state)
+  let threshold = policy.bankThresholdByDice[remainingDice] ?? 700
+  const lead = player.score - maxOpponentScore(state)
+
+  if (lead > 0)
+    threshold -= lead * policy.leadFactor
+  else
+    threshold += -lead * policy.trailFactor
+
+  const distanceToWin = state.settings.winningScore - (player.score + projected)
+  const closingWindow = Math.max(0, 1_500 - Math.max(distanceToWin, 0))
+  threshold -= closingWindow * policy.closingFactor
+  return Math.min(state.settings.winningScore, Math.max(200, threshold))
+}
+
 export function shouldComputerBank(state: GameState) {
   if (!canBank(state))
     return false
+
   const player = currentPlayer(state)
+  const difficulty = player.kind === 'computer' && player.difficulty
+    ? player.difficulty
+    : defaultComputerDifficulty
   const result = selectionResult(state)
   const projected = state.turnScore + result.score
   const remainingDice = state.dice.length - result.selectedCount || 6
-  const projectedTotal = player.score + projected
-  if (projectedTotal >= state.settings.winningScore)
-    return true
+  const endgameDecision = endgameBankDecision(state, difficulty, projected, remainingDice)
+  if (endgameDecision !== null)
+    return endgameDecision
 
-  if (state.endgame) {
-    const leader = Math.max(...state.players.map(candidate => candidate.score))
-    if (projectedTotal > leader)
-      return true
-  }
-
-  const thresholds: Record<number, number> = {
-    1: 350,
-    2: 500,
-    3: 700,
-    4: 850,
-    5: 1_000,
-    6: 1_150,
-  }
-  const leader = Math.max(...state.players.map(candidate => candidate.score))
-  const adjustment = player.score >= leader ? -100 : 100
-  return projected >= (thresholds[remainingDice] ?? 700) + adjustment
+  return projected >= policyBankThreshold(state, computerPolicy(state, difficulty), projected, remainingDice)
 }
 
 export function shouldComputerSteal(state: GameState) {
   if (!state.continuation)
     return false
-  const thresholds: Record<number, number> = {
-    1: 350,
-    2: 500,
-    3: 700,
-    4: 850,
-    5: 1_000,
+
+  const player = currentPlayer(state)
+  const difficulty = player.kind === 'computer' && player.difficulty
+    ? player.difficulty
+    : defaultComputerDifficulty
+  const continuation = state.continuation
+  if (difficulty === 'easy')
+    return continuation.inheritedScore >= 600
+  if (difficulty === 'medium') {
+    const threshold = mediumComputerPolicy.bankThresholdByDice[continuation.diceInPlay] ?? 700
+    return continuation.inheritedScore >= threshold * 0.7
   }
-  return state.continuation.inheritedScore >= (thresholds[state.continuation.diceInPlay] ?? 700) * 0.7
+
+  const policy = computerPolicy(state, 'hard')
+  const continuationUtility = policy.scoreWeight * continuation.inheritedScore
+    + policy.remainingDiceWeight * continuation.diceInPlay
+    + policy.rollBias
+  const freshRollUtility = policy.remainingDiceWeight * 6
+  return continuationUtility >= freshRollUtility
 }
 
 export function currentSelection(state: GameState) {
@@ -588,9 +917,30 @@ export function projectedDiceRemaining(state: GameState) {
   return state.dice.length - result.selectedCount || 6
 }
 
+function migrateLegacyGameState(value: unknown): unknown {
+  if (!isRecord(value) || value.schemaVersion !== 1 || !Array.isArray(value.players))
+    return value
+
+  const migrated = structuredClone(value)
+  if (!isRecord(migrated) || !Array.isArray(migrated.players))
+    return value
+
+  migrated.schemaVersion = 2
+  migrated.players = migrated.players.map((player) => {
+    if (!isRecord(player))
+      return player
+    return {
+      ...player,
+      difficulty: player.kind === 'computer' ? defaultComputerDifficulty : null,
+    }
+  })
+  return migrated
+}
+
 export function restoreGame(value: unknown): GameState | null {
   try {
-    return isRestorableGameState(value) ? structuredClone(value) : null
+    const migrated = migrateLegacyGameState(value)
+    return isRestorableGameState(migrated) ? structuredClone(migrated) : null
   }
   catch {
     return null

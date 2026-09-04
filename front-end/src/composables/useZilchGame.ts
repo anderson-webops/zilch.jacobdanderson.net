@@ -1,5 +1,6 @@
 import type { DieValue, GameSettings, GameState, PlayerDraft } from '~/game/types'
 import {
+  acknowledgeBust,
   acknowledgePass,
   activePlayer,
   bankScore,
@@ -14,6 +15,7 @@ import {
   rollAgain,
   rollDice,
   scoringDieIds,
+  selectComputerRecommended,
   selectRecommended,
   shouldComputerBank,
   shouldComputerSteal,
@@ -23,7 +25,7 @@ import {
 const STORAGE_KEY = 'zilch-browser-game-v1'
 
 export function useZilchGame() {
-  const state = shallowRef<GameState | null>(null)
+  const state = useState<GameState | null>('zilch-active-game', () => null)
   const savedState = shallowRef<GameState | null>(null)
   const storageAvailable = shallowRef(true)
   const automationTimer = shallowRef<ReturnType<typeof setTimeout> | null>(null)
@@ -74,7 +76,7 @@ export function useZilchGame() {
   }
 
   function setState(next: GameState) {
-    state.value = next
+    state.value = markRaw(next)
     persist(next)
   }
 
@@ -84,7 +86,7 @@ export function useZilchGame() {
 
   function resumeGame() {
     if (savedState.value)
-      state.value = structuredClone(savedState.value)
+      state.value = markRaw(structuredClone(savedState.value))
   }
 
   function leaveGame() {
@@ -106,8 +108,11 @@ export function useZilchGame() {
   }
 
   function recommend() {
-    if (state.value)
-      setState(selectRecommended(state.value))
+    if (!state.value)
+      return
+    setState(activePlayer(state.value).kind === 'computer'
+      ? selectComputerRecommended(state.value)
+      : selectRecommended(state.value))
   }
 
   function continueRolling(forcedValues?: DieValue[]) {
@@ -121,8 +126,11 @@ export function useZilchGame() {
   }
 
   function pass() {
-    if (state.value)
-      setState(acknowledgePass(state.value))
+    if (!state.value)
+      return
+    setState(state.value.phase === 'bust'
+      ? acknowledgeBust(state.value)
+      : acknowledgePass(state.value))
   }
 
   function steal(accept: boolean) {
@@ -145,6 +153,11 @@ export function useZilchGame() {
 
     if (current.kind !== 'computer')
       return
+
+    if (next.phase === 'bust') {
+      automationTimer.value = setTimeout(pass, delay * 2)
+      return
+    }
 
     if (next.phase === 'ready') {
       automationTimer.value = setTimeout(roll, delay)
@@ -171,8 +184,10 @@ export function useZilchGame() {
 
   onMounted(() => {
     const storage = browserStorage()
-    if (!storage)
+    if (!storage) {
+      scheduleComputerTurn(state.value)
       return
+    }
 
     try {
       const raw = storage.getItem(STORAGE_KEY)
@@ -191,6 +206,7 @@ export function useZilchGame() {
       storageAvailable.value = false
       savedState.value = null
     }
+    scheduleComputerTurn(state.value)
   })
 
   watch(state, scheduleComputerTurn, { flush: 'post' })

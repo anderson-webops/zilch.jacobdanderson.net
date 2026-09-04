@@ -15,6 +15,7 @@ const paths = {
   directWorkflow: resolve(projectRoot, '.github/workflows/direct-release.yml'),
   frontendHealth: resolve(projectRoot, 'front-end/.output/public/healthz'),
   frontendIndex: resolve(projectRoot, 'front-end/.output/public/index.html'),
+  frontendTips: resolve(projectRoot, 'front-end/.output/public/tips/index.html'),
   netlifyConfig: resolve(projectRoot, 'netlify.toml'),
   netlifyFunction: resolve(projectRoot, 'netlify/functions/api.ts'),
 }
@@ -22,7 +23,7 @@ const paths = {
 for (const path of Object.values(paths))
   await access(path)
 
-const [apiApp, apiServer, directNginx, directSecurityHeaders, directInstall, directPrepare, directPromote, directService, directWorkflow, frontendHealth, frontendIndex, netlifyConfig] = await Promise.all([
+const [apiApp, apiServer, directNginx, directSecurityHeaders, directInstall, directPrepare, directPromote, directService, directWorkflow, frontendHealth, frontendIndex, frontendTips, netlifyConfig] = await Promise.all([
   readFile(paths.apiApp, 'utf8'),
   readFile(paths.apiServer, 'utf8'),
   readFile(paths.directNginx, 'utf8'),
@@ -34,6 +35,7 @@ const [apiApp, apiServer, directNginx, directSecurityHeaders, directInstall, dir
   readFile(paths.directWorkflow, 'utf8'),
   readFile(paths.frontendHealth, 'utf8'),
   readFile(paths.frontendIndex, 'utf8'),
+  readFile(paths.frontendTips, 'utf8'),
   readFile(paths.netlifyConfig, 'utf8'),
 ])
 
@@ -57,6 +59,8 @@ for (const tag of executableAssetTags)
   assert(/integrity=["']sha384-[a-z0-9+/=]+["']/i.test(tag), 'Every generated script and stylesheet must carry SHA-384 integrity')
 assert(!frontendIndex.includes('http://localhost:3006'), 'Generated HTML must not embed the local API origin')
 assert(!frontendIndex.includes('/api/pageview'), 'Generated HTML must not reference the removed mutable endpoint')
+assert(frontendTips.includes('https://zilch.jacobdanderson.net/tips/'), 'Generated Tips page must preserve its canonical route')
+assert(frontendTips.includes('Strategy tips'), 'Generated Tips page must contain the strategy content')
 assert(!apiApp.includes('startedAt') && !apiApp.includes('pageview'), 'Compiled API must not expose process timing or page-view state')
 assert(!apiApp.includes('sourceMappingURL') && !apiServer.includes('sourceMappingURL'), 'Production API output must not expose source maps')
 assert(/^User=zilch-site$/m.test(directService), 'Direct API service must use its dedicated unprivileged account')

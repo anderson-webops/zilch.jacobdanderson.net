@@ -27,10 +27,18 @@ const emit = defineEmits<{
 
 const currentPlayer = computed(() => props.state.players[props.state.currentPlayerIndex]!)
 const nextPlayer = computed(() => props.state.nextPlayerIndex === null ? null : props.state.players[props.state.nextPlayerIndex])
+const isSecondPerson = (name: string) => name.trim().toLocaleLowerCase() === 'you'
 const winnerNames = computed(() => props.state.players
   .filter(player => props.state.winnerIds.includes(player.id))
   .map(player => player.name)
   .join(' and '))
+const winnerTitle = computed(() => {
+  if (props.state.winnerIds.length > 1)
+    return `${winnerNames.value} tie`
+  return isSecondPerson(winnerNames.value)
+    ? 'You win'
+    : `${winnerNames.value} wins`
+})
 const highScore = computed(() => Math.max(...props.state.players.map(player => player.score)))
 const openingNeeded = computed(() => {
   if (currentPlayer.value.score >= props.state.settings.openingScore)
@@ -42,9 +50,63 @@ const rollButtonLabel = computed(() => {
     return 'Roll all six dice'
   return `Roll ${props.state.diceInPlay} ${props.state.diceInPlay === 1 ? 'die' : 'dice'}`
 })
+const hasRolledDice = computed(() => props.state.dice.length > 0
+  && ['ready', 'selecting', 'bust'].includes(props.state.phase))
+const isBustResult = computed(() => props.state.phase === 'bust'
+  || (props.state.phase === 'ready' && props.state.dice.length > 0 && props.state.rollNumber > 0))
+const bustEndsGame = computed(() => props.state.phase === 'bust'
+  && props.state.endgame !== null
+  && currentPlayer.value.id !== props.state.endgame.triggerPlayerId
+  && props.state.endgame.remainingTurns <= 1)
+const continuationTurnOwner = computed(() => {
+  const name = props.state.continuation?.sourcePlayerName ?? ''
+  return isSecondPerson(name) ? 'your' : `${name}'s`
+})
+const nextTurnTitle = computed(() => {
+  if (!nextPlayer.value)
+    return 'The next turn is ready'
+  return isSecondPerson(nextPlayer.value.name)
+    ? 'You are up next'
+    : `${nextPlayer.value.name} is up next`
+})
+const nextTurnAction = computed(() => {
+  if (bustEndsGame.value)
+    return 'Show final result'
+  if (!nextPlayer.value)
+    return 'Continue'
+  if (nextPlayer.value.kind === 'computer')
+    return `Watch ${nextPlayer.value.name} play`
+  return isSecondPerson(nextPlayer.value.name)
+    ? 'Start your turn'
+    : `Continue to ${nextPlayer.value.name}`
+})
 const progress = (score: number) => Math.min(100, (score / props.state.settings.winningScore) * 100)
 const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase()
+const titleCase = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
 const playLayout = useTemplateRef<HTMLElement>('playLayout')
+
+function trapDialogFocus(event: KeyboardEvent) {
+  const dialog = event.currentTarget as HTMLElement
+  const focusable = [...dialog.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])')]
+  const first = focusable[0]
+  const last = focusable.at(-1)
+  if (!first || !last)
+    return
+  if (document.activeElement === dialog) {
+    event.preventDefault()
+    const target = event.shiftKey ? last : first
+    target.focus()
+    return
+  }
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  }
+  else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
 
 async function focusCurrentPhase() {
   if (!import.meta.client)
@@ -64,6 +126,8 @@ async function focusCurrentPhase() {
     target = root.querySelector<HTMLButtonElement>('.dice-grid .die:not(:disabled)')
   else if (props.state.phase === 'ready' && currentPlayer.value.kind === 'human')
     target = root.querySelector<HTMLButtonElement>('.roll-button:not(:disabled)')
+  else if (props.state.phase === 'bust')
+    target = root.querySelector<HTMLButtonElement>('.bust-action')
   else if (props.state.phase === 'pass' || props.state.phase === 'finished')
     target = root.querySelector<HTMLElement>('.phase-dialog')
   else if (props.state.phase === 'steal' && currentPlayer.value.kind === 'human')
@@ -92,7 +156,7 @@ onMounted(focusCurrentPhase)
         <span v-if="state.endgame" class="chase-badge">Final chase</span>
       </div>
 
-      <ol>
+      <ol tabindex="0" aria-label="Player scores">
         <li
           v-for="(tablePlayer, index) in state.players"
           :key="tablePlayer.id"
@@ -101,7 +165,11 @@ onMounted(focusCurrentPhase)
           <span class="score-token" :class="`token-${index % 6}`">{{ initials(tablePlayer.name) }}</span>
           <span class="score-copy">
             <strong>{{ tablePlayer.name }}</strong>
-            <small>{{ tablePlayer.kind === 'computer' ? 'Computer' : index === state.currentPlayerIndex ? 'Current turn' : 'Player' }}</small>
+            <small>
+              {{ tablePlayer.kind === 'computer'
+                ? `${titleCase(tablePlayer.difficulty ?? 'medium')} computer`
+                : index === state.currentPlayerIndex ? 'Current turn' : 'Player' }}
+            </small>
           </span>
           <span class="score-total">{{ tablePlayer.score.toLocaleString() }}</span>
           <span class="score-progress" aria-hidden="true">
@@ -133,24 +201,39 @@ onMounted(focusCurrentPhase)
         </div>
       </div>
 
-      <div class="status-banner" :class="{ special: state.message.includes('Hot dice') || state.endgame }" role="status" aria-live="polite">
+      <div
+        class="status-banner"
+        :class="{
+          special: state.message.includes('Hot dice') || state.endgame,
+          bust: isBustResult,
+        }"
+        role="status"
+        aria-live="polite"
+      >
         <span class="status-dot" aria-hidden="true" />
         <span>{{ state.message }}</span>
       </div>
 
       <section class="dice-zone" aria-label="Dice table">
-        <div v-if="state.phase === 'selecting'" :key="state.rollNumber" class="dice-grid">
+        <div
+          v-if="hasRolledDice"
+          :key="`rolled-${state.rollNumber}`"
+          class="dice-grid"
+          :class="{ 'bust-dice': isBustResult }"
+          aria-hidden="false"
+        >
           <DieFace
             v-for="die in state.dice"
             :key="die.id"
             :die="die"
             :selected="state.selectedDieIds.includes(die.id)"
             :selectable="selectableIds.includes(die.id)"
-            :interactive="currentPlayer.kind === 'human'"
+            :interactive="state.phase === 'selecting' && currentPlayer.kind === 'human'"
+            :show-availability="state.phase === 'selecting'"
             @toggle="emit('toggle', $event)"
           />
         </div>
-        <div v-else class="waiting-dice" aria-hidden="true">
+        <div v-else key="waiting-dice" class="waiting-dice" aria-hidden="true">
           <span v-for="index in 6" :key="index" :class="{ hidden: index > state.diceInPlay }" />
         </div>
       </section>
@@ -161,7 +244,6 @@ onMounted(focusCurrentPhase)
           <strong>{{ state.turnScore ? `${state.turnScore.toLocaleString()} points are riding` : 'Ready to roll?' }}</strong>
         </div>
         <button class="roll-button" type="button" :disabled="currentPlayer.kind === 'computer'" @click="emit('roll')">
-          <span class="button-die" aria-hidden="true">⚄</span>
           {{ currentPlayer.kind === 'computer' ? 'Computer is thinking…' : rollButtonLabel }}
         </button>
       </section>
@@ -205,26 +287,39 @@ onMounted(focusCurrentPhase)
         </div>
       </section>
 
+      <section v-else-if="state.phase === 'bust'" class="action-panel bust-actions" aria-labelledby="bust-title">
+        <div>
+          <span class="action-label">Bust</span>
+          <strong id="bust-title">Zilch. Nothing scores.</strong>
+          <small>The roll stays on the table so you can see what happened. Any points at risk are lost.</small>
+        </div>
+        <button class="bust-action" type="button" @click="emit('pass')">
+          {{ nextTurnAction }}
+        </button>
+      </section>
+
       <div v-if="state.phase === 'pass'" class="table-overlay">
         <div
           class="overlay-card phase-dialog"
           role="dialog"
+          aria-modal="true"
           aria-labelledby="pass-title"
           aria-describedby="pass-description"
           tabindex="-1"
+          @keydown.tab="trapDialogFocus"
         >
           <span class="overlay-mark" aria-hidden="true">↗</span>
           <p class="eyebrow">
             Turn complete
           </p>
           <h2 id="pass-title">
-            {{ nextPlayer?.name }} is up next
+            {{ nextTurnTitle }}
           </h2>
           <p id="pass-description">
             {{ state.message }}
           </p>
           <button type="button" @click="emit('pass')">
-            {{ nextPlayer?.kind === 'computer' ? 'Watch the computer play' : `Pass the dice to ${nextPlayer?.name}` }}
+            {{ nextTurnAction }}
           </button>
         </div>
       </div>
@@ -233,9 +328,11 @@ onMounted(focusCurrentPhase)
         <div
           class="overlay-card phase-dialog steal-card"
           role="dialog"
+          aria-modal="true"
           aria-labelledby="steal-title"
           aria-describedby="steal-description"
           tabindex="-1"
+          @keydown.tab="trapDialogFocus"
         >
           <span class="overlay-mark" aria-hidden="true">⚡</span>
           <p class="eyebrow">
@@ -245,8 +342,9 @@ onMounted(focusCurrentPhase)
             {{ state.continuation.inheritedScore.toLocaleString() }} points are waiting
           </h2>
           <p id="steal-description">
-            Continue {{ state.continuation.sourcePlayerName }}'s turn with
-            {{ state.continuation.diceInPlay }} dice. Their bank is safe; these points become yours to risk.
+            Continue {{ continuationTurnOwner }} turn with
+            {{ state.continuation.diceInPlay }} {{ state.continuation.diceInPlay === 1 ? 'die' : 'dice' }}.
+            Their bank is safe; these points become yours to risk.
           </p>
           <div>
             <button class="fresh-button" type="button" :disabled="currentPlayer.kind === 'computer'" @click="emit('steal', false)">
@@ -263,16 +361,18 @@ onMounted(focusCurrentPhase)
         <div
           class="overlay-card phase-dialog"
           role="dialog"
+          aria-modal="true"
           aria-labelledby="winner-title"
           aria-describedby="winner-description"
           tabindex="-1"
+          @keydown.tab="trapDialogFocus"
         >
           <span class="winner-dice" aria-hidden="true">⚄ ⚀</span>
           <p class="eyebrow">
             Game over
           </p>
           <h2 id="winner-title">
-            {{ winnerNames }} {{ state.winnerIds.length > 1 ? 'tie' : 'wins' }}
+            {{ winnerTitle }}
           </h2>
           <p id="winner-description">
             Final high score: {{ highScore.toLocaleString() }} points.
@@ -361,6 +461,11 @@ onMounted(focusCurrentPhase)
   padding: 0;
   margin: 18px 0 0;
   list-style: none;
+}
+
+.scoreboard ol:focus-visible {
+  outline: 3px solid var(--focus-on-light);
+  outline-offset: 3px;
 }
 
 .scoreboard li {
@@ -565,6 +670,18 @@ onMounted(focusCurrentPhase)
   border-color: rgb(231 173 74 / 35%);
 }
 
+.status-banner.bust {
+  color: #fff3ee;
+  background: rgb(169 66 47 / 35%);
+  border-color: rgb(255 154 130 / 50%);
+  font-weight: 750;
+}
+
+.status-banner.bust .status-dot {
+  background: var(--coral-on-dark);
+  box-shadow: 0 0 0 4px rgb(255 154 130 / 16%);
+}
+
 .status-banner > span:last-child {
   min-width: 0;
   overflow-wrap: anywhere;
@@ -601,6 +718,13 @@ onMounted(focusCurrentPhase)
 .dice-grid > :nth-child(3),
 .dice-grid > :nth-child(6) {
   animation-delay: 90ms;
+}
+
+.bust-dice {
+  padding: 12px;
+  border: 1px solid rgb(255 154 130 / 24%);
+  border-radius: 24px;
+  box-shadow: 0 0 46px rgb(169 66 47 / 18%);
 }
 
 .waiting-dice {
@@ -665,6 +789,7 @@ onMounted(focusCurrentPhase)
 }
 
 .roll-button,
+.bust-action,
 .overlay-card > button,
 .steal-card > div button {
   padding: 14px 18px;
@@ -676,15 +801,25 @@ onMounted(focusCurrentPhase)
   font-weight: 850;
 }
 
+.bust-actions {
+  border-color: rgb(255 154 130 / 34%);
+  box-shadow: inset 4px 0 0 var(--coral-on-dark);
+}
+
+.bust-actions .action-label {
+  color: var(--coral-on-dark);
+}
+
+.bust-actions .bust-action {
+  min-width: min(230px, 44%);
+  min-height: 54px;
+}
+
 .roll-button:disabled,
 .selection-actions button:disabled,
 .steal-card button:disabled {
   cursor: wait;
   opacity: 0.5;
-}
-
-.button-die {
-  margin-right: 5px;
 }
 
 .selection-summary {
@@ -990,6 +1125,11 @@ onMounted(focusCurrentPhase)
 
   .ready-actions {
     text-align: center;
+  }
+
+  .bust-actions .bust-action {
+    width: 100%;
+    min-width: 0;
   }
 
   .decision-buttons {

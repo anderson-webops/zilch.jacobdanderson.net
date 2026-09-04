@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import type { Die } from '~/game/types'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   die: Die
   selected: boolean
   selectable: boolean
   interactive: boolean
-}>()
+  showAvailability?: boolean
+}>(), {
+  showAvailability: true,
+})
 
 const emit = defineEmits<{
   toggle: [dieId: number]
@@ -25,6 +28,8 @@ const label = computed(() => {
   let state = 'not a scoring die'
   if (props.selected)
     state = 'selected'
+  else if (!props.showAvailability)
+    state = 'roll result'
   else if (!props.interactive)
     state = 'computer is choosing'
   else if (props.selectable)
@@ -36,7 +41,12 @@ const label = computed(() => {
 <template>
   <button
     class="die"
-    :class="{ selected, muted: !selectable, locked: !interactive }"
+    :class="{
+      selected,
+      available: showAvailability && selectable && !selected,
+      muted: showAvailability && !selectable,
+      locked: !interactive,
+    }"
     type="button"
     :aria-label="label"
     :aria-pressed="selected"
@@ -76,6 +86,10 @@ const label = computed(() => {
     box-shadow 160ms ease,
     opacity 160ms ease,
     border-color 160ms ease;
+  -webkit-appearance: none;
+  appearance: none;
+  opacity: 1;
+  -webkit-text-fill-color: currentcolor;
 }
 
 .die:hover:not(:disabled) {
@@ -91,9 +105,34 @@ const label = computed(() => {
   transform: translateY(5px);
 }
 
+.die.available {
+  background: #fffef9;
+  border-color: rgb(242 197 103 / 68%);
+  box-shadow:
+    0 8px 0 #d7c9ae,
+    0 16px 22px rgb(0 0 0 / 22%),
+    0 0 0 4px rgb(242 197 103 / 14%);
+}
+
+.die:disabled {
+  color: var(--ink);
+  opacity: 1;
+  -webkit-text-fill-color: currentcolor;
+}
+
 .die.muted {
   cursor: not-allowed;
-  opacity: 0.42;
+  background: rgb(255 253 246 / 22%);
+  border-color: rgb(255 255 255 / 8%);
+  box-shadow:
+    0 7px 0 rgb(215 201 174 / 18%),
+    0 13px 18px rgb(0 0 0 / 12%);
+  opacity: 1;
+}
+
+.die.muted .pip {
+  background: rgb(248 243 231 / 30%);
+  box-shadow: none;
 }
 
 .die.locked {

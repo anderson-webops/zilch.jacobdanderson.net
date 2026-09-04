@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { GameSettings, PlayerDraft } from '~/game/types'
+import type { ComputerDifficulty, GameSettings, PlayerDraft } from '~/game/types'
 import { defaultSettings } from '~/game/engine'
 
 defineProps<{
@@ -15,8 +15,9 @@ const emit = defineEmits<{
 const mode = ref<'computer' | 'local'>('computer')
 const playerCount = ref(2)
 const localNames = ref(['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5', 'Player 6'])
-const humanName = ref('You')
+const humanName = ref('Player 1')
 const computerName = ref('Computer')
+const computerDifficulty = ref<ComputerDifficulty>('medium')
 const winningScore = ref(defaultSettings.winningScore)
 const openingScore = ref(defaultSettings.openingScore)
 const firstRollBust = ref(defaultSettings.firstRollBust)
@@ -27,6 +28,12 @@ const error = ref('')
 const submitted = ref(false)
 const setupForm = useTemplateRef<HTMLFormElement>('setupForm')
 
+const difficultyHelp: Record<ComputerDifficulty, string> = {
+  easy: 'Banks at a simple, forgiving target while still recognizing a chance to win.',
+  medium: 'Adjusts its risk to the score, the leader, and the finish line.',
+  hard: 'Uses the strongest risk thresholds found by the Zilch simulations.',
+}
+
 watch(winningScore, (value) => {
   if (openingScore.value > value)
     openingScore.value = value
@@ -36,7 +43,7 @@ const players = computed<PlayerDraft[]>(() => {
   if (mode.value === 'computer') {
     return [
       { name: humanName.value, kind: 'human' },
-      { name: computerName.value, kind: 'computer' },
+      { name: computerName.value, kind: 'computer', difficulty: computerDifficulty.value },
     ]
   }
   return localNames.value.slice(0, playerCount.value).map(name => ({ name, kind: 'human' as const }))
@@ -135,7 +142,7 @@ async function submit() {
 
     <div v-if="mode === 'computer'" class="players-list">
       <label class="player-row">
-        <span class="player-token player-token-one">Y</span>
+        <span class="player-token player-token-one">P1</span>
         <span class="field-copy">Your name</span>
         <input
           v-model="humanName"
@@ -158,7 +165,18 @@ async function submit() {
           :aria-invalid="isNameInvalid(1)"
           :aria-describedby="isNameInvalid(1) ? 'setup-error' : undefined"
         >
-        <span class="player-kind">Computer</span>
+        <span class="player-kind">{{ computerDifficulty }} computer</span>
+      </label>
+      <label class="difficulty-setting">
+        <span>
+          <strong>Computer difficulty</strong>
+          <small id="difficulty-help" aria-live="polite">{{ difficultyHelp[computerDifficulty] }}</small>
+        </span>
+        <select v-model="computerDifficulty" aria-label="Computer difficulty" aria-describedby="difficulty-help">
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
       </label>
     </div>
 
@@ -400,7 +418,8 @@ fieldset {
 
 .player-row input,
 .name-grid input,
-.score-settings select {
+.score-settings select,
+.difficulty-setting select {
   min-width: 0;
   color: var(--ink);
   background: rgb(255 255 255 / 62%);
@@ -421,11 +440,43 @@ fieldset {
 }
 
 .player-kind {
-  width: 66px;
+  width: 104px;
   color: var(--muted-ink);
   font-size: 0.66rem;
   font-weight: 750;
   text-align: right;
+  text-transform: capitalize;
+}
+
+.difficulty-setting {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(112px, 0.38fr);
+  gap: 14px;
+  align-items: center;
+  padding: 12px 0 14px;
+  border-top: 1px solid var(--line);
+}
+
+.difficulty-setting strong,
+.difficulty-setting small {
+  display: block;
+}
+
+.difficulty-setting strong {
+  font-size: 0.78rem;
+}
+
+.difficulty-setting small {
+  margin-top: 3px;
+  color: var(--muted-ink);
+  font-size: 0.66rem;
+  line-height: 1.4;
+}
+
+.difficulty-setting select {
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 10px;
 }
 
 .count-control {
@@ -599,8 +650,14 @@ fieldset {
 
   .player-row input,
   .name-grid input,
-  .score-settings select {
+  .score-settings select,
+  .difficulty-setting select {
     font-size: 1rem;
+  }
+
+  .difficulty-setting {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 }
 </style>

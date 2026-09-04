@@ -52,6 +52,9 @@ function confirmNewGame() {
         <button v-if="state" class="header-link" type="button" @click="requestNewGame">
           New game
         </button>
+        <NuxtLink class="header-link tips-link" to="/tips">
+          Tips
+        </NuxtLink>
         <button class="quiet-button" type="button" @click="rulesOpen = true">
           How to play
         </button>
@@ -166,7 +169,9 @@ function confirmNewGame() {
 }
 
 .header-link {
+  display: inline-flex;
   min-height: 44px;
+  align-items: center;
   padding: 10px 0;
   color: var(--muted-ink);
   background: transparent;
@@ -174,6 +179,7 @@ function confirmNewGame() {
   cursor: pointer;
   font-size: 0.78rem;
   font-weight: 750;
+  text-decoration: none;
 }
 
 .game-page.playing {
@@ -243,6 +249,10 @@ function confirmNewGame() {
 
   .header-link {
     display: none;
+  }
+
+  .tips-link {
+    display: inline-flex;
   }
 }
 </style>

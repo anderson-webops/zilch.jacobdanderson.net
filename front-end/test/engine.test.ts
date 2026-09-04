@@ -4,16 +4,22 @@ import assert from 'node:assert/strict'
 
 import test from 'node:test'
 import {
+  acknowledgeBust,
   acknowledgePass,
   bankScore,
   canBank,
   chooseSteal,
   createGame,
+  defaultComputerDifficulty,
   defaultSettings,
+  recommendedComputerDieIds,
   restoreGame,
   rollAgain,
   rollDice,
+  selectComputerRecommended,
   selectRecommended,
+  shouldComputerBank,
+  shouldComputerSteal,
   toggleDie,
 } from '../src/game/engine.ts'
 
@@ -36,6 +42,23 @@ test('uses the shared Zilch defaults', () => {
   assert.equal(game.players.length, 2)
   assert.equal(game.diceInPlay, 6)
   assert.deepEqual(game.settings, defaultSettings)
+  assert.equal(game.schemaVersion, 2)
+  assert.ok(game.players.every(player => player.difficulty === null))
+})
+
+test('persists explicit computer difficulty and defaults omitted difficulty to medium', () => {
+  const hardGame = createGame([
+    { name: 'Computer', kind: 'computer', difficulty: 'hard' },
+    { name: 'Alice', kind: 'human' },
+  ])
+  const defaultGame = createGame([
+    { name: 'Computer', kind: 'computer' },
+    { name: 'Alice', kind: 'human' },
+  ])
+
+  assert.equal(hardGame.players[0]!.difficulty, 'hard')
+  assert.equal(hardGame.players[1]!.difficulty, null)
+  assert.equal(defaultGame.players[0]!.difficulty, defaultComputerDifficulty)
 })
 
 test('computer turns reject human die-selection input at the engine boundary', () => {
@@ -67,11 +90,29 @@ test('saved games restore only after the complete state shape is validated', () 
   for (const validState of [game, selecting, passing, stealing, finished])
     assert.deepEqual(restoreGame(validState), validState)
 
+  const legacy = JSON.parse(JSON.stringify(game)) as Record<string, unknown>
+  legacy.schemaVersion = 1
+  for (const player of legacy.players as Array<Record<string, unknown>>)
+    delete player.difficulty
+  const migrated = restoreGame(legacy)
+  assert.equal(migrated?.schemaVersion, 2)
+  assert.deepEqual(migrated?.players.map(player => player.difficulty), [null, null])
+
+  const legacyComputer = JSON.parse(JSON.stringify(createGame([
+    { name: 'Computer', kind: 'computer', difficulty: 'hard' },
+    { name: 'Alice', kind: 'human' },
+  ]))) as Record<string, unknown>
+  legacyComputer.schemaVersion = 1
+  for (const player of legacyComputer.players as Array<Record<string, unknown>>)
+    delete player.difficulty
+  assert.equal(restoreGame(legacyComputer)?.players[0]!.difficulty, defaultComputerDifficulty)
+
   const malformedStates = [
     { ...game, currentPlayerIndex: 9 },
     { ...game, phase: 'selecting', dice: [] },
     { ...game, selectedDieIds: [999] },
     { ...game, players: [{ ...game.players[0], kind: 'robot' }] },
+    { ...game, players: [{ ...game.players[0], difficulty: 'impossible' }] },
     { ...game, settings: { ...game.settings, finalChase: 'yes' } },
   ]
 
@@ -83,10 +124,19 @@ test('first-roll mercy awards 50 at-risk points once, then a later Zilch busts',
   const firstZilch = roll([2, 2, 3, 3, 4, 6])
   assert.equal(firstZilch.phase, 'ready')
   assert.equal(firstZilch.turnScore, 50)
+  assert.deepEqual(firstZilch.dice.map(die => die.value), [2, 2, 3, 3, 4, 6])
 
   const laterZilch = rollDice(firstZilch, Math.random, [2, 2, 3, 3, 4, 6])
-  assert.equal(laterZilch.phase, 'pass')
+  assert.equal(laterZilch.phase, 'bust')
   assert.equal(laterZilch.turnScore, 0)
+  assert.deepEqual(laterZilch.dice.map(die => die.value), [2, 2, 3, 3, 4, 6])
+  assert.equal(laterZilch.nextPlayerIndex, 1)
+  assert.match(laterZilch.message, /^Bust!/)
+
+  const nextTurn = acknowledgeBust(laterZilch)
+  assert.equal(nextTurn.phase, 'ready')
+  assert.equal(nextTurn.currentPlayerIndex, 1)
+  assert.deepEqual(nextTurn.dice, [])
 })
 
 test('an unopened player must reach the opening score before banking', () => {
@@ -120,8 +170,13 @@ test('Final Chase gives every other player exactly one last turn', () => {
 
   const finalTurn = acknowledgePass(trigger)
   const finalBust = rollDice(finalTurn, Math.random, [2, 2, 3, 3, 4, 6])
-  assert.equal(finalBust.phase, 'finished')
-  assert.deepEqual(finalBust.winnerIds, ['player-1'])
+  assert.equal(finalBust.phase, 'bust')
+  assert.equal(finalBust.endgame?.remainingTurns, 1)
+
+  const finished = acknowledgeBust(finalBust)
+  assert.equal(finished.phase, 'finished')
+  assert.equal(finished.endgame?.remainingTurns, 0)
+  assert.deepEqual(finished.winnerIds, ['player-1'])
 })
 
 test('Final Chase wraps from a middle-seat trigger and preserves turn order', () => {
@@ -136,7 +191,7 @@ test('Final Chase wraps from a middle-seat trigger and preserves turn order', ()
     { name: 'Carol', kind: 'human' as const },
   ]
 
-  const bobTurn = acknowledgePass(rollDice(
+  const bobTurn = acknowledgeBust(rollDice(
     createGame(players, gameSettings),
     Math.random,
     [2, 2, 3, 3, 4, 6],
@@ -152,14 +207,17 @@ test('Final Chase wraps from a middle-seat trigger and preserves turn order', ()
   assert.deepEqual(trigger.endgame, { triggerPlayerId: 'player-2', remainingTurns: 2 })
 
   const carolTurn = acknowledgePass(trigger)
-  const afterCarol = rollDice(carolTurn, Math.random, [2, 2, 3, 3, 4, 6])
-  assert.equal(afterCarol.phase, 'pass')
-  assert.equal(afterCarol.currentPlayerIndex, 2)
-  assert.equal(afterCarol.nextPlayerIndex, 0)
-  assert.equal(afterCarol.endgame?.remainingTurns, 1)
+  const carolBust = rollDice(carolTurn, Math.random, [2, 2, 3, 3, 4, 6])
+  assert.equal(carolBust.phase, 'bust')
+  assert.equal(carolBust.currentPlayerIndex, 2)
+  assert.equal(carolBust.nextPlayerIndex, 0)
+  assert.equal(carolBust.endgame?.remainingTurns, 2)
 
-  const aliceTurn = acknowledgePass(afterCarol)
-  const finished = rollDice(aliceTurn, Math.random, [2, 2, 3, 3, 4, 6])
+  const aliceTurn = acknowledgeBust(carolBust)
+  assert.equal(aliceTurn.endgame?.remainingTurns, 1)
+  const aliceBust = rollDice(aliceTurn, Math.random, [2, 2, 3, 3, 4, 6])
+  assert.equal(aliceBust.phase, 'bust')
+  const finished = acknowledgeBust(aliceBust)
   assert.equal(finished.phase, 'finished')
   assert.equal(finished.currentPlayerIndex, 0)
   assert.equal(finished.endgame?.remainingTurns, 0)
@@ -265,10 +323,11 @@ test('a bust during a stolen turn loses the inherited score without first-roll m
   const accepted = chooseSteal(acknowledgePass(bankScore(partial)), true)
   const busted = rollDice(accepted, Math.random, [2, 2, 3, 4, 6])
 
-  assert.equal(busted.phase, 'pass')
+  assert.equal(busted.phase, 'bust')
   assert.equal(busted.turnScore, 0)
   assert.equal(busted.continuation, null)
-  assert.match(busted.message, /zilched and lost/i)
+  assert.deepEqual(busted.dice.map(die => die.value), [2, 2, 3, 4, 6])
+  assert.match(busted.message, /bust/i)
 })
 
 test('hot dice end a stolen continuation without creating another offer', () => {
@@ -283,4 +342,174 @@ test('hot dice end a stolen continuation without creating another offer', () => 
   assert.equal(banked.players[1]!.score, 2_400)
   assert.equal(banked.continuation, null)
   assert.equal(banked.phase, 'pass')
+})
+
+test('hard computer selection ports the trained policy option utility', () => {
+  const hard = rollDice(createGame([
+    { name: 'Computer', kind: 'computer', difficulty: 'hard' },
+    { name: 'Alice', kind: 'human' },
+  ], settings({ openingScore: 0 })), Math.random, [1, 5, 2, 2, 3, 4])
+  const medium = rollDice(createGame([
+    { name: 'Computer', kind: 'computer', difficulty: 'medium' },
+    { name: 'Alice', kind: 'human' },
+  ], settings({ openingScore: 0 })), Math.random, [1, 5, 2, 2, 3, 4])
+
+  const hardIds = recommendedComputerDieIds(hard)
+  assert.deepEqual(hard.dice.filter(die => hardIds.includes(die.id)).map(die => die.value), [1])
+
+  const mediumSelected = selectComputerRecommended(medium)
+  assert.deepEqual(
+    mediumSelected.dice
+      .filter(die => mediumSelected.selectedDieIds.includes(die.id))
+      .map(die => die.value),
+    [1, 5],
+  )
+})
+
+test('hard switches to the stealing-trained scoring policy when stealing is on', () => {
+  function selectedValues(stealing: boolean) {
+    const selected = selectComputerRecommended(rollDice(createGame([
+      { name: 'Computer', kind: 'computer', difficulty: 'hard' },
+      { name: 'Alice', kind: 'human' },
+    ], settings({ openingScore: 0, stealing })), Math.random, [2, 2, 2, 1, 3, 4]))
+    return selected.dice
+      .filter(die => selected.selectedDieIds.includes(die.id))
+      .map(die => die.value)
+  }
+
+  assert.deepEqual(selectedValues(false), [2, 2, 2])
+  assert.deepEqual(selectedValues(true), [2, 2, 2, 1])
+})
+
+test('hard switches bank thresholds with the stealing-trained policy', () => {
+  function bankDecision(stealing: boolean) {
+    const game = createGame([
+      { name: 'Computer', kind: 'computer', difficulty: 'hard' },
+      { name: 'Alice', kind: 'human' },
+    ], settings({ openingScore: 0, stealing }))
+    game.diceInPlay = 4
+    const rolled = rollDice(game, Math.random, [1, 5, 2, 3])
+    rolled.selectedDieIds = rolled.dice
+      .filter(die => die.value === 1 || die.value === 5)
+      .map(die => die.id)
+    rolled.turnScore = 650
+    return shouldComputerBank(rolled)
+  }
+
+  assert.equal(bankDecision(false), false)
+  assert.equal(bankDecision(true), true)
+})
+
+test('hard steal acceptance follows the stealing-trained utility cutoffs', () => {
+  const game = createGame([
+    { name: 'Computer', kind: 'computer', difficulty: 'hard' },
+    { name: 'Alice', kind: 'human' },
+  ], settings({ openingScore: 0, stealing: true }))
+  const minimumByDice = new Map([
+    [1, 550],
+    [2, 450],
+    [3, 350],
+    [4, 250],
+    [5, 150],
+  ])
+
+  for (const [diceInPlay, minimum] of minimumByDice) {
+    game.continuation = {
+      sourcePlayerId: 'player-2',
+      sourcePlayerName: 'Alice',
+      inheritedScore: minimum - 50,
+      diceInPlay,
+      scoredMultiples: {},
+    }
+    assert.equal(shouldComputerSteal(game), false)
+    game.continuation.inheritedScore = minimum
+    assert.equal(shouldComputerSteal(game), true)
+  }
+})
+
+test('easy banks at a simple threshold while hard uses the trained dice threshold', () => {
+  const easy = selectComputerRecommended(rollDice(createGame([
+    { name: 'Computer', kind: 'computer', difficulty: 'easy' },
+    { name: 'Alice', kind: 'human' },
+  ], settings({ openingScore: 0 })), Math.random, [2, 2, 2, 3, 4, 6]))
+  const hard = selectComputerRecommended(rollDice(createGame([
+    { name: 'Computer', kind: 'computer', difficulty: 'hard' },
+    { name: 'Alice', kind: 'human' },
+  ], settings({ openingScore: 0 })), Math.random, [2, 2, 2, 3, 4, 6]))
+  easy.turnScore = 400
+  hard.turnScore = 400
+
+  assert.equal(shouldComputerBank(easy), true)
+  assert.equal(shouldComputerBank(hard), false)
+})
+
+test('medium stages below the target when safe and builds a buffer against a close opponent', () => {
+  function mediumDecision(playerScore: number, opponentScore: number, turnScore = 0) {
+    const game = createGame([
+      { name: 'Computer', kind: 'computer', difficulty: 'medium' },
+      { name: 'Alice', kind: 'human' },
+    ], settings({ openingScore: 0, winningScore: 5_000, finalChase: true }))
+    game.players[0]!.score = playerScore
+    game.players[1]!.score = opponentScore
+    game.turnScore = turnScore
+    return shouldComputerBank(selectComputerRecommended(rollDice(
+      game,
+      Math.random,
+      [1, 2, 2, 3, 4, 6],
+    )))
+  }
+
+  assert.equal(mediumDecision(4_800, 3_500), true)
+  assert.equal(mediumDecision(4_800, 4_700), false)
+  assert.equal(mediumDecision(4_900, 4_700), false)
+  assert.equal(mediumDecision(4_900, 4_700, 1_000), true)
+})
+
+test('a computer in Final Chase keeps rolling until it can tie or beat the leader', () => {
+  const game = createGame([
+    { name: 'Computer', kind: 'computer', difficulty: 'hard' },
+    { name: 'Alice', kind: 'human' },
+  ], settings({ openingScore: 0, winningScore: 5_000, finalChase: true, allowTies: true }))
+  game.players[0]!.score = 4_900
+  game.players[1]!.score = 5_500
+  game.turnScore = 500
+  game.endgame = { triggerPlayerId: 'player-2', remainingTurns: 1 }
+  const tied = selectComputerRecommended(rollDice(game, Math.random, [1, 2, 2, 3, 4, 6]))
+
+  assert.equal(shouldComputerBank(tied), true)
+  tied.settings.allowTies = false
+  assert.equal(shouldComputerBank(tied), false)
+  tied.turnScore += 50
+  assert.equal(shouldComputerBank(tied), true)
+})
+
+test('messages remain grammatical when a player chooses the legacy name You', () => {
+  const start = createGame([{ name: 'You', kind: 'human' }], settings({
+    openingScore: 0,
+    winningScore: 1_000,
+    finalChase: false,
+  }))
+  assert.equal(start.message, 'You start. Roll all six dice.')
+
+  const finished = bankScore(selectRecommended(rollDice(start, Math.random, [1, 1, 1, 2, 3, 4])))
+  assert.equal(finished.message, 'You win with 1,000 points.')
+
+  const passToYou = acknowledgeBust(rollDice(createGame([
+    { name: 'Alice', kind: 'human' },
+    { name: 'You', kind: 'human' },
+  ], settings({ firstRollBust: false })), Math.random, [2, 2, 3, 3, 4, 6]))
+  assert.equal(passToYou.message, 'Your turn. Roll all six dice.')
+
+  const stealingGame = createGame([
+    { name: 'Alice', kind: 'human' },
+    { name: 'You', kind: 'human' },
+  ], settings({ openingScore: 0, stealing: true }))
+  stealingGame.players[1]!.score = 1_000
+  const offer = acknowledgePass(bankScore(selectRecommended(rollDice(
+    stealingGame,
+    Math.random,
+    [1, 2, 2, 3, 4, 6],
+  ))))
+  const declined = chooseSteal(offer, false)
+  assert.equal(declined.message, 'You decline the steal and start fresh.')
 })

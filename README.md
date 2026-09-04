@@ -4,15 +4,16 @@
 
 ## What is included
 
-- Solo play against a risk-aware computer opponent
+- Solo play against Easy, Medium, or simulation-trained Hard computer opponents
 - Local pass-and-play for one to six people
 - The shared 5,000-point target and 1,000-point opening defaults
 - Singles, multiples, later-roll multiple extensions, straights, and three pairs
 - Hot dice, first-roll mercy, Final Chase, optional ties, and optional Stealing
 - Device-local save and resume with no account or server-side game data
+- A strategy Tips page with simulation-tested banking guidance, variant findings, and clearly labeled endgame heuristics
 - Keyboard, touch, reduced-motion, and screen-reader support
 
-The computer's bank thresholds and risk adjustments are adapted from the companion `Computers_vs_Zilch` simulator. They are a trained heuristic, not perfect play.
+Hard mode ports the strongest tested policies from the companion `Computers_vs_Zilch` simulator, including a separate policy when Stealing is enabled. Medium adds score-aware finish and buffer decisions, while Easy uses a straightforward 600-point turn target. See [`docs/strategy-research.md`](docs/strategy-research.md) for the reproducible policy inputs, holdouts, and limitations.
 
 ## Local development
 
