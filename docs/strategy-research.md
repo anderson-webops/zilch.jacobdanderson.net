@@ -95,12 +95,30 @@ Disabling Three Pairs did not support a separate public strategy. The standard p
 
 With Stealing enabled and Three Pairs disabled, the Stealing-specific policy still earned 51.7056% against the built-in baseline over 500,000 games with seed `2026091104`, with an average score margin of +48.1 and a rough uncertainty band of 51.51% to 51.90% when mirrored pairs are treated as the effective sample.
 
+## Named difficulty validation
+
+The full named Hard difficulty adds the browser game's finish-line buffer and stop-short heuristics to the trained policy. After that layer was ported to Computers vs Zilch at commit `29cafa07e305a181a2c18aca073f11f63a984bed`, it was evaluated separately from the raw policy files:
+
+| Matchup | Rules | Games | Seed | Hard match points |
+| --- | --- | ---: | ---: | ---: |
+| Hard vs raw standard policy | Standard | 500,000 | `2026091202` | 52.5140% |
+| Hard vs raw Stealing policy | Stealing on | 500,000 | `2026091205` | 53.2835% |
+
+These comparisons isolate the finish heuristics from the underlying trained parameters. They do not make the original policy-versus-baseline holdout rates applicable to the complete named difficulty.
+
+```bash
+./build/zilch arena --bot-a hard --policy-b trained_policy.cfg \
+  --games 500000 --threads 3 --seed 2026091202
+./build/zilch arena --bot-a hard --policy-b trained_stealing_policy.cfg \
+  --games 500000 --threads 6 --seed 2026091205 --stealing on
+```
+
 ## Interpretation and limits
 
 - Use the standard policy whether Three Pairs is on or off. When enabled, take Three Pairs as its 1,000-point hot-dice score.
 - Use the separate Stealing policy when Stealing is enabled.
 - The opening requirement overrides any lower bank threshold until a player is on the board.
 - Hot dice, the current leader, distance to the finish, and Final Chase still affect an individual decision.
-- The browser game's finish-line buffer and stop-short rules are explicit score-aware heuristics layered over the trained policy. They were not evaluated by the C++ arena, so the full Hard difficulty does not inherit the policy-only holdout rate.
+- The browser game's finish-line buffer and stop-short rules are explicit score-aware heuristics layered over the trained policy. They now have the separate arena evidence above, but the full Hard difficulty still does not inherit the policy-only holdout rate.
 - Training and holdouts used two-player games. Games with three to six people, especially Final Chase, can change the incentives.
 - These results identify the best policies tested inside a fixed parameterized strategy family. They are not proofs of global optimality and should not be generalized to every target, opening score, or disabled-rule combination.
