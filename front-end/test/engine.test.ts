@@ -443,6 +443,85 @@ test('easy banks at a simple threshold while hard uses the trained dice threshol
   assert.equal(shouldComputerBank(hard), false)
 })
 
+function hardRoll(turnScore: number, values: DieValue[], overrides: Partial<GameSettings> = {}) {
+  const game = createGame([
+    { name: 'Computer', kind: 'computer', difficulty: 'hard' },
+    { name: 'Alice', kind: 'human' },
+  ], settings(overrides))
+  game.turnScore = turnScore
+  game.rollNumber = 1
+  game.diceInPlay = values.length
+  return selectComputerRecommended(rollDice(game, Math.random, values))
+}
+
+test('refined Hard rolls the reported 2800-point hot dice with both banked scores zero', () => {
+  const game = hardRoll(1800, [2, 2, 3, 3, 4, 4])
+  assert.ok(game.players.every(player => player.score === 0))
+  assert.equal(game.endgame, null)
+  assert.equal(game.selectedDieIds.length, 6)
+  assert.equal(shouldComputerBank(game), false)
+  const next = rollAgain(game, Math.random, [1, 2, 3, 4, 5, 6])
+  assert.equal(next.turnScore, 2800)
+  assert.equal(next.diceInPlay, 6)
+})
+
+test('Hard collects every guaranteed scoring die before banking a partial roll', () => {
+  const game = hardRoll(2700, [1, 1, 5, 2, 3, 4])
+  assert.deepEqual(game.selectedDieIds, game.dice.slice(0, 3).map(die => die.id))
+  assert.equal(shouldComputerBank(game), true)
+  assert.equal(bankScore(game).players[0]!.score, 2950)
+})
+
+test('bank collection preserves its commitment through hot dice and saved-game restoration', () => {
+  const game = hardRoll(1300, [1, 1, 5])
+  assert.equal(game.selectedDieIds.length, 3)
+  assert.equal(shouldComputerBank(game), true)
+  assert.equal(bankScore(game).players[0]!.score, 1550)
+  const restored = restoreGame(JSON.parse(JSON.stringify(game)))
+  assert.ok(restored)
+  assert.equal(shouldComputerBank(restored), true)
+  // The plan is derived from this roll, never retained on a shared controller.
+  assert.equal(shouldComputerBank(hardRoll(0, [1, 1, 5], { openingScore: 0 })), false)
+})
+
+test('Hard collection does not alter Stealing selection or its six-dice cutoff', () => {
+  const game = hardRoll(2700, [1, 1, 5, 2, 3, 4], { stealing: true })
+  assert.equal(game.selectedDieIds.length, 2)
+  assert.equal(shouldComputerBank(game), true)
+  assert.equal(bankScore(game).players[0]!.score, 2900)
+  assert.equal(shouldComputerBank(hardRoll(1800, [2, 2, 3, 3, 4, 4], { stealing: true })), true)
+})
+
+test('resuming refreshes legacy computer selections without changing human choices', () => {
+  const legacy = hardRoll(2700, [1, 1, 5, 2, 3, 4])
+  legacy.selectedDieIds = [legacy.dice[0]!.id]
+  const restored = restoreGame(JSON.parse(JSON.stringify(legacy)))
+  assert.ok(restored)
+  const resumed = selectComputerRecommended(restored)
+  assert.equal(shouldComputerBank(resumed), true)
+  assert.equal(bankScore(resumed).players[0]!.score, 2950)
+
+  const human = roll([1, 1, 5, 2, 3, 4])
+  human.selectedDieIds = [human.dice[0]!.id]
+  assert.deepEqual(selectComputerRecommended(human).selectedDieIds, human.selectedDieIds)
+})
+
+test('Hard still banks an immediate win while collecting extra safe points', () => {
+  const game = hardRoll(4800, [1, 1, 5, 2, 3, 4], { finalChase: false })
+  assert.equal(game.selectedDieIds.length, 3)
+  assert.equal(shouldComputerBank(game), true)
+  assert.equal(bankScore(game).phase, 'finished')
+  assert.equal(bankScore(game).players[0]!.score, 5050)
+})
+
+test('Hard preserves fractional threshold adjustments rather than prematurely banking', () => {
+  const game = hardRoll(1250, [2, 2, 2, 3, 4, 6])
+  game.players[1]!.score = 1100
+  assert.equal(shouldComputerBank(game), false)
+  game.turnScore += 50
+  assert.equal(shouldComputerBank(game), true)
+})
+
 test('medium stages below the target when safe and builds a buffer against a close opponent', () => {
   function mediumDecision(playerScore: number, opponentScore: number, turnScore = 0) {
     const game = createGame([

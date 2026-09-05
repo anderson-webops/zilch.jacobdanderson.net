@@ -1,0 +1,144 @@
+{
+  "run_id": "tune-incumbent-vs-medium",
+  "provenance": {
+    "simulator_revision": "5e27d7cc44f2b9e7cee87729803c2d48700517ef",
+    "simulator_tracked_status": "",
+    "source_sha256": {
+      "computer.cpp": "0613c50568b7569fc0ba671ee24b244131b056d681a0f72ea7d7600f52bcb0ef",
+      "computer.h": "d0a2455bd820864e7c555f0eb1aad3b02a32f94a6b3edb1291d647d45f649ba4",
+      "zilch.cpp": "d45c9a9227f9719305d7c4c762e58c72a471ff57b4a2c46b0c60d39cbad68af7",
+      "zilch.h": "386ba31293e56352689dab93cf59e3053c30d64d3ca78effde03025f29e47dc4",
+      "research/strategy_lab.cpp": "b80c22cdf3d9e0adffb93ec6c60386b476c69c00f73f6c7a3804486a5818d7f5"
+    },
+    "executable_sha256": "c7075d93b7b60a09148b43d8980a2815af38799398d7151cb9546a21be6e6f68",
+    "compiler": "Apple clang version 21.0.0 (clang-2100.3.33.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin",
+    "cmake_build_type": "Release",
+    "platform": "darwin-arm64",
+    "command": [
+      "/tmp/zilch-research-build.O1GpH4/zilch_research",
+      "--mode",
+      "duel",
+      "--pairs",
+      "50000",
+      "--threads",
+      "4",
+      "--seed",
+      "1400000000",
+      "--difficulty-b",
+      "medium"
+    ],
+    "started_at": "2026-09-05T18:09:43.402Z",
+    "elapsed_seconds": 1.449508916,
+    "finished_at": "2026-09-05T18:09:44.853Z"
+  },
+  "schema_version": 1,
+  "mode": "duel",
+  "seed": 1400000000,
+  "pairs": 50000,
+  "total_games": 100000,
+  "threads": 4,
+  "rng": "mt19937_64 master; each draw seeds mt19937 via seed_seq(low32,high32); same stream within each pair",
+  "interval_method": "sample variance of independent pair observations; normal 95% interval; no multiple-comparison adjustment",
+  "rules": {
+    "target": 5000,
+    "opening_score": 1000,
+    "straight": true,
+    "multiples": true,
+    "singles": true,
+    "three_pairs": true,
+    "stealing": false,
+    "first_roll_mercy": true,
+    "final_chase": true,
+    "ties": true
+  },
+  "policy_a": {
+    "name": "best",
+    "source": "builtin",
+    "difficulty": "Hard",
+    "collect_before_bank": false,
+    "bank_thresholds": [
+      200,
+      1021,
+      1128,
+      1506,
+      2130,
+      2130
+    ],
+    "score_weight": 1.0045,
+    "remaining_dice_weight": 36.0805,
+    "hot_dice_weight": 354.561,
+    "multiple_weight": 91.9329,
+    "lead_factor": 0,
+    "trail_factor": 0.293194,
+    "closing_factor": 0.193316,
+    "roll_bias": 136.066
+  },
+  "policy_b": {
+    "name": "baseline",
+    "source": "builtin",
+    "difficulty": "Medium",
+    "collect_before_bank": false,
+    "bank_thresholds": [
+      350,
+      500,
+      700,
+      850,
+      1000,
+      1150
+    ],
+    "score_weight": 1,
+    "remaining_dice_weight": 55,
+    "hot_dice_weight": 240,
+    "multiple_weight": 95,
+    "lead_factor": 0.08,
+    "trail_factor": 0.1,
+    "closing_factor": 0.25,
+    "roll_bias": 15
+  },
+  "a": {
+    "games": 100000,
+    "wins": 57232,
+    "ties": 3321,
+    "losses": 39447,
+    "match_point_rate": 0.588925,
+    "points_for": 454199450,
+    "points_against": 406251550,
+    "average_score": 4541.9945,
+    "average_opponent_score": 4062.5155,
+    "average_score_margin": 479.479
+  },
+  "b": {
+    "games": 100000,
+    "wins": 39447,
+    "ties": 3321,
+    "losses": 57232,
+    "match_point_rate": 0.411075,
+    "points_for": 406251550,
+    "points_against": 454199450,
+    "average_score": 4062.5155,
+    "average_opponent_score": 4541.9945,
+    "average_score_margin": -479.479
+  },
+  "a_match_point_rate_paired": {
+    "independent_pairs": 50000,
+    "sum": 29446.25,
+    "sum_squares": 23491.8125,
+    "mean": 0.588925,
+    "standard_error": 0.0015684773157179537,
+    "ci95": [
+      0.5858508409506248,
+      0.5919991590493753
+    ]
+  },
+  "a_score_margin_paired": {
+    "independent_pairs": 50000,
+    "sum": 23973950,
+    "sum_squares": 224681920000,
+    "mean": 479.479,
+    "standard_error": 9.234526046344016,
+    "ci95": [
+      461.37966153486866,
+      497.5783384651313
+    ]
+  }
+}

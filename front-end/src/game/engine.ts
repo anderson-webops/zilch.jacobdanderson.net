@@ -66,12 +66,12 @@ const mediumComputerPolicy: ComputerPolicy = {
 }
 
 /**
- * The policy produced by the Computers vs Zilch self-play trainer. Keeping the
- * complete policy here makes future simulator results a data-only update.
+ * The trained policy with a separately holdout-tested six-dice refinement.
+ * See docs/research/hot-dice-2026-09 for the frozen candidate and full evidence.
  */
 export const simulationDerivedHardPolicy: ComputerPolicy = {
   name: 'Hard',
-  bankThresholdByDice: { 1: 200, 2: 1_021, 3: 1_128, 4: 1_506, 5: 2_130, 6: 2_130 },
+  bankThresholdByDice: { 1: 200, 2: 1_021, 3: 1_128, 4: 1_506, 5: 2_130, 6: 5_000 },
   scoreWeight: 1.0045,
   remainingDiceWeight: 36.0805,
   hotDiceWeight: 354.561,
@@ -737,7 +737,7 @@ function bestScoringOption(options: ComputerScoringOption[], policy: ComputerPol
   ))
 }
 
-export function recommendedComputerDieIds(state: GameState) {
+function rollingComputerDieIds(state: GameState) {
   const player = currentPlayer(state)
   if (state.phase !== 'selecting' || player.kind !== 'computer')
     return []
@@ -772,6 +772,22 @@ export function recommendedComputerDieIds(state: GameState) {
   }
 
   return selectedDieIds
+}
+
+function computerTurnDecision(state: GameState) {
+  const dieIds = rollingComputerDieIds(state)
+  const bank = shouldBankSelectedDice({ ...state, selectedDieIds: dieIds })
+  const collectBeforeBank = currentPlayer(state).difficulty === 'hard' && !state.settings.stealing
+  return {
+    dieIds: bank && collectBeforeBank ? recommendedDieIds(state.dice, state.scoredMultiples) : dieIds,
+    bank,
+  }
+}
+
+export function recommendedComputerDieIds(state: GameState) {
+  if (state.phase !== 'selecting' || currentPlayer(state).kind !== 'computer')
+    return []
+  return computerTurnDecision(state).dieIds
 }
 
 export function selectComputerRecommended(state: GameState) {
@@ -852,7 +868,7 @@ function policyBankThreshold(state: GameState, policy: ComputerPolicy, projected
   return Math.min(state.settings.winningScore, Math.max(200, threshold))
 }
 
-export function shouldComputerBank(state: GameState) {
+function shouldBankSelectedDice(state: GameState) {
   if (!canBank(state))
     return false
 
@@ -868,6 +884,19 @@ export function shouldComputerBank(state: GameState) {
     return endgameDecision
 
   return projected >= policyBankThreshold(state, computerPolicy(state, difficulty), projected, remainingDice)
+}
+
+export function shouldComputerBank(state: GameState) {
+  if (state.phase === 'selecting' && currentPlayer(state).kind === 'computer') {
+    const decision = computerTurnDecision(state)
+    if (decision.dieIds.length === state.selectedDieIds.length
+      && decision.dieIds.every(id => state.selectedDieIds.includes(id))) {
+      // Keep the original bank commitment when collecting extra safe points
+      // returns hot dice. Recompute from this roll, without persistent latches.
+      return decision.bank
+    }
+  }
+  return shouldBankSelectedDice(state)
 }
 
 export function shouldComputerSteal(state: GameState) {

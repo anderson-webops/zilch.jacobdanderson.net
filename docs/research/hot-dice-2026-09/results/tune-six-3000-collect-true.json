@@ -1,0 +1,146 @@
+{
+  "run_id": "tune-six-3000-collect-true",
+  "provenance": {
+    "simulator_revision": "5e27d7cc44f2b9e7cee87729803c2d48700517ef",
+    "simulator_tracked_status": "",
+    "source_sha256": {
+      "computer.cpp": "0613c50568b7569fc0ba671ee24b244131b056d681a0f72ea7d7600f52bcb0ef",
+      "computer.h": "d0a2455bd820864e7c555f0eb1aad3b02a32f94a6b3edb1291d647d45f649ba4",
+      "zilch.cpp": "d45c9a9227f9719305d7c4c762e58c72a471ff57b4a2c46b0c60d39cbad68af7",
+      "zilch.h": "386ba31293e56352689dab93cf59e3053c30d64d3ca78effde03025f29e47dc4",
+      "research/strategy_lab.cpp": "b80c22cdf3d9e0adffb93ec6c60386b476c69c00f73f6c7a3804486a5818d7f5"
+    },
+    "executable_sha256": "c7075d93b7b60a09148b43d8980a2815af38799398d7151cb9546a21be6e6f68",
+    "compiler": "Apple clang version 21.0.0 (clang-2100.3.33.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin",
+    "cmake_build_type": "Release",
+    "platform": "darwin-arm64",
+    "command": [
+      "/tmp/zilch-research-build.O1GpH4/zilch_research",
+      "--mode",
+      "duel",
+      "--pairs",
+      "20000",
+      "--threads",
+      "4",
+      "--seed",
+      "1300000000",
+      "--policy-a",
+      "docs/research/hot-dice-2026-09/candidates/six-3000.cfg",
+      "--collect-a",
+      "true"
+    ],
+    "started_at": "2026-09-05T18:07:23.820Z",
+    "elapsed_seconds": 0.579064625,
+    "finished_at": "2026-09-05T18:07:24.400Z"
+  },
+  "schema_version": 1,
+  "mode": "duel",
+  "seed": 1300000000,
+  "pairs": 20000,
+  "total_games": 40000,
+  "threads": 4,
+  "rng": "mt19937_64 master; each draw seeds mt19937 via seed_seq(low32,high32); same stream within each pair",
+  "interval_method": "sample variance of independent pair observations; normal 95% interval; no multiple-comparison adjustment",
+  "rules": {
+    "target": 5000,
+    "opening_score": 1000,
+    "straight": true,
+    "multiples": true,
+    "singles": true,
+    "three_pairs": true,
+    "stealing": false,
+    "first_roll_mercy": true,
+    "final_chase": true,
+    "ties": true
+  },
+  "policy_a": {
+    "name": "hot-six-3000",
+    "source": "docs/research/hot-dice-2026-09/candidates/six-3000.cfg",
+    "difficulty": "Hard",
+    "collect_before_bank": true,
+    "bank_thresholds": [
+      200,
+      1021,
+      1128,
+      1506,
+      2130,
+      3000
+    ],
+    "score_weight": 1.0045,
+    "remaining_dice_weight": 36.0805,
+    "hot_dice_weight": 354.561,
+    "multiple_weight": 91.9329,
+    "lead_factor": 0,
+    "trail_factor": 0.293194,
+    "closing_factor": 0.193316,
+    "roll_bias": 136.066
+  },
+  "policy_b": {
+    "name": "best",
+    "source": "builtin",
+    "difficulty": "Hard",
+    "collect_before_bank": false,
+    "bank_thresholds": [
+      200,
+      1021,
+      1128,
+      1506,
+      2130,
+      2130
+    ],
+    "score_weight": 1.0045,
+    "remaining_dice_weight": 36.0805,
+    "hot_dice_weight": 354.561,
+    "multiple_weight": 91.9329,
+    "lead_factor": 0,
+    "trail_factor": 0.293194,
+    "closing_factor": 0.193316,
+    "roll_bias": 136.066
+  },
+  "a": {
+    "games": 40000,
+    "wins": 20134,
+    "ties": 914,
+    "losses": 18952,
+    "match_point_rate": 0.514775,
+    "points_for": 166228750,
+    "points_against": 162240100,
+    "average_score": 4155.71875,
+    "average_opponent_score": 4056.0025,
+    "average_score_margin": 99.71625
+  },
+  "b": {
+    "games": 40000,
+    "wins": 18952,
+    "ties": 914,
+    "losses": 20134,
+    "match_point_rate": 0.485225,
+    "points_for": 162240100,
+    "points_against": 166228750,
+    "average_score": 4056.0025,
+    "average_opponent_score": 4155.71875,
+    "average_score_margin": -99.71625
+  },
+  "a_match_point_rate_paired": {
+    "independent_pairs": 20000,
+    "sum": 10295.5,
+    "sum_squares": 5904.125,
+    "mean": 0.514775,
+    "standard_error": 0.0012291147240596565,
+    "ci95": [
+      0.5123659794079751,
+      0.5171840205920248
+    ]
+  },
+  "a_score_margin_paired": {
+    "independent_pairs": 20000,
+    "sum": 1994325,
+    "sum_squares": 10406988125,
+    "mean": 99.71625,
+    "standard_error": 5.051888742420023,
+    "ci95": [
+      89.81473001095341,
+      109.6177699890466
+    ]
+  }
+}

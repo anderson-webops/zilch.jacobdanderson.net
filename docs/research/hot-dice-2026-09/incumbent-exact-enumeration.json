@@ -1,0 +1,30 @@
+{
+  "kind": "exact-six-dice-enumeration",
+  "revision": "fecdbbcdbeaafe031da3c4c4e45dd2d716c054eb",
+  "sourceHashes": {
+    "front-end/src/game/engine.ts": "60ab67d0873ee16a75e6d26e0b93af4a5c471684250e86a7fbb6a5e9c45fc9df",
+    "front-end/src/game/scoring.ts": "7735907714dcc229d275fcaa1931ace0aeb517c3b4e24cbf743542b91bc0c2a4"
+  },
+  "rules": {
+    "winningScore": 5000,
+    "openingScore": 1000,
+    "firstRollBust": true,
+    "finalChase": true,
+    "allowTies": true,
+    "stealing": false
+  },
+  "outcomes": 46656,
+  "busts": 1080,
+  "probabilityBust": 0.023148148148148147,
+  "atRisk": 2800,
+  "meanNewScoreIncludingBustZeros": 383.68055555555554,
+  "rollOnceThenBankMaximumExpectedPoints": 3118.865740740741,
+  "hardBanksAfter2800": 45576,
+  "scoringOutcomes": 45576,
+  "rollOnceThenCurrentHardBankExpectedPoints": 3055.497685185185,
+  "bankCollectionAudit": {
+    "atRiskBeforeRoll": 2700,
+    "banksLeavingPoints": 30030,
+    "meanPointsLeftBehindWhenItHappens": 98.45154845154845
+  }
+}

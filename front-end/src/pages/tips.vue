@@ -33,7 +33,7 @@ const standardThresholds = [
   { dice: 3, practical: 1150 },
   { dice: 4, practical: 1550 },
   { dice: 5, practical: 2150 },
-  { dice: 6, practical: 2150 },
+  { dice: 6, practical: 5000 },
 ]
 
 const stealingThresholds = [
@@ -108,7 +108,7 @@ const stealingThresholds = [
           </table>
         </div>
         <p class="table-note">
-          Targets are rounded up to reachable 50-point scores.
+          Use the dice you would roll next and the total points at risk. When banking, take every scoring die.
         </p>
       </section>
 

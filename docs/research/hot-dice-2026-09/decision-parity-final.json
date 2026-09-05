@@ -1,0 +1,30 @@
+{
+  "contexts": 24,
+  "totals": [
+    {
+      "stealing": false,
+      "cases": 19576,
+      "mismatches": 0
+    },
+    {
+      "stealing": true,
+      "cases": 19576,
+      "mismatches": 0
+    }
+  ],
+  "source_sha256": {
+    "front-end/src/game/engine.ts": "c37c72342f4dc7b0ae0234886697de1888247a27e75c1844269c6f0689bd3cf1",
+    "front-end/src/game/scoring.ts": "7735907714dcc229d275fcaa1931ace0aeb517c3b4e24cbf743542b91bc0c2a4",
+    "scripts/research/check-decision-parity.mjs": "c5544137d7a69212e01bf02171db3b4f6031a21b03a1a5f2cae8a026bdaa6cff"
+  },
+  "simulator_source_sha256": {
+    "computer.cpp": "95632c406587ca696acf9fde2324bca59f319a96385e5a42296c965bba8fd665",
+    "computer.h": "858f34ef29615c8a10d3d7e50dc8763ef3da68bfcf75c075310193fc839d823f",
+    "zilch.cpp": "d45c9a9227f9719305d7c4c762e58c72a471ff57b4a2c46b0c60d39cbad68af7",
+    "zilch.h": "386ba31293e56352689dab93cf59e3053c30d64d3ca78effde03025f29e47dc4",
+    "research/decision_probe.cpp": "aa223dbb771bdaa92a8a6e75878b9539f047076b0d373c9ae8429acb14553955"
+  },
+  "simulator_revision": "52597513f7f3485e11dd5d0383d4c95f7150bd58",
+  "simulator_tracked_status": "",
+  "probe_sha256": "08f03117bbbfad4a0be6e06e85d84614409343b6490413d7f4b79d3eb1c932a0"
+}

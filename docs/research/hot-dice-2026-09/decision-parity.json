@@ -1,0 +1,21 @@
+{
+  "contexts": 24,
+  "totals": [
+    {
+      "stealing": false,
+      "cases": 19576,
+      "mismatches": 0
+    },
+    {
+      "stealing": true,
+      "cases": 19576,
+      "mismatches": 0
+    }
+  ],
+  "source_sha256": {
+    "front-end/src/game/engine.ts": "c37c72342f4dc7b0ae0234886697de1888247a27e75c1844269c6f0689bd3cf1",
+    "front-end/src/game/scoring.ts": "7735907714dcc229d275fcaa1931ace0aeb517c3b4e24cbf743542b91bc0c2a4",
+    "scripts/research/check-decision-parity.mjs": "65020560154bb02d377d127c824dfa193fc26ef2adc320e2d75cc8400b969519"
+  },
+  "probe_sha256": "08f03117bbbfad4a0be6e06e85d84614409343b6490413d7f4b79d3eb1c932a0"
+}

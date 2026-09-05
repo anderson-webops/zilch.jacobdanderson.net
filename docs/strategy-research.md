@@ -2,6 +2,25 @@
 
 This note records the simulator evidence used by the browser game's Hard difficulty and public Tips page. It separates the strongest tested policy from claims of mathematically optimal play.
 
+## Current Hard refinement, September 2026
+
+Standard Hard now uses `200,1021,1128,1506,2130,5000` and collects all remaining
+guaranteed scoring dice after committing to bank. Its existing endgame rules
+still take priority. Stealing retains its separate policy and selection behavior.
+The current parameters are in [`standard-hard.cfg`](strategy-policies/standard-hard.cfg);
+the previous parameters are archived as [`standard-hard-incumbent.cfg`](strategy-policies/standard-hard-incumbent.cfg).
+
+The frozen refinement earned 51.5992% of match points against actual incumbent
+Hard in 500,000 fresh games (250,000 mirrored pairs), with a paired 95% interval
+of 51.5289% to 51.6695%. Raising the six-dice cutoff also beat collection alone
+in a separate 500,000-game holdout. The reported 2,800-point hot-dice state was
+tested directly: rolling raised eventual match points by 2.505 percentage points.
+
+The [full investigation](research/hot-dice-2026-09/report.md) preserves the
+pre-experiment plan, frozen candidate, all 42 runs, source and executable hashes,
+commands, seeds, raw counts, and paired moments. The historical results below
+refer to the old parameters and simulator revisions, not the refined bot.
+
 ## Source and method
 
 The experiments used the headless `Computers_vs_Zilch` C++ simulator at commit `17a4102b7f2688be010f47ce472a0707cf007e48`. Its `arena` mode pairs games with the same dice seed and swaps seat order, reducing first-player bias. The Visual C++ rules reference was commit `20440efa1a0251642c129e261893ecf3e845923a`; the Java rules reference was commit `7fa16bd3cb86b6572958739648237c507deea7af`.
@@ -15,9 +34,9 @@ cmake --build build -j4
 ctest --test-dir build --output-on-failure
 ```
 
-## Standard-game policy
+## Historical standard-game policy
 
-The tracked policy file is preserved at [`strategy-policies/standard-hard.cfg`](strategy-policies/standard-hard.cfg). It has SHA-256 `0c0020a049773aca3f66fc6915d6509a79bd4a2f55bfe7a3f0a7fddbedd5713b` and these parameters:
+The original policy file is preserved at [`strategy-policies/standard-hard-incumbent.cfg`](strategy-policies/standard-hard-incumbent.cfg). It has SHA-256 `0c0020a049773aca3f66fc6915d6509a79bd4a2f55bfe7a3f0a7fddbedd5713b` and these parameters:
 
 ```text
 bank_thresholds=200,1021,1128,1506,2130,2130
@@ -37,7 +56,7 @@ The final holdout used:
 
 ```bash
 ./build/zilch arena \
-  --policy-a /path/to/zilch.jacobdanderson.net/docs/strategy-policies/standard-hard.cfg \
+  --policy-a /path/to/zilch.jacobdanderson.net/docs/strategy-policies/standard-hard-incumbent.cfg \
   --games 500000 \
   --threads 6 \
   --seed 2026091101

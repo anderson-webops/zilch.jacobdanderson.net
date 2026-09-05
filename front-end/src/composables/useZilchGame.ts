@@ -86,7 +86,7 @@ export function useZilchGame() {
 
   function resumeGame() {
     if (savedState.value)
-      state.value = markRaw(structuredClone(savedState.value))
+      state.value = markRaw(selectComputerRecommended(structuredClone(savedState.value)))
   }
 
   function leaveGame() {
