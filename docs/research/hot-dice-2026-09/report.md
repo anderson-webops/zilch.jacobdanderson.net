@@ -96,7 +96,7 @@ After integration, a native decision probe compared the real website and
 simulator across 39,152 decisions: every unordered one-through-six-dice roll
 within 24 score/endgame/chain contexts, under standard and Stealing rules.
 Selections, bank/roll choices, scores, remaining dice, and opening eligibility
-matched. The [parity checker](../../../../scripts/research/check-decision-parity.mjs)
+matched. The [parity checker](../../../scripts/research/check-decision-parity.mjs)
 and its evidence record make this check reproducible without a second scorer.
 
 The change is supported for the tested two-player non-Stealing configurations.

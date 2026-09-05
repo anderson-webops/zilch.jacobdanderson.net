@@ -238,6 +238,10 @@ async function stopProcessTree(child) {
 }
 
 async function verifyHydratedSetup(page) {
+  // Server-rendered inputs exist before Vue attaches their event handlers.
+  // Wait for Nuxt's actual hydration state on every full navigation, including
+  // the reset after custom-score checks, before testing an ordinary click.
+  await page.waitForFunction(() => document.querySelector('#__nuxt')?.__vue_app__?.$nuxt?.isHydrating === false)
   await page.waitForSelector('.mode-picker input[value="local"]')
   await page.click('.mode-picker label:nth-of-type(2)')
   await page.waitForFunction(() => {
