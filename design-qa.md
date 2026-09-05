@@ -44,6 +44,7 @@ passed
 ## Findings and iteration history
 
 1. The original scoring state muted whole die controls, which made selectable dice look disabled in WebKit. Availability is now expressed with explicit solid colors rather than control opacity. The combined gameplay input shows high-contrast available dice beside intentionally muted non-scoring dice.
+   Follow-up reproduction identified a separate cause on the live `v1.0.2` build: the first roll's numeric key collided with the waiting branch, leaving actual dice inside `.waiting-dice` at 28% parent opacity and a -3-degree rotation. The distinct `rolled-*` and `waiting-dice` keys in the corrected source prevent that reuse. Checking a restored scoring state alone did not exercise this transition.
 2. A bust originally advanced straight to the pass prompt. The finished bust state now keeps all six rolled dice visible, provides a direct “Zilch. Nothing scores.” result, and waits for acknowledgement before advancing.
 3. The default human label “You” produced awkward pass and winner copy. New games now use “Player 1,” while legacy or custom “You” names still receive grammatical second-person text.
 4. The first Tips implementation was intentionally retained as `v1.1.0-beta.1`. Its long hero, reminder card, endgame essays, and evidence sections pushed the actionable strategy well below the first phone viewport.
@@ -61,3 +62,11 @@ passed
 ## Final result
 
 passed
+
+# Stable release regression checks, 2026-09-04
+
+- Reproduced the reported `[2, 3, 3, 5, 4, 5]` first roll on the public `v1.0.2` site. Both scoring 5s had full individual opacity but inherited 28% opacity from the incorrectly retained waiting container.
+- The same roll in the corrected source uses the proper grid, full parent opacity, separated dice, and bright scoring faces. Local captures are in `output/playwright/live-grey-dice-before.png` and `output/playwright/local-dice-after.png`.
+- Browser regression coverage now clicks through new-game, saved-ready, next-human, and accepted/declined Stealing rolls. It checks the dice's ancestors as well as their own colors, opacity, and visible spacing.
+- An actual scoring roll followed by Risk it and a forced bust must retain its dice and current player beyond the computer acknowledgement timer, show a clear bust notice, and advance only when the human acknowledges it.
+- Stable `v1.1.0` packages the corrected gameplay and compact Tips page for the existing stable-release deployment path. Source/tag validation and public deployment remain separate acceptance steps.

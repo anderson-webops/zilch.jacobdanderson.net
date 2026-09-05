@@ -106,6 +106,91 @@ async function stageSavedGame(page, gameState) {
   await page.waitForSelector('.resume-button')
 }
 
+async function rollKnownDice(page, values, { selector = '.roll-button', resultSelector = '.selection-actions' } = {}) {
+  await page.waitForSelector(`${selector}:not(:disabled)`)
+  await page.evaluate(({ values: rollValues, selector: buttonSelector }) => {
+    const button = document.querySelector(buttonSelector)
+    if (!(button instanceof HTMLButtonElement) || button.disabled)
+      throw new Error('The requested human roll button is unavailable')
+
+    const originalRandom = Math.random
+    let nextValue = 0
+    try {
+      // Exercise the real button handler with a reproducible roll. Restore the
+      // random source synchronously, before any later game or browser action.
+      Math.random = () => {
+        const value = rollValues[nextValue++]
+        if (value === undefined)
+          throw new Error('The roll requested more dice than the fixture supplies')
+        return (value - 0.5) / 6
+      }
+      button.click()
+    }
+    finally {
+      Math.random = originalRandom
+    }
+    if (nextValue !== rollValues.length)
+      throw new Error(`Expected to roll ${rollValues.length} dice, rolled ${nextValue}`)
+  }, { values, selector })
+  await page.waitForSelector(resultSelector)
+  await delay(600)
+}
+
+async function findRolledDiceIssues(page, label, expectedValues, { expectScoring = true } = {}) {
+  return await page.evaluate(({ label: stateLabel, values, expectScoring: hasScoringDice }) => {
+    const issues = []
+    const dice = [...document.querySelectorAll('.dice-zone .die')]
+    if (dice.length !== values.length)
+      return [`${stateLabel}: expected ${values.length} visible dice, found ${dice.length}`]
+
+    const grid = dice[0]?.parentElement
+    if (!grid?.matches('.dice-grid') || grid.classList.contains('waiting-dice'))
+      issues.push(`${stateLabel}: rolled dice retained the waiting placeholder container`)
+    if (grid && getComputedStyle(grid).display !== 'grid')
+      issues.push(`${stateLabel}: rolled dice lost their grid layout`)
+
+    const checkedAncestors = new Set()
+    for (const [index, die] of dice.entries()) {
+      if (!die.getAttribute('aria-label')?.startsWith(`Die showing ${values[index]},`))
+        issues.push(`${stateLabel}: die ${index + 1} does not show its rolled value ${values[index]}`)
+      for (let element = die; element; element = element.parentElement) {
+        if (checkedAncestors.has(element))
+          continue
+        checkedAncestors.add(element)
+        const style = getComputedStyle(element)
+        if (Number.parseFloat(style.opacity) < 0.99)
+          issues.push(`${stateLabel}: ${element.className || element.tagName} dims the rolled dice with opacity ${style.opacity}`)
+        if (style.filter !== 'none')
+          issues.push(`${stateLabel}: ${element.className || element.tagName} filters the rolled dice with ${style.filter}`)
+      }
+    }
+
+    // Check the visible gaps, since the old placeholder's narrow columns made
+    // full-size rolled dice touch even when their own opacity was correct.
+    const bounds = dice.map(die => die.getBoundingClientRect())
+    for (let index = 1; index < bounds.length; index++) {
+      const previous = bounds[index - 1]
+      const current = bounds[index]
+      if (Math.abs(current.top - previous.top) < 8 && current.left - previous.right < 6)
+        issues.push(`${stateLabel}: dice ${index} and ${index + 1} touch or have less than a 6px gap`)
+    }
+
+    const available = dice.filter(die => !die.disabled)
+    if (hasScoringDice && !available.length)
+      issues.push(`${stateLabel}: the scoring roll has no available dice`)
+    if (!hasScoringDice && (available.length || dice.some(die => die.classList.contains('muted'))))
+      issues.push(`${stateLabel}: bust dice should be readable roll results without scoring controls`)
+    for (const die of hasScoringDice ? available : dice) {
+      const background = getComputedStyle(die).backgroundColor
+      const components = background.match(/[\d.]+/g)?.map(Number) ?? []
+      const alpha = components[3] ?? 1
+      if (components.length < 3 || Math.min(...components.slice(0, 3)) < 200 || alpha < 0.95)
+        issues.push(`${stateLabel}: a readable die has a dim or translucent face (${background})`)
+    }
+    return issues
+  }, { label, values: expectedValues, expectScoring })
+}
+
 function signalProcessTree(child, signal) {
   if (!child.pid)
     return false
@@ -280,8 +365,9 @@ async function verifyMobileGameFlow(page) {
   if (playerNameAfterTips !== playerNameBeforeTips)
     issues.push('ready game: returning from Tips did not preserve the active table')
 
-  await page.click('.roll-button')
-  await delay(250)
+  const firstRollValues = [2, 3, 3, 5, 4, 5]
+  await rollKnownDice(page, firstRollValues)
+  issues.push(...await findRolledDiceIssues(page, 'new game first roll', firstRollValues))
   issues.push(...await findReflowIssues(page, 'rolled game', [
     '.play-layout',
     '.scoreboard',
@@ -427,7 +513,7 @@ async function verifyMobileGameFlow(page) {
   issues.push(...await findAxeIssues(page, 'bust result'))
   await captureScreenshot(page, 'bust-mobile.png')
 
-  await stageSavedGame(page, {
+  const handoffState = {
     schemaVersion: 2,
     settings: {
       winningScore: 5000,
@@ -459,7 +545,8 @@ async function verifyMobileGameFlow(page) {
     continuation: null,
     endgame: null,
     winnerIds: [],
-  })
+  }
+  await stageSavedGame(page, handoffState)
   await page.click('.resume-button')
   await page.waitForSelector('.phase-dialog')
   await delay(50)
@@ -481,6 +568,79 @@ async function verifyMobileGameFlow(page) {
   if (!focusStayedInDialog)
     issues.push('pass result: reverse tab navigation escaped the modal turn handoff')
   issues.push(...await findAxeIssues(page, 'pass result'))
+
+  await page.click('.phase-dialog button')
+  await rollKnownDice(page, firstRollValues)
+  issues.push(...await findRolledDiceIssues(page, 'next human first roll', firstRollValues))
+
+  const savedReadyState = {
+    ...handoffState,
+    players: handoffState.players.map(player => ({ ...player, score: 0, scoreReachedAt: 0 })),
+    currentPlayerIndex: 0,
+    nextPlayerIndex: null,
+    phase: 'ready',
+    rollNumber: 0,
+    bankSequence: 0,
+    message: 'Alice\'s turn. Roll all six dice.',
+    events: [],
+  }
+  await stageSavedGame(page, savedReadyState)
+  await page.click('.resume-button')
+  await rollKnownDice(page, firstRollValues)
+  issues.push(...await findRolledDiceIssues(page, 'saved ready first roll', firstRollValues))
+
+  const playerBeforeBust = await page.$eval('#turn-title', element => element.textContent?.trim())
+  await page.click('.select-all')
+  const bustValues = [2, 3, 4, 6]
+  await rollKnownDice(page, bustValues, {
+    selector: '.secondary-action',
+    resultSelector: '.bust-actions',
+  })
+  // Together with the settle wait, exceed the computer's 1.24s bust timer.
+  // A human's result must stay visible until they choose to move on.
+  await delay(800)
+  issues.push(...await findRolledDiceIssues(page, 'human Risk it bust', bustValues, { expectScoring: false }))
+  const retainedBust = await page.evaluate(() => ({
+    title: document.querySelector('#turn-title')?.textContent?.trim(),
+    status: document.querySelector('.status-banner')?.textContent?.trim(),
+    bustAction: document.querySelector('.bust-action') !== null,
+    passDialog: document.querySelector('.phase-dialog') !== null,
+  }))
+  if (retainedBust.title !== playerBeforeBust)
+    issues.push('human Risk it bust: the next player took over before acknowledgement')
+  if (!retainedBust.bustAction || !/bust/i.test(retainedBust.status || ''))
+    issues.push('human Risk it bust: the roll lost its visible bust indication or acknowledgement action')
+  if (retainedBust.passDialog)
+    issues.push('human Risk it bust: a turn handoff dialog hides the bust roll')
+  await page.click('.bust-action')
+  await page.waitForSelector('.roll-button:not(:disabled)')
+  const playerAfterBust = await page.$eval('#turn-title', element => element.textContent?.trim())
+  if (playerAfterBust !== savedReadyState.players[1].name)
+    issues.push(`human Risk it bust: acknowledgement did not pass the dice to ${savedReadyState.players[1].name}`)
+
+  for (const acceptSteal of [false, true]) {
+    await stageSavedGame(page, {
+      ...handoffState,
+      settings: { ...handoffState.settings, stealing: true },
+      players: handoffState.players.map(player => ({ ...player, score: 1000, scoreReachedAt: 1 })),
+      continuation: {
+        sourcePlayerId: 'player-1',
+        sourcePlayerName: 'Alice',
+        inheritedScore: 500,
+        diceInPlay: 3,
+        scoredMultiples: {},
+      },
+    })
+    await page.click('.resume-button')
+    await page.waitForSelector('#pass-title')
+    await page.click('.phase-dialog button')
+    await page.waitForSelector('.steal-card')
+    await page.click(acceptSteal ? '.steal-card button:not(.fresh-button)' : '.steal-card .fresh-button')
+    const values = acceptSteal ? [2, 3, 5] : firstRollValues
+    const label = acceptSteal ? 'accepted continuation first roll' : 'fresh continuation first roll'
+    await rollKnownDice(page, values)
+    issues.push(...await findRolledDiceIssues(page, label, values))
+  }
 
   await stageSavedGame(page, {
     schemaVersion: 2,
