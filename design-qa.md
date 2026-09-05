@@ -70,3 +70,14 @@ passed
 - Browser regression coverage now clicks through new-game, saved-ready, next-human, and accepted/declined Stealing rolls. It checks the dice's ancestors as well as their own colors, opacity, and visible spacing.
 - An actual scoring roll followed by Risk it and a forced bust must retain its dice and current player beyond the computer acknowledgement timer, show a clear bust notice, and advance only when the human acknowledges it.
 - Stable `v1.1.0` packages the corrected gameplay and compact Tips page for the existing stable-release deployment path. Source/tag validation and public deployment remain separate acceptance steps.
+
+# Setup and Tips cleanup, v1.1.1
+
+- Removed routine saving copy and the difficulty description from setup, retaining actual storage-failure warnings and the strategy documentation.
+- Anchored the desktop preview independently of the form. At 1280 by 1000, its document top remains 344 pixels before and after expanding House rules; custom-field expansion is covered by the same regression.
+- Both score selectors now offer Custom. Numeric-only fields cap at 100,000, keep blank input invalid, retain the existing 1,000 winning minimum, and reject opening scores above the winning target. Browser tests verify exact custom 12,345/650 settings are saved.
+- House rules now shows Advanced with a decorative chevron that changes direction when expanded.
+- Tips has a single Best Tested Strategy heading and a standalone research caveat. The heading fits on one line even at the 320-pixel test width.
+- Browser interaction and accessibility checks passed for desktop light/dark and 320-pixel mobile layouts. Captures are in `output/playwright/v1.1.1/`; desktop overview captures are `output/playwright/setup-cleanup-desktop.png` and `output/playwright/tips-cleanup-desktop.png`.
+- The unusual uppercase A uses the intended self-hosted DM Sans font, confirmed loaded in the browser. Table headers use weight 850 at 10.56 pixels with letter spacing, without glyph transforms. The font was not changed.
+- Physical iPhone Safari acceptance remains a separate check after deployment.

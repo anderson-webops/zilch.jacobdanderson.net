@@ -314,6 +314,163 @@ async function findAxeIssues(page, label) {
     })
 }
 
+async function setInputValue(page, selector, value) {
+  await page.$eval(selector, (input, nextValue) => {
+    if (!(input instanceof HTMLInputElement))
+      throw new Error('The requested score input is unavailable')
+    input.value = nextValue
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+  }, value)
+}
+
+async function verifySetupControls(page, viewport, scheme) {
+  const label = `setup controls [${scheme}; ${viewport.name}]`
+  const issues = await page.evaluate((stateLabel) => {
+    const issues = []
+    const text = document.body.textContent || ''
+    for (const copy of [
+      'Your game saves on this device. No account needed.',
+      'Built from Jacob Anderson\'s Zilch games',
+      'Saved only on this device',
+    ]) {
+      if (text.includes(copy))
+        issues.push(`${stateLabel}: removed saving copy is still visible: ${copy}`)
+    }
+    if (document.querySelector('.difficulty-setting small, #difficulty-help'))
+      issues.push(`${stateLabel}: the computer difficulty description is still present`)
+    const summary = document.querySelector('.house-rules summary')
+    if (!summary?.textContent?.includes('Advanced') || summary.textContent.includes('4 options'))
+      issues.push(`${stateLabel}: house rules does not use the Advanced disclosure label`)
+    if (!summary?.querySelector('[aria-hidden="true"]'))
+      issues.push(`${stateLabel}: house rules is missing its decorative disclosure indicator`)
+    if (document.querySelector('#custom-winning-score, #custom-opening-score'))
+      issues.push(`${stateLabel}: custom score inputs are visible before Custom is selected`)
+    return issues
+  }, label)
+
+  const previewTop = () => page.$eval('.table-preview', element => element.getBoundingClientRect().top + scrollY)
+  const initialPreviewTop = await previewTop()
+  const checkPreviewPosition = async (stateLabel) => {
+    if (viewport.name !== desktopViewport.name)
+      return
+    const nextTop = await previewTop()
+    if (Math.abs(nextTop - initialPreviewTop) > 1)
+      issues.push(`${label}: ${stateLabel} moved the preview from ${initialPreviewTop.toFixed(1)}px to ${nextTop.toFixed(1)}px`)
+  }
+
+  await page.click('.house-rules summary')
+  await page.waitForSelector('.house-rules[open]')
+  await checkPreviewPosition('expanding house rules')
+  await page.select('#winning-score-preset', 'custom')
+  await page.waitForSelector('#custom-winning-score')
+  await page.select('#opening-score-preset', 'custom')
+  await page.waitForSelector('#custom-opening-score')
+  await checkPreviewPosition('revealing both custom score inputs')
+  issues.push(...await findReflowIssues(page, label, [
+    '.setup-card',
+    '.score-settings',
+    '#custom-winning-score',
+    '#custom-opening-score',
+    '.house-rules',
+  ]))
+  issues.push(...await findAxeIssues(page, `${label}: custom scores expanded`))
+
+  const inputIssues = await page.evaluate(({ stateLabel, mobile }) => {
+    const issues = []
+    for (const id of ['custom-winning-score', 'custom-opening-score']) {
+      const input = document.getElementById(id)
+      if (!(input instanceof HTMLInputElement))
+        continue
+      if (input.inputMode !== 'numeric')
+        issues.push(`${stateLabel}: ${id} does not request the numeric mobile keyboard`)
+      if (mobile && Number.parseFloat(getComputedStyle(input).fontSize) < 16)
+        issues.push(`${stateLabel}: ${id} can trigger iOS form zoom because its font is smaller than 16px`)
+    }
+    return issues
+  }, { stateLabel: label, mobile: viewport.name === mobileViewport.name })
+  issues.push(...inputIssues)
+  await captureScreenshot(page, `setup-custom-${viewport.name}-${scheme}.png`)
+
+  for (const [preset, custom, defaultValue] of [
+    ['#winning-score-preset', '#custom-winning-score', '5000'],
+    ['#opening-score-preset', '#custom-opening-score', '1000'],
+  ]) {
+    await page.select(preset, defaultValue)
+    await page.waitForSelector(custom, { hidden: true })
+    await page.select(preset, 'custom')
+    await page.waitForSelector(custom)
+    const restored = await page.$eval(custom, input => input.value)
+    if (restored !== defaultValue)
+      issues.push(`${label}: ${custom} did not initialize from its selected preset (${restored})`)
+  }
+
+  await page.click('#custom-winning-score', { count: 3 })
+  await page.keyboard.press('Backspace')
+  await page.keyboard.type('12x3.4-5')
+  const digitsOnly = await page.$eval('#custom-winning-score', input => input.value)
+  if (digitsOnly !== '12345')
+    issues.push(`${label}: nonnumeric keyboard characters were not removed (${digitsOnly})`)
+  for (const selector of ['#custom-winning-score', '#custom-opening-score']) {
+    await setInputValue(page, selector, '100001')
+    const capped = await page.$eval(selector, input => input.value)
+    if (capped !== '100000')
+      issues.push(`${label}: ${selector} did not cap pasted values at 100000 (${capped})`)
+    await setInputValue(page, selector, 'a1b2c3')
+    const pastedDigits = await page.$eval(selector, input => input.value)
+    if (pastedDigits !== '123')
+      issues.push(`${label}: ${selector} accepted nonnumeric pasted characters (${pastedDigits})`)
+  }
+
+  const expectScoreError = async (selector, stateLabel) => {
+    await page.click('.setup-card .primary-button')
+    await page.waitForSelector('#setup-error')
+    const error = await page.evaluate((inputSelector) => {
+      const input = document.querySelector(inputSelector)
+      const message = document.querySelector('#setup-error')
+      return {
+        focused: document.activeElement === input,
+        invalid: input?.getAttribute('aria-invalid') === 'true',
+        described: input?.getAttribute('aria-describedby')?.split(/\s+/).includes('setup-error'),
+        message: message?.textContent?.trim(),
+        alert: message?.getAttribute('role') === 'alert',
+        started: document.querySelector('.play-layout') !== null,
+      }
+    }, selector)
+    if (!error.focused || !error.invalid || !error.described || !error.message || !error.alert || error.started)
+      issues.push(`${label}: ${stateLabel} was not rejected with a focused, labelled error (${JSON.stringify(error)})`)
+  }
+
+  await setInputValue(page, '#custom-winning-score', '')
+  await setInputValue(page, '#custom-opening-score', '0')
+  await expectScoreError('#custom-winning-score', 'empty winning score')
+  await setInputValue(page, '#custom-winning-score', '999')
+  await expectScoreError('#custom-winning-score', 'winning score below the minimum')
+  await setInputValue(page, '#custom-winning-score', '12345')
+  await setInputValue(page, '#custom-opening-score', '')
+  await expectScoreError('#custom-opening-score', 'empty opening score')
+  await setInputValue(page, '#custom-opening-score', '20000')
+  await expectScoreError('#custom-opening-score', 'opening score above the winning score')
+  issues.push(...await findAxeIssues(page, `${label}: invalid custom score`))
+
+  await setInputValue(page, '#custom-opening-score', '650')
+  await page.click('.setup-card .primary-button')
+  await page.waitForSelector('.play-layout')
+  await page.waitForFunction(() => localStorage.getItem('zilch-browser-game-v1') !== null)
+  const settings = await page.evaluate(() => JSON.parse(localStorage.getItem('zilch-browser-game-v1'))?.settings)
+  if (settings?.winningScore !== 12345 || settings?.openingScore !== 650)
+    issues.push(`${label}: custom scores were not retained exactly in the saved game (${JSON.stringify(settings)})`)
+
+  // Leave a clean, hydrated default setup for the existing gameplay checks.
+  await page.goto(`${baseUrl}/tips`, { waitUntil: 'domcontentloaded' })
+  await page.waitForSelector('#tips-title')
+  await page.evaluate(() => localStorage.removeItem('zilch-browser-game-v1'))
+  await page.goto(baseUrl, { waitUntil: 'domcontentloaded' })
+  await verifyHydratedSetup(page)
+  if (await page.$('.resume-button'))
+    issues.push(`${label}: the custom-score test did not clear its saved game`)
+  return issues
+}
+
 async function verifyMobileGameFlow(page) {
   const issues = await findReflowIssues(page, 'landing', [
     '.game-frame',
@@ -685,28 +842,39 @@ async function verifyMobileGameFlow(page) {
   return issues
 }
 
-async function verifyMobileTips(page) {
+async function verifyTips(page, viewport) {
   const issues = await findReflowIssues(page, 'tips', [
     '.tips-page',
     '.site-header',
     '.tips-main',
     '.tips-hero',
-    '.hero-rule',
     '.threshold-card',
-    '.strategy-grid',
     '.variants',
-    '.evidence-card',
-    '.tips-cta',
+    '.research-note',
   ])
   const facts = await page.evaluate(() => ({
     heading: document.querySelector('#tips-title')?.textContent?.trim(),
     rows: document.querySelectorAll('.threshold-card tbody tr').length,
+    heroText: document.querySelector('.tips-hero')?.textContent?.trim(),
+    note: document.querySelector('.tips-main > p.research-note')?.textContent?.trim(),
+    noteStyle: (() => {
+      const note = document.querySelector('.research-note')
+      if (!note)
+        return null
+      const style = getComputedStyle(note)
+      return { background: style.backgroundColor, border: style.borderTopWidth, shadow: style.boxShadow }
+    })(),
   }))
-  if (!facts.heading)
-    issues.push('tips: page heading is missing')
+  if (facts.heading !== 'Best Tested Strategy' || facts.heroText !== 'Best Tested Strategy')
+    issues.push('tips: the hero should contain only the Best Tested Strategy heading')
   if (facts.rows !== 6)
     issues.push(`tips: expected 6 dice-threshold rows, found ${facts.rows}`)
-  await captureScreenshot(page, 'tips-mobile.png')
+  if (facts.note !== 'Best policy found in two-player simulation; not mathematically proven optimal.')
+    issues.push('tips: the simulation caveat is not standalone text at the bottom of the main content')
+  if (facts.noteStyle?.background !== 'rgba(0, 0, 0, 0)' || facts.noteStyle?.border !== '0px' || facts.noteStyle?.shadow !== 'none')
+    issues.push('tips: the simulation caveat still has a card background, border, or shadow')
+  if (viewport.name === mobileViewport.name)
+    await captureScreenshot(page, 'tips-mobile.png')
   return issues
 }
 
@@ -752,11 +920,11 @@ async function analyzePage(browser, route, scheme, viewport) {
         },
       })
     })
-    const reflowIssues = viewport.name === mobileViewport.name
-      ? route === '/'
-        ? await verifyMobileGameFlow(page)
-        : await verifyMobileTips(page)
-      : []
+    const reflowIssues = route === '/'
+      ? await verifySetupControls(page, viewport, scheme)
+      : await verifyTips(page, viewport)
+    if (route === '/' && viewport.name === mobileViewport.name)
+      reflowIssues.push(...await verifyMobileGameFlow(page))
     return {
       url,
       scheme,

@@ -62,17 +62,9 @@ const stealingThresholds = [
 
     <main class="tips-main">
       <section class="tips-hero" aria-labelledby="tips-title">
-        <div>
-          <p class="eyebrow">
-            Best tested strategy
-          </p>
-          <h1 id="tips-title">
-            Bank by the dice left.
-          </h1>
-          <p>
-            Use the row for the number of dice you would roll next. Hot dice reset the decision to six.
-          </p>
-        </div>
+        <h1 id="tips-title">
+          Best Tested Strategy
+        </h1>
       </section>
 
       <section class="threshold-card" aria-labelledby="threshold-title">
@@ -166,11 +158,9 @@ const stealingThresholds = [
         </p>
       </section>
 
-      <aside class="research-note" aria-label="Research caveat">
-        <p>
-          Best policy found in two-player simulation; not mathematically proven optimal.
-        </p>
-      </aside>
+      <p class="research-note">
+        Best policy found in two-player simulation; not mathematically proven optimal.
+      </p>
     </main>
 
     <footer class="site-footer">
@@ -217,31 +207,17 @@ const stealingThresholds = [
   padding-block: clamp(38px, 6vw, 68px);
 }
 
-.tips-hero {
-  max-width: 680px;
-}
-
 .tips-hero h1 {
-  max-width: 650px;
-  margin: 12px 0 18px;
-  font-family: 'DM Serif Display', Georgia, serif;
-  font-size: clamp(3rem, 7vw, 5.5rem);
-  font-weight: 400;
-  letter-spacing: -0.045em;
-  line-height: 0.94;
-}
-
-.tips-hero > div > p:last-child {
-  max-width: 600px;
   margin: 0;
-  color: var(--muted-ink);
-  font-size: clamp(0.98rem, 1.7vw, 1.14rem);
-  line-height: 1.7;
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: clamp(1.65rem, 5vw, 3.25rem);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
 }
 
 .threshold-card,
-.variants,
-.research-note {
+.variants {
   background: rgb(255 250 240 / 78%);
   border: 1px solid var(--line);
   border-radius: 22px;
@@ -250,7 +226,7 @@ const stealingThresholds = [
 }
 
 .threshold-card {
-  margin-top: clamp(34px, 5vw, 54px);
+  margin-top: 24px;
   padding: clamp(22px, 4vw, 38px);
 }
 
@@ -359,12 +335,7 @@ tbody td:nth-child(n + 2) {
 }
 
 .research-note {
-  margin-top: 16px;
-  padding: 17px 20px;
-}
-
-.research-note p {
-  margin: 0;
+  margin: 18px 0 0;
   color: var(--muted-ink);
   font-size: 0.7rem;
   line-height: 1.55;
@@ -404,16 +375,6 @@ tbody td:nth-child(n + 2) {
 
   .tips-main {
     padding-block: 28px 34px;
-  }
-
-  .tips-hero h1 {
-    margin-block: 8px 12px;
-    font-size: clamp(2.45rem, 13vw, 3.5rem);
-  }
-
-  .tips-hero > div > p:last-child {
-    font-size: 0.92rem;
-    line-height: 1.55;
   }
 
   .threshold-card {

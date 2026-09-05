@@ -18,8 +18,17 @@ const localNames = ref(['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 
 const humanName = ref('Player 1')
 const computerName = ref('Computer')
 const computerDifficulty = ref<ComputerDifficulty>('medium')
-const winningScore = ref(defaultSettings.winningScore)
-const openingScore = ref(defaultSettings.openingScore)
+const maximumScore = 100_000
+const winningScorePreset = ref<number | 'custom'>(defaultSettings.winningScore)
+const openingScorePreset = ref<number | 'custom'>(defaultSettings.openingScore)
+const customWinningScore = ref('')
+const customOpeningScore = ref('')
+const winningScore = computed(() => winningScorePreset.value === 'custom'
+  ? parseCustomScore(customWinningScore.value)
+  : winningScorePreset.value)
+const openingScore = computed(() => openingScorePreset.value === 'custom'
+  ? parseCustomScore(customOpeningScore.value)
+  : openingScorePreset.value)
 const firstRollBust = ref(defaultSettings.firstRollBust)
 const finalChase = ref(defaultSettings.finalChase)
 const allowTies = ref(defaultSettings.allowTies)
@@ -28,15 +37,32 @@ const error = ref('')
 const submitted = ref(false)
 const setupForm = useTemplateRef<HTMLFormElement>('setupForm')
 
-const difficultyHelp: Record<ComputerDifficulty, string> = {
-  easy: 'Banks at a simple, forgiving target while still recognizing a chance to win.',
-  medium: 'Adjusts its risk to the score, the leader, and the finish line.',
-  hard: 'Uses the strongest risk thresholds found by the Zilch simulations.',
-}
+const winningScoreError = computed(() => winningScore.value === null
+  || !Number.isSafeInteger(winningScore.value)
+  || winningScore.value < 1000
+  || winningScore.value > maximumScore
+  ? 'Choose a winning score from 1,000 to 100,000.'
+  : '')
+const openingScoreLimit = computed(() => winningScoreError.value ? maximumScore : winningScore.value!)
+const openingScoreError = computed(() => {
+  if (openingScore.value === null || !Number.isSafeInteger(openingScore.value) || openingScore.value < 0 || openingScore.value > maximumScore)
+    return 'Choose an opening score from 0 to 100,000.'
+  if (!winningScoreError.value && openingScore.value > openingScoreLimit.value)
+    return 'The opening score cannot be higher than the winning score.'
+  return ''
+})
+
+watch(winningScorePreset, (value, previous) => {
+  customWinningScore.value = value === 'custom' ? String(previous) : ''
+})
+
+watch(openingScorePreset, (value, previous) => {
+  customOpeningScore.value = value === 'custom' ? String(previous) : ''
+})
 
 watch(winningScore, (value) => {
-  if (openingScore.value > value)
-    openingScore.value = value
+  if (value !== null && value >= 1000 && openingScorePreset.value !== 'custom' && openingScorePreset.value > value)
+    openingScorePreset.value = [1500, 1000, 500, 0].find(score => score <= value) ?? 0
 })
 
 const players = computed<PlayerDraft[]>(() => {
@@ -52,6 +78,21 @@ const players = computed<PlayerDraft[]>(() => {
 function clearError() {
   error.value = ''
   submitted.value = false
+}
+
+function parseCustomScore(value: string) {
+  return value === '' ? null : Number(value)
+}
+
+function updateCustomScore(event: Event, kind: 'winning' | 'opening') {
+  const input = event.target as HTMLInputElement
+  const digits = input.value.replace(/\D/g, '')
+  const value = Number(digits) > maximumScore ? String(maximumScore) : digits
+  input.value = value
+  if (kind === 'winning')
+    customWinningScore.value = value
+  else
+    customOpeningScore.value = value
 }
 
 function isNameInvalid(index: number) {
@@ -85,10 +126,18 @@ async function submit() {
     await reportError('Player names need to be different.')
     return
   }
+  if (winningScoreError.value) {
+    await reportError(winningScoreError.value)
+    return
+  }
+  if (openingScoreError.value) {
+    await reportError(openingScoreError.value)
+    return
+  }
 
   emit('start', players.value, {
-    winningScore: winningScore.value,
-    openingScore: openingScore.value,
+    winningScore: winningScore.value!,
+    openingScore: openingScore.value!,
     firstRollBust: firstRollBust.value,
     finalChase: finalChase.value,
     allowTies: allowTies.value,
@@ -168,11 +217,8 @@ async function submit() {
         <span class="player-kind">{{ computerDifficulty }} computer</span>
       </label>
       <label class="difficulty-setting">
-        <span>
-          <strong>Computer difficulty</strong>
-          <small id="difficulty-help" aria-live="polite">{{ difficultyHelp[computerDifficulty] }}</small>
-        </span>
-        <select v-model="computerDifficulty" aria-label="Computer difficulty" aria-describedby="difficulty-help">
+        <strong>Computer difficulty</strong>
+        <select v-model="computerDifficulty" aria-label="Computer difficulty">
           <option value="easy">Easy</option>
           <option value="medium">Medium</option>
           <option value="hard">Hard</option>
@@ -208,28 +254,64 @@ async function submit() {
     </div>
 
     <div class="score-settings">
-      <label>
-        <span>First to</span>
-        <select v-model="winningScore">
-          <option :value="2500">2,500</option>
-          <option :value="5000">5,000</option>
-          <option :value="7500">7,500</option>
-          <option :value="10000">10,000</option>
-        </select>
-      </label>
-      <label>
-        <span>Get on the board at</span>
-        <select v-model="openingScore">
-          <option :value="0">No minimum</option>
-          <option v-if="winningScore >= 500" :value="500">500</option>
-          <option v-if="winningScore >= 1000" :value="1000">1,000</option>
-          <option v-if="winningScore >= 1500" :value="1500">1,500</option>
-        </select>
-      </label>
+      <div class="score-field">
+        <label for="winning-score-preset">
+          <span>First to</span>
+          <select id="winning-score-preset" v-model="winningScorePreset">
+            <option :value="2500">2,500</option>
+            <option :value="5000">5,000</option>
+            <option :value="7500">7,500</option>
+            <option :value="10000">10,000</option>
+            <option value="custom">Custom</option>
+          </select>
+        </label>
+        <label v-if="winningScorePreset === 'custom'" for="custom-winning-score" class="custom-score">
+          <span>Custom winning score</span>
+          <input
+            id="custom-winning-score"
+            :value="customWinningScore"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            autocomplete="off"
+            :aria-invalid="submitted && Boolean(winningScoreError)"
+            :aria-describedby="submitted && winningScoreError ? 'winning-score-hint setup-error' : 'winning-score-hint'"
+            @input="updateCustomScore($event, 'winning')"
+          >
+          <small id="winning-score-hint">1,000 to 100,000</small>
+        </label>
+      </div>
+      <div class="score-field">
+        <label for="opening-score-preset">
+          <span>Get on the board at</span>
+          <select id="opening-score-preset" v-model="openingScorePreset">
+            <option :value="0">No minimum</option>
+            <option v-if="openingScoreLimit >= 500" :value="500">500</option>
+            <option v-if="openingScoreLimit >= 1000" :value="1000">1,000</option>
+            <option v-if="openingScoreLimit >= 1500" :value="1500">1,500</option>
+            <option value="custom">Custom</option>
+          </select>
+        </label>
+        <label v-if="openingScorePreset === 'custom'" for="custom-opening-score" class="custom-score">
+          <span>Custom opening score</span>
+          <input
+            id="custom-opening-score"
+            :value="customOpeningScore"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            autocomplete="off"
+            :aria-invalid="submitted && Boolean(openingScoreError)"
+            :aria-describedby="submitted && openingScoreError ? 'opening-score-hint setup-error' : 'opening-score-hint'"
+            @input="updateCustomScore($event, 'opening')"
+          >
+          <small id="opening-score-hint">0 to {{ openingScoreLimit.toLocaleString() }}</small>
+        </label>
+      </div>
     </div>
 
     <details class="house-rules">
-      <summary>House rules <span>4 options</span></summary>
+      <summary>House rules <span>Advanced <i class="rules-chevron" aria-hidden="true" /></span></summary>
       <div class="rules-options">
         <label>
           <input v-model="firstRollBust" type="checkbox">
@@ -258,10 +340,8 @@ async function submit() {
       Start the game
       <span aria-hidden="true">→</span>
     </button>
-    <p class="save-note" :class="{ warning: !storageAvailable }" role="status" aria-live="polite">
-      {{ storageAvailable
-        ? 'Your game saves on this device. No account needed.'
-        : 'Saving is unavailable in this browser session. Keep this page open to continue playing.' }}
+    <p v-if="!storageAvailable" class="save-note warning" role="status" aria-live="polite">
+      Saving is unavailable in this browser session. Keep this page open to continue playing.
     </p>
   </form>
 </template>
@@ -418,6 +498,7 @@ fieldset {
 
 .player-row input,
 .name-grid input,
+.score-settings input,
 .score-settings select,
 .difficulty-setting select {
   min-width: 0;
@@ -428,7 +509,8 @@ fieldset {
 }
 
 .player-row input[aria-invalid='true'],
-.name-grid input[aria-invalid='true'] {
+.name-grid input[aria-invalid='true'],
+.score-settings input[aria-invalid='true'] {
   background: #fff4f1;
   border-color: var(--coral);
   box-shadow: 0 0 0 2px rgb(169 66 47 / 14%);
@@ -457,20 +539,8 @@ fieldset {
   border-top: 1px solid var(--line);
 }
 
-.difficulty-setting strong,
-.difficulty-setting small {
-  display: block;
-}
-
 .difficulty-setting strong {
   font-size: 0.78rem;
-}
-
-.difficulty-setting small {
-  margin-top: 3px;
-  color: var(--muted-ink);
-  font-size: 0.66rem;
-  line-height: 1.4;
 }
 
 .difficulty-setting select {
@@ -529,6 +599,7 @@ fieldset {
 }
 
 .name-grid input,
+.score-settings input,
 .score-settings select {
   width: 100%;
   padding: 9px 10px;
@@ -536,11 +607,29 @@ fieldset {
 
 .score-settings {
   gap: 12px;
+  align-items: flex-start;
   padding: 13px 0;
 }
 
-.score-settings label {
+.score-field {
   flex: 1;
+  min-width: 0;
+}
+
+.score-settings input,
+.score-settings select {
+  min-height: 44px;
+  font-size: 1rem;
+}
+
+.custom-score {
+  margin-top: 10px;
+}
+
+.custom-score small {
+  color: var(--muted-ink);
+  font-size: 0.66rem;
+  line-height: 1.4;
 }
 
 .house-rules {
@@ -561,8 +650,25 @@ fieldset {
 }
 
 .house-rules summary span {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
   color: var(--muted-ink);
   font-size: 0.68rem;
+}
+
+.rules-chevron {
+  width: 7px;
+  height: 7px;
+  margin-top: -3px;
+  border-right: 2px solid currentcolor;
+  border-bottom: 2px solid currentcolor;
+  transform: rotate(45deg);
+}
+
+.house-rules[open] .rules-chevron {
+  margin-top: 3px;
+  transform: rotate(225deg);
 }
 
 .rules-options {
@@ -650,6 +756,7 @@ fieldset {
 
   .player-row input,
   .name-grid input,
+  .score-settings input,
   .score-settings select,
   .difficulty-setting select {
     font-size: 1rem;

@@ -7,6 +7,7 @@
 - Solo play against Easy, Medium, or simulation-trained Hard computer opponents
 - Local pass-and-play for one to six people
 - The shared 5,000-point target and 1,000-point opening defaults
+- Preset or custom scores: a 1,000–100,000 winning target and a 0–100,000 opening minimum no higher than the target
 - Singles, multiples, later-roll multiple extensions, straights, and three pairs
 - Hot dice, first-roll mercy, Final Chase, optional ties, and optional Stealing
 - Device-local save and resume with no account or server-side game data

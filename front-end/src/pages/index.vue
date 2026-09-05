@@ -124,12 +124,8 @@ function confirmNewGame() {
       @rules="rulesOpen = true"
     />
 
-    <footer class="site-footer">
-      <span>Built from Jacob Anderson's Zilch games</span>
-      <span aria-hidden="true">•</span>
-      <span :role="state ? 'status' : undefined" :aria-live="state ? 'polite' : undefined">
-        {{ storageAvailable ? 'Saved only on this device' : 'This session is not being saved' }}
-      </span>
+    <footer v-if="state && !storageAvailable" class="site-footer" role="status" aria-live="polite">
+      This session is not being saved. Keep this page open to continue playing.
     </footer>
 
     <RulesDialog :open="rulesOpen" @close="rulesOpen = false" />

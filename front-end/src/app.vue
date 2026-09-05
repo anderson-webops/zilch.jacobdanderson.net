@@ -174,7 +174,7 @@ summary:focus-visible {
   flex: 1;
   grid-template-columns: minmax(0, 0.95fr) minmax(380px, 1.05fr);
   gap: clamp(34px, 6vw, 84px);
-  align-items: center;
+  align-items: start;
   min-width: 0;
   padding-block: clamp(34px, 7vh, 84px);
 }
@@ -306,6 +306,8 @@ summary:focus-visible {
 
 .table-preview {
   position: relative;
+  /* Anchor the preview independently of expanding setup controls. */
+  margin-top: 13rem;
   min-height: 570px;
   padding: 28px;
   overflow: hidden;
@@ -416,6 +418,7 @@ summary:focus-visible {
   }
 
   .table-preview {
+    margin-top: 0;
     min-height: 520px;
   }
 }
