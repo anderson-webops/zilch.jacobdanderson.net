@@ -5,6 +5,10 @@ definePageMeta({
 
 const {
   state,
+  rollingResult,
+  rollingAnimationEnabled,
+  reducedMotion,
+  setRollingAnimation,
   storageAvailable,
   hasSavedGame,
   selection,
@@ -78,6 +82,9 @@ function confirmNewGame() {
           <GameSetup
             :has-saved-game="hasSavedGame"
             :storage-available="storageAvailable"
+            :rolling-animation-enabled="rollingAnimationEnabled"
+            :reduced-motion="reducedMotion"
+            @animation-change="setRollingAnimation"
             @start="startGame"
             @resume="resumeGame"
           />
@@ -105,6 +112,9 @@ function confirmNewGame() {
     <GameTable
       v-else
       :state="state"
+      :rolling-result="rollingResult"
+      :rolling-animation-enabled="rollingAnimationEnabled"
+      :reduced-motion="reducedMotion"
       :selectable-ids="selectableIds"
       :selection-score="selection?.score ?? 0"
       :selection-valid="selection?.valid ?? false"
@@ -113,6 +123,7 @@ function confirmNewGame() {
       :can-bank="selectionCanBank"
       :projected-score="projectedScore"
       :dice-after-selection="diceAfterSelection"
+      @animation-change="setRollingAnimation"
       @roll="roll"
       @toggle="toggle"
       @recommend="recommend"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Die } from '~/game/types'
+import { pipPositions } from '~/utils/diceFaces'
 
 const props = withDefaults(defineProps<{
   die: Die
@@ -14,15 +15,6 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   toggle: [dieId: number]
 }>()
-
-const pipPositions: Record<number, number[]> = {
-  1: [5],
-  2: [1, 9],
-  3: [1, 5, 9],
-  4: [1, 3, 7, 9],
-  5: [1, 3, 5, 7, 9],
-  6: [1, 3, 4, 6, 7, 9],
-}
 
 const label = computed(() => {
   let state = 'not a scoring die'
@@ -192,23 +184,5 @@ const label = computed(() => {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-
-@keyframes settle {
-  0% {
-    transform: translateY(-16px) rotate(-8deg);
-    opacity: 0;
-  }
-  65% {
-    transform: translateY(3px) rotate(2deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(0) rotate(0);
-  }
-}
-
-.die {
-  animation: settle 420ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
 }
 </style>

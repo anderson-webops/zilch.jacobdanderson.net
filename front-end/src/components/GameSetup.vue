@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import type { ComputerDifficulty, GameSettings, PlayerDraft } from '~/game/types'
 import { defaultSettings } from '~/game/engine'
+import { readSetupPreferences, writeSetupPreferences } from '~/game/setup-preferences'
 
 defineProps<{
   hasSavedGame: boolean
   storageAvailable: boolean
+  rollingAnimationEnabled: boolean
+  reducedMotion: boolean
 }>()
 
 const emit = defineEmits<{
   start: [players: PlayerDraft[], settings: GameSettings]
   resume: []
+  animationChange: [enabled: boolean]
 }>()
 
 const mode = ref<'computer' | 'local'>('computer')
@@ -36,6 +40,9 @@ const stealing = ref(defaultSettings.stealing)
 const error = ref('')
 const submitted = ref(false)
 const setupForm = useTemplateRef<HTMLFormElement>('setupForm')
+let restoringPreferences = false
+let preferencesReady = false
+let preferenceStorage: Storage | null = null
 
 const winningScoreError = computed(() => winningScore.value === null
   || !Number.isSafeInteger(winningScore.value)
@@ -53,17 +60,74 @@ const openingScoreError = computed(() => {
 })
 
 watch(winningScorePreset, (value, previous) => {
-  customWinningScore.value = value === 'custom' ? String(previous) : ''
+  if (!restoringPreferences)
+    customWinningScore.value = value === 'custom' ? String(previous) : ''
 })
 
 watch(openingScorePreset, (value, previous) => {
-  customOpeningScore.value = value === 'custom' ? String(previous) : ''
+  if (!restoringPreferences)
+    customOpeningScore.value = value === 'custom' ? String(previous) : ''
 })
 
 watch(winningScore, (value) => {
-  if (value !== null && value >= 1000 && openingScorePreset.value !== 'custom' && openingScorePreset.value > value)
+  if (!restoringPreferences && value !== null && value >= 1000 && openingScorePreset.value !== 'custom' && openingScorePreset.value > value)
     openingScorePreset.value = [1500, 1000, 500, 0].find(score => score <= value) ?? 0
 })
+
+onMounted(async () => {
+  try {
+    preferenceStorage = window.localStorage
+  }
+  catch {
+    preferenceStorage = null
+  }
+  const saved = readSetupPreferences(preferenceStorage)
+  restoringPreferences = true
+  mode.value = saved.mode
+  playerCount.value = saved.playerCount
+  localNames.value = saved.localNames
+  humanName.value = saved.humanName
+  computerName.value = saved.computerName
+  computerDifficulty.value = saved.computerDifficulty
+  winningScorePreset.value = [2500, 5000, 7500, 10000].includes(saved.settings.winningScore) ? saved.settings.winningScore : 'custom'
+  customWinningScore.value = String(saved.settings.winningScore)
+  openingScorePreset.value = [0, 500, 1000, 1500].includes(saved.settings.openingScore) ? saved.settings.openingScore : 'custom'
+  customOpeningScore.value = String(saved.settings.openingScore)
+  firstRollBust.value = saved.settings.firstRollBust
+  finalChase.value = saved.settings.finalChase
+  allowTies.value = saved.settings.allowTies
+  stealing.value = saved.settings.stealing
+  await nextTick()
+  restoringPreferences = false
+  preferencesReady = true
+  writeSetupPreferences(preferenceStorage, saved)
+})
+
+watch(
+  [mode, playerCount, localNames, humanName, computerName, computerDifficulty, winningScore, openingScore, firstRollBust, finalChase, allowTies, stealing],
+  () => {
+    if (!preferencesReady || winningScoreError.value || openingScoreError.value)
+      return
+    writeSetupPreferences(preferenceStorage, {
+      schemaVersion: 1,
+      mode: mode.value,
+      playerCount: playerCount.value,
+      localNames: localNames.value,
+      humanName: humanName.value,
+      computerName: computerName.value,
+      computerDifficulty: computerDifficulty.value,
+      settings: {
+        winningScore: winningScore.value!,
+        openingScore: openingScore.value!,
+        firstRollBust: firstRollBust.value,
+        finalChase: finalChase.value,
+        allowTies: allowTies.value,
+        stealing: stealing.value,
+      },
+    })
+  },
+  { deep: true, flush: 'post' },
+)
 
 const players = computed<PlayerDraft[]>(() => {
   if (mode.value === 'computer') {
@@ -331,6 +395,12 @@ async function submit() {
         </label>
       </div>
     </details>
+
+    <RollingAnimationToggle
+      :enabled="rollingAnimationEnabled"
+      :reduced-motion="reducedMotion"
+      @change="emit('animationChange', $event)"
+    />
 
     <p v-if="error" id="setup-error" class="form-error" role="alert">
       {{ error }}

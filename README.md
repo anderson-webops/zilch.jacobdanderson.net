@@ -10,6 +10,8 @@
 - Preset or custom scores: a 1,000–100,000 winning target and a 0–100,000 opening minimum no higher than the target
 - Singles, multiples, later-roll multiple extensions, straights, and three pairs
 - Hot dice, first-roll mercy, Final Chase, optional ties, and optional Stealing
+- Optional 3D rolling animation, off by default and remembered on this device
+- Remembered difficulty, players, custom scores, and house rules for the next table
 - Device-local save and resume with no account or server-side game data
 - A strategy Tips page with simulation-tested banking guidance, variant findings, and clearly labeled endgame heuristics
 - Keyboard, touch, reduced-motion, and screen-reader support
@@ -17,6 +19,11 @@
 Hard mode ports the strongest tested policies from the companion `Computers_vs_Zilch` simulator, including multiple-aware scoring choices and a separate policy when Stealing is enabled. It compares preserving a multiple with collecting extra points or hot dice, while accounting for points at risk and game position. Medium adds score-aware finish and buffer decisions, while Easy uses a straightforward 600-point turn target. See [`docs/strategy-research.md`](docs/strategy-research.md) for the reproducible policy inputs, holdouts, and limitations.
 
 ## Local development
+
+Enable **Rolling animation** below House rules before starting, or beneath the scoreboard during a game. The browser adaptation follows the original game's two-second tumble and half-second settled hold using lightweight CSS, without copying its renderer or assets. It applies to human and computer rolls, never changes dice results or strategy, and respects the device's reduced-motion preference. The bust result remains visible after the animation finishes.
+
+Setup preferences are saved as valid changes are made, separately from game progress. An existing saved game supplies the initial preferences when upgrading. Starting over does not erase them. Preferences stay in this browser on this device; private browsing, blocked storage, or clearing site data can prevent or remove them. They do not sync across devices or accounts.
+
 
 Use Node `24.18.1` and npm `12.0.2` from the repository root.
 

@@ -467,7 +467,11 @@ async function verifySetupControls(page, viewport, scheme) {
   // Leave a clean, hydrated default setup for the existing gameplay checks.
   await page.goto(`${baseUrl}/tips`, { waitUntil: 'domcontentloaded' })
   await page.waitForSelector('#tips-title')
-  await page.evaluate(() => localStorage.removeItem('zilch-browser-game-v1'))
+  await page.evaluate(() => {
+    localStorage.removeItem('zilch-browser-game-v1')
+    localStorage.removeItem('zilch-setup-preferences-v1')
+    localStorage.removeItem('zilch-rolling-animation-v1')
+  })
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' })
   await verifyHydratedSetup(page)
   if (await page.$('.resume-button'))

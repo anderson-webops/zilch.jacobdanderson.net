@@ -3,6 +3,9 @@ import type { GameState } from '~/game/types'
 
 const props = defineProps<{
   state: GameState
+  rollingResult: GameState | null
+  rollingAnimationEnabled: boolean
+  reducedMotion: boolean
   selectableIds: number[]
   selectionScore: number
   selectionValid: boolean
@@ -23,6 +26,7 @@ const emit = defineEmits<{
   steal: [accept: boolean]
   newGame: []
   rules: []
+  animationChange: [enabled: boolean]
 }>()
 
 const currentPlayer = computed(() => props.state.players[props.state.currentPlayerIndex]!)
@@ -114,7 +118,7 @@ async function focusCurrentPhase() {
 
   await nextTick()
   const root = playLayout.value
-  if (!root)
+  if (!root || props.rollingResult)
     return
 
   const activeElement = document.activeElement
@@ -137,7 +141,7 @@ async function focusCurrentPhase() {
 }
 
 watch(
-  () => `${props.state.phase}:${props.state.currentPlayerIndex}:${props.state.rollNumber}`,
+  () => `${props.state.phase}:${props.state.currentPlayerIndex}:${props.state.rollNumber}:${Boolean(props.rollingResult)}`,
   focusCurrentPhase,
   { flush: 'post' },
 )
@@ -183,6 +187,11 @@ onMounted(focusCurrentPhase)
         <span>{{ state.settings.finalChase ? 'Final chase on' : 'Sudden finish' }}</span>
         <span v-if="state.settings.stealing">Stealing on</span>
       </div>
+      <RollingAnimationToggle
+        :enabled="rollingAnimationEnabled"
+        :reduced-motion="reducedMotion"
+        @change="emit('animationChange', $event)"
+      />
     </aside>
 
     <main class="felt-table" aria-labelledby="turn-title">
@@ -204,19 +213,25 @@ onMounted(focusCurrentPhase)
       <div
         class="status-banner"
         :class="{
-          special: state.message.includes('Hot dice') || state.endgame,
-          bust: isBustResult,
+          special: !rollingResult && (state.message.includes('Hot dice') || state.endgame),
+          bust: !rollingResult && isBustResult,
         }"
         role="status"
         aria-live="polite"
       >
         <span class="status-dot" aria-hidden="true" />
-        <span>{{ state.message }}</span>
+        <span>{{ rollingResult ? 'Rolling…' : state.message }}</span>
       </div>
 
-      <section class="dice-zone" aria-label="Dice table">
+      <section class="dice-zone" aria-label="Dice table" :aria-busy="Boolean(rollingResult)">
+        <RollingDice
+          v-if="rollingResult"
+          :key="`rolling-${rollingResult.rollNumber}`"
+          :dice="rollingResult.dice"
+          :roll-number="rollingResult.rollNumber"
+        />
         <div
-          v-if="hasRolledDice"
+          v-else-if="hasRolledDice"
           :key="`rolled-${state.rollNumber}`"
           class="dice-grid"
           :class="{ 'bust-dice': isBustResult }"
@@ -238,7 +253,17 @@ onMounted(focusCurrentPhase)
         </div>
       </section>
 
-      <section v-if="state.phase === 'ready'" class="action-panel ready-actions">
+      <section v-if="rollingResult" class="action-panel ready-actions">
+        <div>
+          <span class="action-label">Rolling dice</span>
+          <strong>Let them settle…</strong>
+        </div>
+        <button class="roll-button" type="button" disabled>
+          Rolling…
+        </button>
+      </section>
+
+      <section v-else-if="state.phase === 'ready'" class="action-panel ready-actions">
         <div>
           <span class="action-label">{{ state.turnScore ? 'Keep the turn alive' : 'Start the turn' }}</span>
           <strong>{{ state.turnScore ? `${state.turnScore.toLocaleString()} points are riding` : 'Ready to roll?' }}</strong>
@@ -708,16 +733,6 @@ onMounted(focusCurrentPhase)
   grid-template-columns: repeat(3, auto);
   gap: clamp(16px, 2.3vw, 25px);
   justify-content: center;
-}
-
-.dice-grid > :nth-child(2),
-.dice-grid > :nth-child(5) {
-  animation-delay: 45ms;
-}
-
-.dice-grid > :nth-child(3),
-.dice-grid > :nth-child(6) {
-  animation-delay: 90ms;
 }
 
 .bust-dice {

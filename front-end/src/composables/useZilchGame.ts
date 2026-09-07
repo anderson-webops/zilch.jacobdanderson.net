@@ -21,6 +21,7 @@ import {
   shouldComputerSteal,
   toggleDie,
 } from '~/game/engine'
+import { createRollPresentation, readRollingPreference, writeRollingPreference } from '~/game/roll-presentation'
 
 const STORAGE_KEY = 'zilch-browser-game-v1'
 
@@ -29,6 +30,15 @@ export function useZilchGame() {
   const savedState = shallowRef<GameState | null>(null)
   const storageAvailable = shallowRef(true)
   const automationTimer = shallowRef<ReturnType<typeof setTimeout> | null>(null)
+  const rollingResult = shallowRef<GameState | null>(null)
+  const rollingAnimationEnabled = ref(false)
+  const reducedMotion = ref(false)
+  let motionQuery: MediaQueryList | null = null
+  const isRolling = computed(() => rollingResult.value !== null)
+  const presentation = createRollPresentation({
+    rolling: result => rollingResult.value = result ? markRaw(result) : null,
+    reveal: setState,
+  })
 
   const hasSavedGame = computed(() => savedState.value !== null)
   const player = computed(() => state.value ? activePlayer(state.value) : null)
@@ -81,15 +91,18 @@ export function useZilchGame() {
   }
 
   function startGame(players: PlayerDraft[], settings: GameSettings) {
+    presentation.cancel()
     setState(createGame(players, settings))
   }
 
   function resumeGame() {
+    presentation.cancel()
     if (savedState.value)
       state.value = markRaw(selectComputerRecommended(structuredClone(savedState.value)))
   }
 
   function leaveGame() {
+    presentation.cancel()
     if (automationTimer.value)
       clearTimeout(automationTimer.value)
     automationTimer.value = null
@@ -98,17 +111,39 @@ export function useZilchGame() {
   }
 
   function roll(forcedValues?: DieValue[]) {
-    if (state.value)
-      setState(rollDice(state.value, Math.random, forcedValues))
+    if (state.value && !isRolling.value)
+      presentRoll(rollDice(state.value, Math.random, forcedValues))
+  }
+
+  function presentRoll(next: GameState) {
+    if (automationTimer.value)
+      clearTimeout(automationTimer.value)
+    automationTimer.value = null
+    // Save the actual roll before displaying it, including if the page closes mid-tumble.
+    persist(next)
+    presentation.present(next, rollingAnimationEnabled.value && !reducedMotion.value)
+  }
+
+  function setRollingAnimation(enabled: boolean) {
+    rollingAnimationEnabled.value = enabled
+    writeRollingPreference(browserStorage(), enabled)
+    if (!enabled)
+      presentation.finish()
+  }
+
+  function updateReducedMotion() {
+    reducedMotion.value = motionQuery?.matches ?? false
+    if (reducedMotion.value)
+      presentation.finish()
   }
 
   function toggle(dieId: number) {
-    if (state.value && activePlayer(state.value).kind === 'human')
+    if (state.value && !isRolling.value && activePlayer(state.value).kind === 'human')
       setState(toggleDie(state.value, dieId))
   }
 
   function recommend() {
-    if (!state.value)
+    if (!state.value || isRolling.value)
       return
     setState(activePlayer(state.value).kind === 'computer'
       ? selectComputerRecommended(state.value)
@@ -116,17 +151,17 @@ export function useZilchGame() {
   }
 
   function continueRolling(forcedValues?: DieValue[]) {
-    if (state.value)
-      setState(rollAgain(state.value, Math.random, forcedValues))
+    if (state.value && !isRolling.value)
+      presentRoll(rollAgain(state.value, Math.random, forcedValues))
   }
 
   function bank() {
-    if (state.value)
+    if (state.value && !isRolling.value)
       setState(bankScore(state.value))
   }
 
   function pass() {
-    if (!state.value)
+    if (!state.value || isRolling.value)
       return
     setState(state.value.phase === 'bust'
       ? acknowledgeBust(state.value)
@@ -134,7 +169,7 @@ export function useZilchGame() {
   }
 
   function steal(accept: boolean) {
-    if (state.value)
+    if (state.value && !isRolling.value)
       setState(chooseSteal(state.value, accept))
   }
 
@@ -142,7 +177,7 @@ export function useZilchGame() {
     if (automationTimer.value)
       clearTimeout(automationTimer.value)
     automationTimer.value = null
-    if (!next || !import.meta.client)
+    if (!next || !import.meta.client || isRolling.value)
       return
 
     const current = activePlayer(next)
@@ -183,7 +218,11 @@ export function useZilchGame() {
   }
 
   onMounted(() => {
+    motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    updateReducedMotion()
+    motionQuery.addEventListener('change', updateReducedMotion)
     const storage = browserStorage()
+    rollingAnimationEnabled.value = readRollingPreference(storage)
     if (!storage) {
       scheduleComputerTurn(state.value)
       return
@@ -209,15 +248,22 @@ export function useZilchGame() {
     scheduleComputerTurn(state.value)
   })
 
-  watch(state, scheduleComputerTurn, { flush: 'post' })
+  watch([state, isRolling], ([next]) => scheduleComputerTurn(next), { flush: 'post' })
 
   onBeforeUnmount(() => {
+    // Navigating to Tips must not discard a roll that has already happened.
+    presentation.finish()
+    motionQuery?.removeEventListener('change', updateReducedMotion)
     if (automationTimer.value)
       clearTimeout(automationTimer.value)
   })
 
   return {
     state: shallowReadonly(state),
+    rollingResult: shallowReadonly(rollingResult),
+    rollingAnimationEnabled: shallowReadonly(rollingAnimationEnabled),
+    reducedMotion: shallowReadonly(reducedMotion),
+    setRollingAnimation,
     storageAvailable: shallowReadonly(storageAvailable),
     hasSavedGame,
     player,
