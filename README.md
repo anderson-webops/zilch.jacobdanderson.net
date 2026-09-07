@@ -14,7 +14,7 @@
 - A strategy Tips page with simulation-tested banking guidance, variant findings, and clearly labeled endgame heuristics
 - Keyboard, touch, reduced-motion, and screen-reader support
 
-Hard mode ports the strongest tested policies from the companion `Computers_vs_Zilch` simulator, including a separate policy when Stealing is enabled. Medium adds score-aware finish and buffer decisions, while Easy uses a straightforward 600-point turn target. See [`docs/strategy-research.md`](docs/strategy-research.md) for the reproducible policy inputs, holdouts, and limitations.
+Hard mode ports the strongest tested policies from the companion `Computers_vs_Zilch` simulator, including multiple-aware scoring choices and a separate policy when Stealing is enabled. It compares preserving a multiple with collecting extra points or hot dice, while accounting for points at risk and game position. Medium adds score-aware finish and buffer decisions, while Easy uses a straightforward 600-point turn target. See [`docs/strategy-research.md`](docs/strategy-research.md) for the reproducible policy inputs, holdouts, and limitations.
 
 ## Local development
 

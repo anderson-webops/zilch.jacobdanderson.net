@@ -8,6 +8,7 @@ import type {
   PlayerDraft,
   SelectionResult,
 } from './types.ts'
+import { nextRollRisk } from './roll-risk.ts'
 import {
   hasScoringOption,
   recommendedDieIds,
@@ -66,8 +67,9 @@ const mediumComputerPolicy: ComputerPolicy = {
 }
 
 /**
- * The trained policy with a separately holdout-tested six-dice refinement.
- * See docs/research/hot-dice-2026-09 for the frozen candidate and full evidence.
+ * Base calibration for Hard. Multiple-bearing rolls use the separately
+ * holdout-tested joint selection planner below; Stealing stays independent.
+ * See docs/research/multiple-selection-2026-09 for the frozen policy/evidence.
  */
 export const simulationDerivedHardPolicy: ComputerPolicy = {
   name: 'Hard',
@@ -775,13 +777,90 @@ function rollingComputerDieIds(state: GameState) {
 }
 
 function computerTurnDecision(state: GameState) {
+  const standardHard = currentPlayer(state).difficulty === 'hard' && !state.settings.stealing
+  if (standardHard) {
+    const allIds = recommendedDieIds(state.dice, state.scoredMultiples)
+    const allState = { ...state, selectedDieIds: allIds }
+    if (guaranteedOutrightWin(allState))
+      return { dieIds: allIds, bank: true }
+    const hasChain = Object.values(state.scoredMultiples).some(count => count >= 3)
+    if (hasChain || scoringOptions(state.dice, state.scoredMultiples).some(option => option.isMultiple)) {
+      const plan = multipleSelectionDecision(state)
+      if (plan)
+        return plan
+    }
+  }
   const dieIds = rollingComputerDieIds(state)
   const bank = shouldBankSelectedDice({ ...state, selectedDieIds: dieIds })
-  const collectBeforeBank = currentPlayer(state).difficulty === 'hard' && !state.settings.stealing
   return {
-    dieIds: bank && collectBeforeBank ? recommendedDieIds(state.dice, state.scoredMultiples) : dieIds,
+    dieIds: bank && standardHard ? recommendedDieIds(state.dice, state.scoredMultiples) : dieIds,
     bank,
   }
+}
+
+function guaranteedOutrightWin(state: GameState) {
+  if (!canBank(state))
+    return false
+  const total = currentPlayer(state).score + state.turnScore + selectionResult(state).score
+  if (state.endgame?.remainingTurns === 1)
+    return total > maxOpponentScore(state)
+  return (!state.settings.finalChase || state.players.length === 1) && total >= state.settings.winningScore
+}
+
+function multipleSelectionDecision(state: GameState) {
+  interface Plan {
+    dieIds: number[]
+    bank: boolean
+    utility: number
+    points: number
+    nextDice: number
+    wins: boolean
+  }
+  let best: Plan | null = null
+  const consider = (candidate: Plan) => {
+    const sameUtility = best && Math.abs(candidate.utility - best.utility) <= 1e-9
+    const betterTie = best && sameUtility && (
+      (candidate.bank && !best.bank)
+      || (candidate.bank === best.bank && (candidate.points > best.points
+        || (candidate.points === best.points && candidate.nextDice > best.nextDice)))
+    )
+    if (!best || (candidate.wins && !best.wins)
+      || (candidate.wins === best.wins && (candidate.utility > best.utility + 1e-9 || betterTie))) {
+      best = candidate
+    }
+  }
+  function visit(dice: GameState['dice'], chains: MultipleChains, dieIds: number[], points: number) {
+    if (dieIds.length > 0) {
+      const selected = { ...state, selectedDieIds: dieIds }
+      const bankable = canBank(selected)
+      const nextDice = dice.length || 6
+      const endgame = bankable ? endgameBankDecision(state, 'hard', points, nextDice) : null
+      const wins = guaranteedOutrightWin(selected)
+      if (bankable && (wins || endgame !== false))
+        consider({ dieIds, bank: true, utility: points, points, nextDice, wins })
+      if (!wins && endgame !== true) {
+        const risk = nextRollRisk(nextDice, chains)
+        // On a saved chain the frozen weight is exactly one: E/p replaces the
+        // base cutoff. Competing Bank paths already include unclaimed points.
+        const chainCutoff = nextDice <= 3 && risk.busts > 0 && Object.values(chains).some(count => count >= 3)
+          ? risk.scoreSum / risk.busts
+          : undefined
+        const threshold = policyBankThreshold(state, simulationDerivedHardPolicy, points, nextDice, chainCutoff)
+        const utility = points + risk.bustProbability * (threshold - points)
+        consider({ dieIds, bank: false, utility, points, nextDice, wins: false })
+      }
+    }
+    for (const option of scoringOptions(dice, chains)) {
+      const result = scoreSelection(dice, option.dieIds, chains)
+      const remaining = dice.filter(die => !option.dieIds.includes(die.id))
+      const nextChains = remaining.length ? { ...chains, ...result.multipleUpdates } : {}
+      visit(remaining, nextChains, [...dieIds, ...option.dieIds], points + result.score)
+    }
+  }
+  visit(state.dice, state.scoredMultiples, [], state.turnScore)
+  // Recompute from the complete immutable roll each time. No transient option
+  // indexes/latches need to survive browser saves or a paced computer action.
+  return best as Plan | null
 }
 
 export function recommendedComputerDieIds(state: GameState) {
@@ -852,9 +931,9 @@ function endgameBankDecision(
   return null
 }
 
-function policyBankThreshold(state: GameState, policy: ComputerPolicy, projected: number, remainingDice: number) {
+function policyBankThreshold(state: GameState, policy: ComputerPolicy, projected: number, remainingDice: number, chainCutoff?: number) {
   const player = currentPlayer(state)
-  let threshold = policy.bankThresholdByDice[remainingDice] ?? 700
+  let threshold = chainCutoff ?? policy.bankThresholdByDice[remainingDice] ?? 700
   const lead = player.score - maxOpponentScore(state)
 
   if (lead > 0)

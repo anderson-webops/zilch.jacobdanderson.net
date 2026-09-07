@@ -74,7 +74,7 @@ const stealingThresholds = [
               Standard game
             </p>
             <h2 id="threshold-title">
-              Bank near these totals
+              Base banking targets
             </h2>
           </div>
         </div>
@@ -108,7 +108,15 @@ const stealingThresholds = [
           </table>
         </div>
         <p class="table-note">
-          Use the dice you would roll next and the total points at risk. When banking, take every scoring die.
+          Use the dice you would roll next and the total points at risk. These are base targets without a saved multiple.
+        </p>
+        <p class="table-note">
+          With a multiple, compare keeping it, taking extra singles, and banking. More dice and valuable extensions favor rolling;
+          a large turn or a winning bank favors stopping. Taking hot dice can be better than preserving the multiple.
+        </p>
+        <p class="table-note">
+          For example, keeping three sixes and rerolling three dice can beat also taking a five.
+          Bank sooner when protecting a lead, and take an available outright win.
         </p>
       </section>
 

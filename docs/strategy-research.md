@@ -2,9 +2,25 @@
 
 This note records the simulator evidence used by the browser game's Hard difficulty and public Tips page. It separates the strongest tested policy from claims of mathematically optimal play.
 
-## Current Hard refinement, September 2026
+## Current Hard: multiple-aware selection, v1.3.0
 
-Standard Hard now uses `200,1021,1128,1506,2130,5000` and collects all remaining
+Standard Hard compares keeping a multiple, collecting other scoring dice,
+banking, and collecting hot dice. Saved multiples use their exact next-roll
+scoring distribution; opening requirements, points at risk, score position,
+and available outright wins remain part of the decision. The base cutoffs
+remain `200,1021,1128,1506,2130,5000`. Stealing retains its separate policy.
+
+The frozen feature pack earned **51.4544%** of match points against v1.2.0 Hard
+in 500,000 fresh games, with a paired 95% interval of 51.333756% to 51.575044%.
+The [multiple-selection report](research/multiple-selection-2026-09/report.md)
+preserves 23.93 million distinct games, all three requested checkpoint axes,
+rejected candidates, fresh confirmations and holdouts, exact scorer checks,
+and cross-language validation. It is stronger overall, not optimal at every
+checkpoint or proven optimal for the game.
+
+## Previous hot-dice refinement, v1.2.0
+
+Standard Hard v1.2.0 uses `200,1021,1128,1506,2130,5000` and collects all remaining
 guaranteed scoring dice after committing to bank. Its existing endgame rules
 still take priority. Stealing retains its separate policy and selection behavior.
 The current parameters are in [`standard-hard.cfg`](strategy-policies/standard-hard.cfg);

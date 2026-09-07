@@ -165,6 +165,17 @@ percentile 0.105 ms. This is local runtime evidence, not an iPhone performance
 guarantee. An independent ordered-outcome check also matched all 57,822 outcomes
 across 42 legal dice/chain configurations.
 
+Website validation passed 45 game tests, nine API tests, lint, type checks,
+the production build, direct and Netlify deployment-output/runtime checks,
+and production-only API installation. Browser accessibility and interaction
+checks passed desktop light/dark and 320-pixel mobile layouts for the game and
+Tips page. A new real-timer browser regression resumes an old all-scoring
+selection, confirms Hard refreshes it to just the triple at 950 prior risk,
+and observes its three-die reroll through the actual UI flow. The test initially
+expected a numeric loss total in the existing generic bust message; that test
+assertion was corrected to check the actual 600-point selection event and
+three dice rolled. No production behavior was changed to accommodate it.
+
 The selected policy is stronger overall, not necessarily best at every
 checkpoint. For example, at 950 prior risk with three ones plus a five and
 level scores, the new surrogate rolls, while the conditional comparison with

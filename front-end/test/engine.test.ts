@@ -515,7 +515,9 @@ test('Hard still banks an immediate win while collecting extra safe points', () 
 })
 
 test('Hard preserves fractional threshold adjustments rather than prematurely banking', () => {
-  const game = hardRoll(1250, [2, 2, 2, 3, 4, 6])
+  // No multiple: the released five-dice base threshold still applies. Its
+  // exact adjusted value is 2452.5134, not the truncated integer 2450.
+  const game = hardRoll(2350, [1, 2, 2, 3, 4, 6])
   game.players[1]!.score = 1100
   assert.equal(shouldComputerBank(game), false)
   game.turnScore += 50

@@ -803,6 +803,50 @@ async function verifyMobileGameFlow(page) {
     issues.push(...await findRolledDiceIssues(page, label, values))
   }
 
+  // Resume a legacy all-scoring selection. Refined Hard must refresh it,
+  // retain just the triple, and execute the real timed three-die reroll.
+  await stageSavedGame(page, {
+    ...savedReadyState,
+    players: [
+      { id: 'player-1', name: 'Computer', kind: 'computer', difficulty: 'hard', score: 1000, scoreReachedAt: 1 },
+      { id: 'player-2', name: 'Player 2', kind: 'human', difficulty: null, score: 1000, scoreReachedAt: 2 },
+    ],
+    phase: 'selecting',
+    turnScore: 950,
+    rollNumber: 2,
+    dice: [6, 6, 6, 5, 2, 3].map((value, id) => ({ value, id })),
+    selectedDieIds: [0, 1, 2, 3],
+  })
+  await page.evaluate(() => {
+    window.zilchOriginalRandom = Math.random
+    window.zilchFixtureRolls = 0
+    Math.random = () => {
+      const value = [2, 3, 4][window.zilchFixtureRolls++]
+      if (value === undefined)
+        throw new Error('Hard rerolled more dice than its three-die plan')
+      return (value - 0.5) / 6
+    }
+  })
+  try {
+    await page.click('.resume-button')
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('zilch-browser-game-v1'))?.phase === 'bust')
+    const actual = await page.evaluate(() => ({
+      calls: window.zilchFixtureRolls,
+      state: JSON.parse(localStorage.getItem('zilch-browser-game-v1')),
+    }))
+    if (actual.calls !== 3 || actual.state.dice.map(die => die.value).join(',') !== '2,3,4')
+      issues.push('Hard multiple flow: did not execute the refreshed three-die plan')
+    if (!actual.state.events.some(event => event.text.includes('scored 600. 3 dice remain.')))
+      issues.push('Hard multiple flow: did not score only the triple before its reroll')
+  }
+  finally {
+    await page.evaluate(() => {
+      Math.random = window.zilchOriginalRandom
+      delete window.zilchOriginalRandom
+      delete window.zilchFixtureRolls
+    })
+  }
+
   await stageSavedGame(page, {
     schemaVersion: 2,
     settings: {
