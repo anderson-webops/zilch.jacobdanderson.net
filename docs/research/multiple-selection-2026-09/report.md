@@ -83,7 +83,7 @@ v1.2.0 Hard unless another opponent is named. Settings not named retain defaults
 | Current Hard v1.2.0 | 500,000 | 51.4544% | 51.3338% to 51.5750% |
 | Greedy chain weight 0.75 | 300,000 | 50.6243% | 50.4844% to 50.7643% |
 | Safe-finish-only | 300,000 | 51.1842% | 51.0282% to 51.3401% |
-| Medium | 200,000 | 61.8535% | 61.6382% to 62.0689% |
+| Medium | 200,000 | 61.8535% | 61.6382% to 62.0688% |
 | Three Pairs off | 200,000 | 51.4525% | 51.2610% to 51.6440% |
 | Target 2,500 | 100,000 | 50.4835% | 50.2457% to 50.7213% |
 | Target 10,000 | 100,000 | 51.5400% | 51.2489% to 51.8311% |
