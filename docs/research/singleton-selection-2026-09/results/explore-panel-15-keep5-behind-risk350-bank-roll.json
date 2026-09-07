@@ -1,0 +1,442 @@
+{
+  "run_id": "explore-panel-15-keep5-behind-risk350-bank-roll",
+  "provenance": {
+    "simulator_revision": "89028a3c7d9963a6924f2565d90319b0a451f60a",
+    "simulator_tracked_status": "",
+    "source_sha256": {
+      "CMakeLists.txt": "c444bcf7e75ed6a723044b45e0c55e57665a3a7f4fac028b58d5291124f5286c",
+      "InputClosed.h": "a8c37f50f1d8234b07137a256ff113643efbcd3fae42a5c8d3988baf7e05ca9f",
+      "computer.cpp": "f513e0d16fcccfe561034fc3fd06435976ded75b8dfad5c72e9d105e035d74f6",
+      "computer.h": "0c2c09e5ac000b490cb2132bec44e09dce190af304a59f08bf710bb47836f3f5",
+      "main.cpp": "31df2aa2abf5e0af887af28bffdb29ada553e4351b17ba1b2291ac268a8ede0b",
+      "research/candidate_tests.cpp": "ba2d24fdb34bb0deb2590998d49f677ee2279281c7d6cb8ff656b5b9a2f4bd5c",
+      "research/decision_probe.cpp": "e75e462942c591e19e808a5abf49c12e3119332afb0c1321bc5308aaa4bd7112",
+      "research/regression_tests.cpp": "9eb6dc63acb890989f23afd604ca6d0411a9a7f840b815d8c2bc97a711871b2a",
+      "research/selection_checkpoint.h": "c8a65d4d318f6347f27c151c29ac7a0ac553af3c51197e72200913855b2f3cb9",
+      "research/selection_cli_tests.cpp": "f64d54d04cfa13791f1889affbc26bfec125bbdef5fe24695562d6d7442a3893",
+      "research/strategy_lab.cpp": "f943ae945e850129afc820e2c836a103833153372d1510328e31e8988aaccd96",
+      "tests/regression_tests.cpp": "a6566c7f473c6e8ac5c10dc4f1db4f34ae39752ba8a67513a13061d900e9a479",
+      "zilch.cpp": "d45c9a9227f9719305d7c4c762e58c72a471ff57b4a2c46b0c60d39cbad68af7",
+      "zilch.h": "386ba31293e56352689dab93cf59e3053c30d64d3ca78effde03025f29e47dc4"
+    },
+    "executable_sha256": "33c6d95eb68ce8c50c3d19b99bcc3c795ad792b68057f1e61e6bf481379f85d3",
+    "compiler": "Apple clang version 21.0.0 (clang-2100.3.33.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin",
+    "cmake_build_type": "Release",
+    "platform": "darwin-arm64",
+    "command": [
+      "/tmp/zilch-production-chain-build.Ygc1uA/zilch_research",
+      "--mode",
+      "selection",
+      "--threads",
+      "4",
+      "--target",
+      "5000",
+      "--opening-score",
+      "1000",
+      "--sets",
+      "on",
+      "--stealing",
+      "off",
+      "--final-chase",
+      "on",
+      "--first-roll-mercy",
+      "on",
+      "--ties",
+      "on",
+      "--saved-multiples",
+      "0,0,0,0,0,0",
+      "--difficulty-a",
+      "hard",
+      "--collect-a",
+      "true",
+      "--chain-risk-a",
+      "1",
+      "--chain-mode-a",
+      "blend",
+      "--safe-finish-a",
+      "true",
+      "--joint-selection-a",
+      "true",
+      "--joint-chains-only-a",
+      "true",
+      "--difficulty-b",
+      "hard",
+      "--collect-b",
+      "true",
+      "--chain-risk-b",
+      "1",
+      "--chain-mode-b",
+      "blend",
+      "--safe-finish-b",
+      "true",
+      "--joint-selection-b",
+      "true",
+      "--joint-chains-only-b",
+      "true",
+      "--pairs",
+      "10000",
+      "--seed",
+      "3500000227",
+      "--roll",
+      "1,5,2,2,3,4",
+      "--at-risk",
+      "350",
+      "--banked-a",
+      "1000",
+      "--banked-b",
+      "3500",
+      "--active-final-chase",
+      "false",
+      "--select-left",
+      "1,5",
+      "--action-left",
+      "bank",
+      "--select-right",
+      "5",
+      "--action-right",
+      "roll"
+    ],
+    "started_at": "2026-09-07T04:02:43.379Z",
+    "elapsed_seconds": 1.033833209,
+    "finished_at": "2026-09-07T04:02:44.415Z"
+  },
+  "schema_version": 2,
+  "mode": "selection",
+  "seed": 3500000227,
+  "pairs": 10000,
+  "total_games": 20000,
+  "threads": 4,
+  "rng": "mt19937_64 master; each draw seeds mt19937 via seed_seq(low32,high32); same stream within each pair",
+  "interval_method": "sample variance of independent pair observations; normal 95% interval; no multiple-comparison adjustment",
+  "rules": {
+    "target": 5000,
+    "opening_score": 1000,
+    "straight": true,
+    "multiples": true,
+    "singles": true,
+    "three_pairs": true,
+    "stealing": false,
+    "first_roll_mercy": true,
+    "final_chase": true,
+    "ties": true
+  },
+  "policy_a": {
+    "name": "best",
+    "source": "builtin",
+    "difficulty": "Hard",
+    "collect_before_bank": true,
+    "chain_risk_weight": 1,
+    "chain_mode": "blend",
+    "lower_chain_thresholds": true,
+    "safe_finish_collection": true,
+    "joint_selection": true,
+    "joint_chains_only": true,
+    "effective_joint_selection": true,
+    "joint_selection_scope": "chain_rolls",
+    "effective_safe_finish_collection": true,
+    "safe_finish_collection_scope": "all_rolls",
+    "bank_thresholds": [
+      200,
+      1021,
+      1128,
+      1506,
+      2130,
+      5000
+    ],
+    "score_weight": 1.0045,
+    "remaining_dice_weight": 36.0805,
+    "hot_dice_weight": 354.561,
+    "multiple_weight": 91.9329,
+    "lead_factor": 0,
+    "trail_factor": 0.293194,
+    "closing_factor": 0.193316,
+    "roll_bias": 136.066
+  },
+  "policy_b": {
+    "name": "best",
+    "source": "builtin",
+    "difficulty": "Hard",
+    "collect_before_bank": true,
+    "chain_risk_weight": 1,
+    "chain_mode": "blend",
+    "lower_chain_thresholds": true,
+    "safe_finish_collection": true,
+    "joint_selection": true,
+    "joint_chains_only": true,
+    "effective_joint_selection": true,
+    "joint_selection_scope": "chain_rolls",
+    "effective_safe_finish_collection": true,
+    "safe_finish_collection_scope": "all_rolls",
+    "bank_thresholds": [
+      200,
+      1021,
+      1128,
+      1506,
+      2130,
+      5000
+    ],
+    "score_weight": 1.0045,
+    "remaining_dice_weight": 36.0805,
+    "hot_dice_weight": 354.561,
+    "multiple_weight": 91.9329,
+    "lead_factor": 0,
+    "trail_factor": 0.293194,
+    "closing_factor": 0.193316,
+    "roll_bias": 136.066
+  },
+  "selection_state": {
+    "roll": [
+      1,
+      5,
+      2,
+      2,
+      3,
+      4
+    ],
+    "at_risk_before_selection": 350,
+    "state": {
+      "banked_a": 1000,
+      "banked_b": 3500,
+      "at_risk": 350,
+      "next_dice": 6,
+      "seat": 0,
+      "selected_option": false,
+      "turn_active": true,
+      "can_bank": false,
+      "final_chase_active": false,
+      "last_turn_of_match": false,
+      "final_chase_leader_seat": null,
+      "remaining_rolled_counts": [
+        1,
+        2,
+        1,
+        1,
+        1,
+        0
+      ],
+      "saved_multiple_scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "roll_count_this_turn": 2,
+      "roll_count_semantics": "representative_first_or_later_not_exact_history",
+      "mercy_available_next_roll": false
+    }
+  },
+  "branches": {
+    "left": {
+      "selected_dice": [
+        1,
+        5
+      ],
+      "action": "bank",
+      "score_gain": 150,
+      "applied_options": [
+        {
+          "type": "single",
+          "face": 1,
+          "dice_used": 1,
+          "score_gain": 100,
+          "next_dice": 5,
+          "extends_multiple": false,
+          "hot_dice": false,
+          "label": "Score single 1 (+100)"
+        },
+        {
+          "type": "single",
+          "face": 5,
+          "dice_used": 1,
+          "score_gain": 50,
+          "next_dice": 4,
+          "extends_multiple": false,
+          "hot_dice": false,
+          "label": "Score single 5 (+50)"
+        }
+      ],
+      "state": {
+        "banked_a": 1000,
+        "banked_b": 3500,
+        "at_risk": 500,
+        "next_dice": 4,
+        "seat": 0,
+        "selected_option": true,
+        "turn_active": true,
+        "can_bank": true,
+        "final_chase_active": false,
+        "last_turn_of_match": false,
+        "final_chase_leader_seat": null,
+        "remaining_rolled_counts": [
+          0,
+          2,
+          1,
+          1,
+          0,
+          0
+        ],
+        "saved_multiple_scores": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "roll_count_this_turn": 2,
+        "roll_count_semantics": "representative_first_or_later_not_exact_history",
+        "mercy_available_next_roll": false
+      }
+    },
+    "right": {
+      "selected_dice": [
+        5
+      ],
+      "action": "roll",
+      "score_gain": 50,
+      "applied_options": [
+        {
+          "type": "single",
+          "face": 5,
+          "dice_used": 1,
+          "score_gain": 50,
+          "next_dice": 5,
+          "extends_multiple": false,
+          "hot_dice": false,
+          "label": "Score single 5 (+50)"
+        }
+      ],
+      "state": {
+        "banked_a": 1000,
+        "banked_b": 3500,
+        "at_risk": 400,
+        "next_dice": 5,
+        "seat": 0,
+        "selected_option": true,
+        "turn_active": true,
+        "can_bank": true,
+        "final_chase_active": false,
+        "last_turn_of_match": false,
+        "final_chase_leader_seat": null,
+        "remaining_rolled_counts": [
+          1,
+          2,
+          1,
+          1,
+          0,
+          0
+        ],
+        "saved_multiple_scores": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "roll_count_this_turn": 2,
+        "roll_count_semantics": "representative_first_or_later_not_exact_history",
+        "mercy_available_next_roll": false
+      }
+    }
+  },
+  "incumbent_recommendation": {
+    "selected_dice": [
+      1
+    ],
+    "action": "roll",
+    "score_gain": 100,
+    "applied_options": [
+      {
+        "type": "single",
+        "face": 1,
+        "dice_used": 1,
+        "score_gain": 100,
+        "next_dice": 5,
+        "extends_multiple": false,
+        "hot_dice": false,
+        "label": "Score single 1 (+100)"
+      }
+    ],
+    "state": {
+      "banked_a": 1000,
+      "banked_b": 3500,
+      "at_risk": 450,
+      "next_dice": 5,
+      "seat": 0,
+      "selected_option": true,
+      "turn_active": true,
+      "can_bank": true,
+      "final_chase_active": false,
+      "last_turn_of_match": false,
+      "final_chase_leader_seat": null,
+      "remaining_rolled_counts": [
+        0,
+        2,
+        1,
+        1,
+        1,
+        0
+      ],
+      "saved_multiple_scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "roll_count_this_turn": 2,
+      "roll_count_semantics": "representative_first_or_later_not_exact_history",
+      "mercy_available_next_roll": false
+    }
+  },
+  "left": {
+    "games": 10000,
+    "wins": 1773,
+    "ties": 122,
+    "losses": 8105,
+    "match_point_rate": 0.1834,
+    "points_for": 29069000,
+    "points_against": 53014100,
+    "average_score": 2906.9,
+    "average_opponent_score": 5301.41,
+    "average_score_margin": -2394.51
+  },
+  "right": {
+    "games": 10000,
+    "wins": 1896,
+    "ties": 170,
+    "losses": 7934,
+    "match_point_rate": 0.1981,
+    "points_for": 27937050,
+    "points_against": 52741650,
+    "average_score": 2793.705,
+    "average_opponent_score": 5274.165,
+    "average_score_margin": -2480.46
+  },
+  "right_minus_left_match_points_paired": {
+    "independent_pairs": 10000,
+    "sum": 147,
+    "sum_squares": 2957,
+    "mean": 0.0147,
+    "standard_error": 0.005436114985411316,
+    "ci95": [
+      0.004045410412775339,
+      0.025354589587224658
+    ]
+  },
+  "right_minus_left_score_margin_paired": {
+    "independent_pairs": 10000,
+    "sum": -859500,
+    "sum_squares": 90347500000,
+    "mean": -85.95,
+    "standard_error": 30.04707211034447,
+    "ci95": [
+      -144.84117917715307,
+      -27.058820822846926
+    ]
+  }
+}

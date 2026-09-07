@@ -1,0 +1,3912 @@
+{
+  "kind": "exact-two-singleton-selection-enumeration",
+  "schemaVersion": 1,
+  "runtime": "v24.18.1",
+  "sourceHashes": {
+    "front-end/src/game/engine.ts": "50f3393175cfa9e2f36c103e8707464a987163bfa1043cd086150525c2c3239a",
+    "front-end/src/game/scoring.ts": "7735907714dcc229d275fcaa1931ace0aeb517c3b4e24cbf743542b91bc0c2a4",
+    "front-end/src/game/roll-risk.ts": "6cc68f4af9f297a566d25777859d8c479dbbbd960089da9a566b0607504dcdd6",
+    "front-end/src/game/types.ts": "e69cc9c12d440cd131bb1d6acfeb7d78cfc1b217ee35fbdcd9fb3bafc47190e0",
+    "scripts/research/enumerate-singleton-selection.mjs": "5d921e093bc70884b9f106572068f876fb2add9ec64941549e6e71916d85b934"
+  },
+  "scoringRules": [
+    {
+      "combination": "Single 1",
+      "score": "100"
+    },
+    {
+      "combination": "Single 5",
+      "score": "50"
+    },
+    {
+      "combination": "Three 1s",
+      "score": "1,000"
+    },
+    {
+      "combination": "Three 2s–6s",
+      "score": "Face × 100"
+    },
+    {
+      "combination": "Each extra matching die",
+      "score": "Doubles the multiple"
+    },
+    {
+      "combination": "1–2–3–4–5–6 straight",
+      "score": "1,000"
+    },
+    {
+      "combination": "Three pairs",
+      "score": "1,000"
+    }
+  ],
+  "assumptions": [
+    "All ordered outcomes of fair independent six-sided dice are enumerated, with empty existing multiple chains.",
+    "The current six-dice roll contains exactly two scoring singles (11, 55, or 15) and four genuinely non-scoring dice.",
+    "Trash multiples, Three Pairs, and a six-die straight are excluded using both explicit classification and the actual scorer.",
+    "Triple means at least three matching dice newly rolled together; four and five of a kind are included.",
+    "Saved singles cannot combine with later rolls to form a multiple; only an already scored multiple can be extended.",
+    "Maximum new score includes zero on busts; hot dice means all currently rolled dice form a legal scoring selection.",
+    "One-roll-then-bank expectation retains accrued points and the maximum new score on success, and gives zero on bust.",
+    "T in each affine expectation is the unbanked turn score before choosing these singles, not the player banked score.",
+    "The one-roll model assumes banking is permitted on every successful outcome; it ignores opening minimums, future decisions, game termination, and Stealing.",
+    "These exact point expectations are not estimates of full-turn value or match-winning probability and do not select a production policy.",
+    "Forced rolls check deterministic engine transitions only; no random samples or simulated matches are used.",
+    "The artifact omits timestamps and current Git HEAD so identical source bytes reproduce identical output after unrelated commits."
+  ],
+  "closedFormDefinitions": {
+    "domain": "n is 4 or 5; all sums run from k=3 through n.",
+    "specifiedTripleCount": "sum(C(n,k) * 5^(n-k))",
+    "anyTripleCount": "6 * specifiedTripleCount; two distinct triples cannot coexist with at most five dice.",
+    "bustCount": "4^n - 4 * sum(C(n,k) * 3^(n-k))",
+    "maximumNewScoreSum": "150 * (n * 5^(n-1) + 2 * C(n,2) * 5^(n-2)) + 3000 * sum(C(n,k) * 5^(n-k) * 2^(k-3))",
+    "expectation": "(1 - probabilityBust) * (T + selectedScore) + meanMaximumNewScoreIncludingBustZeros"
+  },
+  "nextRolls": [
+    {
+      "diceCount": 4,
+      "chains": {},
+      "outcomes": 1296,
+      "busts": 204,
+      "anyTriple": 126,
+      "tripleOnes": 21,
+      "tripleFives": 21,
+      "hotDice": 52,
+      "maximumScoreSum": 186000,
+      "probabilityBust": {
+        "numerator": 204,
+        "denominator": 1296,
+        "reducedNumerator": 17,
+        "reducedDenominator": 108,
+        "decimal": 0.1574074074074074
+      },
+      "probabilityAnyTriple": {
+        "numerator": 126,
+        "denominator": 1296,
+        "reducedNumerator": 7,
+        "reducedDenominator": 72,
+        "decimal": 0.09722222222222222
+      },
+      "probabilityTripleOnes": {
+        "numerator": 21,
+        "denominator": 1296,
+        "reducedNumerator": 7,
+        "reducedDenominator": 432,
+        "decimal": 0.016203703703703703
+      },
+      "probabilityTripleFives": {
+        "numerator": 21,
+        "denominator": 1296,
+        "reducedNumerator": 7,
+        "reducedDenominator": 432,
+        "decimal": 0.016203703703703703
+      },
+      "probabilityHotDice": {
+        "numerator": 52,
+        "denominator": 1296,
+        "reducedNumerator": 13,
+        "reducedDenominator": 324,
+        "decimal": 0.040123456790123455
+      },
+      "meanMaximumNewScoreIncludingBustZeros": {
+        "numerator": 186000,
+        "denominator": 1296,
+        "reducedNumerator": 3875,
+        "reducedDenominator": 27,
+        "decimal": 143.5185185185185
+      },
+      "scoreWeights": [
+        {
+          "score": 0,
+          "outcomes": 204
+        },
+        {
+          "score": 50,
+          "outcomes": 240
+        },
+        {
+          "score": 100,
+          "outcomes": 336
+        },
+        {
+          "score": 150,
+          "outcomes": 192
+        },
+        {
+          "score": 200,
+          "outcomes": 156
+        },
+        {
+          "score": 250,
+          "outcomes": 52
+        },
+        {
+          "score": 300,
+          "outcomes": 22
+        },
+        {
+          "score": 350,
+          "outcomes": 4
+        },
+        {
+          "score": 400,
+          "outcomes": 17
+        },
+        {
+          "score": 450,
+          "outcomes": 4
+        },
+        {
+          "score": 500,
+          "outcomes": 20
+        },
+        {
+          "score": 600,
+          "outcomes": 17
+        },
+        {
+          "score": 650,
+          "outcomes": 4
+        },
+        {
+          "score": 700,
+          "outcomes": 4
+        },
+        {
+          "score": 800,
+          "outcomes": 1
+        },
+        {
+          "score": 1000,
+          "outcomes": 17
+        },
+        {
+          "score": 1050,
+          "outcomes": 4
+        },
+        {
+          "score": 1200,
+          "outcomes": 1
+        },
+        {
+          "score": 2000,
+          "outcomes": 1
+        }
+      ],
+      "verification": {
+        "subsetChecks": 19440,
+        "recommendationDisagreements": 0,
+        "closedFormCountsMatch": true,
+        "productionRisk": {
+          "outcomes": 1296,
+          "busts": 204,
+          "scoreSum": 186000,
+          "bustProbability": 0.1574074074074074
+        }
+      }
+    },
+    {
+      "diceCount": 5,
+      "chains": {},
+      "outcomes": 7776,
+      "busts": 600,
+      "anyTriple": 1656,
+      "tripleOnes": 276,
+      "tripleFives": 276,
+      "hotDice": 236,
+      "maximumScoreSum": 1755750,
+      "probabilityBust": {
+        "numerator": 600,
+        "denominator": 7776,
+        "reducedNumerator": 25,
+        "reducedDenominator": 324,
+        "decimal": 0.07716049382716049
+      },
+      "probabilityAnyTriple": {
+        "numerator": 1656,
+        "denominator": 7776,
+        "reducedNumerator": 23,
+        "reducedDenominator": 108,
+        "decimal": 0.21296296296296297
+      },
+      "probabilityTripleOnes": {
+        "numerator": 276,
+        "denominator": 7776,
+        "reducedNumerator": 23,
+        "reducedDenominator": 648,
+        "decimal": 0.035493827160493825
+      },
+      "probabilityTripleFives": {
+        "numerator": 276,
+        "denominator": 7776,
+        "reducedNumerator": 23,
+        "reducedDenominator": 648,
+        "decimal": 0.035493827160493825
+      },
+      "probabilityHotDice": {
+        "numerator": 236,
+        "denominator": 7776,
+        "reducedNumerator": 59,
+        "reducedDenominator": 1944,
+        "decimal": 0.030349794238683128
+      },
+      "meanMaximumNewScoreIncludingBustZeros": {
+        "numerator": 1755750,
+        "denominator": 7776,
+        "reducedNumerator": 292625,
+        "reducedDenominator": 1296,
+        "decimal": 225.7908950617284
+      },
+      "scoreWeights": [
+        {
+          "score": 0,
+          "outcomes": 600
+        },
+        {
+          "score": 50,
+          "outcomes": 1020
+        },
+        {
+          "score": 100,
+          "outcomes": 1620
+        },
+        {
+          "score": 150,
+          "outcomes": 1200
+        },
+        {
+          "score": 200,
+          "outcomes": 1170
+        },
+        {
+          "score": 250,
+          "outcomes": 540
+        },
+        {
+          "score": 300,
+          "outcomes": 280
+        },
+        {
+          "score": 350,
+          "outcomes": 80
+        },
+        {
+          "score": 400,
+          "outcomes": 185
+        },
+        {
+          "score": 450,
+          "outcomes": 85
+        },
+        {
+          "score": 500,
+          "outcomes": 245
+        },
+        {
+          "score": 550,
+          "outcomes": 20
+        },
+        {
+          "score": 600,
+          "outcomes": 195
+        },
+        {
+          "score": 650,
+          "outcomes": 65
+        },
+        {
+          "score": 700,
+          "outcomes": 85
+        },
+        {
+          "score": 750,
+          "outcomes": 20
+        },
+        {
+          "score": 800,
+          "outcomes": 26
+        },
+        {
+          "score": 850,
+          "outcomes": 5
+        },
+        {
+          "score": 900,
+          "outcomes": 5
+        },
+        {
+          "score": 1000,
+          "outcomes": 180
+        },
+        {
+          "score": 1050,
+          "outcomes": 80
+        },
+        {
+          "score": 1100,
+          "outcomes": 15
+        },
+        {
+          "score": 1200,
+          "outcomes": 16
+        },
+        {
+          "score": 1250,
+          "outcomes": 5
+        },
+        {
+          "score": 1300,
+          "outcomes": 5
+        },
+        {
+          "score": 1600,
+          "outcomes": 1
+        },
+        {
+          "score": 2000,
+          "outcomes": 21
+        },
+        {
+          "score": 2050,
+          "outcomes": 5
+        },
+        {
+          "score": 2400,
+          "outcomes": 1
+        },
+        {
+          "score": 4000,
+          "outcomes": 1
+        }
+      ],
+      "verification": {
+        "subsetChecks": 241056,
+        "recommendationDisagreements": 0,
+        "closedFormCountsMatch": true,
+        "productionRisk": {
+          "outcomes": 7776,
+          "busts": 600,
+          "scoreSum": 1755750,
+          "bustProbability": 0.07716049382716049
+        }
+      }
+    }
+  ],
+  "eligibility": {
+    "trashFaces": [
+      2,
+      3,
+      4,
+      6
+    ],
+    "sixDiceOutcomesChecked": 46656,
+    "sixDiceSelectionChecks": 31320,
+    "representativeEquivalenceDisagreements": 0,
+    "transitionProbeNextRoll": "The first four or five values of [1,2,3,4,6], with T=0 and no previous multiple.",
+    "cases": [
+      {
+        "pair": "11",
+        "singles": [
+          1,
+          1
+        ],
+        "representativeValues": [
+          1,
+          1,
+          2,
+          2,
+          3,
+          4
+        ],
+        "continuations": {
+          "keepBoth": {
+            "selectedValues": [
+              1,
+              1
+            ],
+            "selectedScore": 200,
+            "diceLeft": 4,
+            "chains": {}
+          },
+          "keep1": {
+            "selectedValues": [
+              1
+            ],
+            "selectedScore": 100,
+            "diceLeft": 5,
+            "chains": {}
+          }
+        },
+        "totalOrderedTrashPatterns": 256,
+        "eligibleOrderedTrashPatternCount": 168,
+        "eligibleOrderedTrashPatterns": [
+          [
+            2,
+            2,
+            3,
+            4
+          ],
+          [
+            2,
+            2,
+            3,
+            6
+          ],
+          [
+            2,
+            2,
+            4,
+            3
+          ],
+          [
+            2,
+            2,
+            4,
+            6
+          ],
+          [
+            2,
+            2,
+            6,
+            3
+          ],
+          [
+            2,
+            2,
+            6,
+            4
+          ],
+          [
+            2,
+            3,
+            2,
+            4
+          ],
+          [
+            2,
+            3,
+            2,
+            6
+          ],
+          [
+            2,
+            3,
+            3,
+            4
+          ],
+          [
+            2,
+            3,
+            3,
+            6
+          ],
+          [
+            2,
+            3,
+            4,
+            2
+          ],
+          [
+            2,
+            3,
+            4,
+            3
+          ],
+          [
+            2,
+            3,
+            4,
+            4
+          ],
+          [
+            2,
+            3,
+            4,
+            6
+          ],
+          [
+            2,
+            3,
+            6,
+            2
+          ],
+          [
+            2,
+            3,
+            6,
+            3
+          ],
+          [
+            2,
+            3,
+            6,
+            4
+          ],
+          [
+            2,
+            3,
+            6,
+            6
+          ],
+          [
+            2,
+            4,
+            2,
+            3
+          ],
+          [
+            2,
+            4,
+            2,
+            6
+          ],
+          [
+            2,
+            4,
+            3,
+            2
+          ],
+          [
+            2,
+            4,
+            3,
+            3
+          ],
+          [
+            2,
+            4,
+            3,
+            4
+          ],
+          [
+            2,
+            4,
+            3,
+            6
+          ],
+          [
+            2,
+            4,
+            4,
+            3
+          ],
+          [
+            2,
+            4,
+            4,
+            6
+          ],
+          [
+            2,
+            4,
+            6,
+            2
+          ],
+          [
+            2,
+            4,
+            6,
+            3
+          ],
+          [
+            2,
+            4,
+            6,
+            4
+          ],
+          [
+            2,
+            4,
+            6,
+            6
+          ],
+          [
+            2,
+            6,
+            2,
+            3
+          ],
+          [
+            2,
+            6,
+            2,
+            4
+          ],
+          [
+            2,
+            6,
+            3,
+            2
+          ],
+          [
+            2,
+            6,
+            3,
+            3
+          ],
+          [
+            2,
+            6,
+            3,
+            4
+          ],
+          [
+            2,
+            6,
+            3,
+            6
+          ],
+          [
+            2,
+            6,
+            4,
+            2
+          ],
+          [
+            2,
+            6,
+            4,
+            3
+          ],
+          [
+            2,
+            6,
+            4,
+            4
+          ],
+          [
+            2,
+            6,
+            4,
+            6
+          ],
+          [
+            2,
+            6,
+            6,
+            3
+          ],
+          [
+            2,
+            6,
+            6,
+            4
+          ],
+          [
+            3,
+            2,
+            2,
+            4
+          ],
+          [
+            3,
+            2,
+            2,
+            6
+          ],
+          [
+            3,
+            2,
+            3,
+            4
+          ],
+          [
+            3,
+            2,
+            3,
+            6
+          ],
+          [
+            3,
+            2,
+            4,
+            2
+          ],
+          [
+            3,
+            2,
+            4,
+            3
+          ],
+          [
+            3,
+            2,
+            4,
+            4
+          ],
+          [
+            3,
+            2,
+            4,
+            6
+          ],
+          [
+            3,
+            2,
+            6,
+            2
+          ],
+          [
+            3,
+            2,
+            6,
+            3
+          ],
+          [
+            3,
+            2,
+            6,
+            4
+          ],
+          [
+            3,
+            2,
+            6,
+            6
+          ],
+          [
+            3,
+            3,
+            2,
+            4
+          ],
+          [
+            3,
+            3,
+            2,
+            6
+          ],
+          [
+            3,
+            3,
+            4,
+            2
+          ],
+          [
+            3,
+            3,
+            4,
+            6
+          ],
+          [
+            3,
+            3,
+            6,
+            2
+          ],
+          [
+            3,
+            3,
+            6,
+            4
+          ],
+          [
+            3,
+            4,
+            2,
+            2
+          ],
+          [
+            3,
+            4,
+            2,
+            3
+          ],
+          [
+            3,
+            4,
+            2,
+            4
+          ],
+          [
+            3,
+            4,
+            2,
+            6
+          ],
+          [
+            3,
+            4,
+            3,
+            2
+          ],
+          [
+            3,
+            4,
+            3,
+            6
+          ],
+          [
+            3,
+            4,
+            4,
+            2
+          ],
+          [
+            3,
+            4,
+            4,
+            6
+          ],
+          [
+            3,
+            4,
+            6,
+            2
+          ],
+          [
+            3,
+            4,
+            6,
+            3
+          ],
+          [
+            3,
+            4,
+            6,
+            4
+          ],
+          [
+            3,
+            4,
+            6,
+            6
+          ],
+          [
+            3,
+            6,
+            2,
+            2
+          ],
+          [
+            3,
+            6,
+            2,
+            3
+          ],
+          [
+            3,
+            6,
+            2,
+            4
+          ],
+          [
+            3,
+            6,
+            2,
+            6
+          ],
+          [
+            3,
+            6,
+            3,
+            2
+          ],
+          [
+            3,
+            6,
+            3,
+            4
+          ],
+          [
+            3,
+            6,
+            4,
+            2
+          ],
+          [
+            3,
+            6,
+            4,
+            3
+          ],
+          [
+            3,
+            6,
+            4,
+            4
+          ],
+          [
+            3,
+            6,
+            4,
+            6
+          ],
+          [
+            3,
+            6,
+            6,
+            2
+          ],
+          [
+            3,
+            6,
+            6,
+            4
+          ],
+          [
+            4,
+            2,
+            2,
+            3
+          ],
+          [
+            4,
+            2,
+            2,
+            6
+          ],
+          [
+            4,
+            2,
+            3,
+            2
+          ],
+          [
+            4,
+            2,
+            3,
+            3
+          ],
+          [
+            4,
+            2,
+            3,
+            4
+          ],
+          [
+            4,
+            2,
+            3,
+            6
+          ],
+          [
+            4,
+            2,
+            4,
+            3
+          ],
+          [
+            4,
+            2,
+            4,
+            6
+          ],
+          [
+            4,
+            2,
+            6,
+            2
+          ],
+          [
+            4,
+            2,
+            6,
+            3
+          ],
+          [
+            4,
+            2,
+            6,
+            4
+          ],
+          [
+            4,
+            2,
+            6,
+            6
+          ],
+          [
+            4,
+            3,
+            2,
+            2
+          ],
+          [
+            4,
+            3,
+            2,
+            3
+          ],
+          [
+            4,
+            3,
+            2,
+            4
+          ],
+          [
+            4,
+            3,
+            2,
+            6
+          ],
+          [
+            4,
+            3,
+            3,
+            2
+          ],
+          [
+            4,
+            3,
+            3,
+            6
+          ],
+          [
+            4,
+            3,
+            4,
+            2
+          ],
+          [
+            4,
+            3,
+            4,
+            6
+          ],
+          [
+            4,
+            3,
+            6,
+            2
+          ],
+          [
+            4,
+            3,
+            6,
+            3
+          ],
+          [
+            4,
+            3,
+            6,
+            4
+          ],
+          [
+            4,
+            3,
+            6,
+            6
+          ],
+          [
+            4,
+            4,
+            2,
+            3
+          ],
+          [
+            4,
+            4,
+            2,
+            6
+          ],
+          [
+            4,
+            4,
+            3,
+            2
+          ],
+          [
+            4,
+            4,
+            3,
+            6
+          ],
+          [
+            4,
+            4,
+            6,
+            2
+          ],
+          [
+            4,
+            4,
+            6,
+            3
+          ],
+          [
+            4,
+            6,
+            2,
+            2
+          ],
+          [
+            4,
+            6,
+            2,
+            3
+          ],
+          [
+            4,
+            6,
+            2,
+            4
+          ],
+          [
+            4,
+            6,
+            2,
+            6
+          ],
+          [
+            4,
+            6,
+            3,
+            2
+          ],
+          [
+            4,
+            6,
+            3,
+            3
+          ],
+          [
+            4,
+            6,
+            3,
+            4
+          ],
+          [
+            4,
+            6,
+            3,
+            6
+          ],
+          [
+            4,
+            6,
+            4,
+            2
+          ],
+          [
+            4,
+            6,
+            4,
+            3
+          ],
+          [
+            4,
+            6,
+            6,
+            2
+          ],
+          [
+            4,
+            6,
+            6,
+            3
+          ],
+          [
+            6,
+            2,
+            2,
+            3
+          ],
+          [
+            6,
+            2,
+            2,
+            4
+          ],
+          [
+            6,
+            2,
+            3,
+            2
+          ],
+          [
+            6,
+            2,
+            3,
+            3
+          ],
+          [
+            6,
+            2,
+            3,
+            4
+          ],
+          [
+            6,
+            2,
+            3,
+            6
+          ],
+          [
+            6,
+            2,
+            4,
+            2
+          ],
+          [
+            6,
+            2,
+            4,
+            3
+          ],
+          [
+            6,
+            2,
+            4,
+            4
+          ],
+          [
+            6,
+            2,
+            4,
+            6
+          ],
+          [
+            6,
+            2,
+            6,
+            3
+          ],
+          [
+            6,
+            2,
+            6,
+            4
+          ],
+          [
+            6,
+            3,
+            2,
+            2
+          ],
+          [
+            6,
+            3,
+            2,
+            3
+          ],
+          [
+            6,
+            3,
+            2,
+            4
+          ],
+          [
+            6,
+            3,
+            2,
+            6
+          ],
+          [
+            6,
+            3,
+            3,
+            2
+          ],
+          [
+            6,
+            3,
+            3,
+            4
+          ],
+          [
+            6,
+            3,
+            4,
+            2
+          ],
+          [
+            6,
+            3,
+            4,
+            3
+          ],
+          [
+            6,
+            3,
+            4,
+            4
+          ],
+          [
+            6,
+            3,
+            4,
+            6
+          ],
+          [
+            6,
+            3,
+            6,
+            2
+          ],
+          [
+            6,
+            3,
+            6,
+            4
+          ],
+          [
+            6,
+            4,
+            2,
+            2
+          ],
+          [
+            6,
+            4,
+            2,
+            3
+          ],
+          [
+            6,
+            4,
+            2,
+            4
+          ],
+          [
+            6,
+            4,
+            2,
+            6
+          ],
+          [
+            6,
+            4,
+            3,
+            2
+          ],
+          [
+            6,
+            4,
+            3,
+            3
+          ],
+          [
+            6,
+            4,
+            3,
+            4
+          ],
+          [
+            6,
+            4,
+            3,
+            6
+          ],
+          [
+            6,
+            4,
+            4,
+            2
+          ],
+          [
+            6,
+            4,
+            4,
+            3
+          ],
+          [
+            6,
+            4,
+            6,
+            2
+          ],
+          [
+            6,
+            4,
+            6,
+            3
+          ],
+          [
+            6,
+            6,
+            2,
+            3
+          ],
+          [
+            6,
+            6,
+            2,
+            4
+          ],
+          [
+            6,
+            6,
+            3,
+            2
+          ],
+          [
+            6,
+            6,
+            3,
+            4
+          ],
+          [
+            6,
+            6,
+            4,
+            2
+          ],
+          [
+            6,
+            6,
+            4,
+            3
+          ]
+        ],
+        "excludedOrderedTrashPatterns": {
+          "trashMultiple": 52,
+          "threePairs": 36,
+          "straight": 0
+        },
+        "representativeEquivalence": {
+          "equivalentSelectionChecks": 504,
+          "disagreements": 0
+        },
+        "eligibleOrderedSixDiceRolls": 2520
+      },
+      {
+        "pair": "55",
+        "singles": [
+          5,
+          5
+        ],
+        "representativeValues": [
+          5,
+          5,
+          2,
+          2,
+          3,
+          4
+        ],
+        "continuations": {
+          "keepBoth": {
+            "selectedValues": [
+              5,
+              5
+            ],
+            "selectedScore": 100,
+            "diceLeft": 4,
+            "chains": {}
+          },
+          "keep5": {
+            "selectedValues": [
+              5
+            ],
+            "selectedScore": 50,
+            "diceLeft": 5,
+            "chains": {}
+          }
+        },
+        "totalOrderedTrashPatterns": 256,
+        "eligibleOrderedTrashPatternCount": 168,
+        "eligibleOrderedTrashPatterns": [
+          [
+            2,
+            2,
+            3,
+            4
+          ],
+          [
+            2,
+            2,
+            3,
+            6
+          ],
+          [
+            2,
+            2,
+            4,
+            3
+          ],
+          [
+            2,
+            2,
+            4,
+            6
+          ],
+          [
+            2,
+            2,
+            6,
+            3
+          ],
+          [
+            2,
+            2,
+            6,
+            4
+          ],
+          [
+            2,
+            3,
+            2,
+            4
+          ],
+          [
+            2,
+            3,
+            2,
+            6
+          ],
+          [
+            2,
+            3,
+            3,
+            4
+          ],
+          [
+            2,
+            3,
+            3,
+            6
+          ],
+          [
+            2,
+            3,
+            4,
+            2
+          ],
+          [
+            2,
+            3,
+            4,
+            3
+          ],
+          [
+            2,
+            3,
+            4,
+            4
+          ],
+          [
+            2,
+            3,
+            4,
+            6
+          ],
+          [
+            2,
+            3,
+            6,
+            2
+          ],
+          [
+            2,
+            3,
+            6,
+            3
+          ],
+          [
+            2,
+            3,
+            6,
+            4
+          ],
+          [
+            2,
+            3,
+            6,
+            6
+          ],
+          [
+            2,
+            4,
+            2,
+            3
+          ],
+          [
+            2,
+            4,
+            2,
+            6
+          ],
+          [
+            2,
+            4,
+            3,
+            2
+          ],
+          [
+            2,
+            4,
+            3,
+            3
+          ],
+          [
+            2,
+            4,
+            3,
+            4
+          ],
+          [
+            2,
+            4,
+            3,
+            6
+          ],
+          [
+            2,
+            4,
+            4,
+            3
+          ],
+          [
+            2,
+            4,
+            4,
+            6
+          ],
+          [
+            2,
+            4,
+            6,
+            2
+          ],
+          [
+            2,
+            4,
+            6,
+            3
+          ],
+          [
+            2,
+            4,
+            6,
+            4
+          ],
+          [
+            2,
+            4,
+            6,
+            6
+          ],
+          [
+            2,
+            6,
+            2,
+            3
+          ],
+          [
+            2,
+            6,
+            2,
+            4
+          ],
+          [
+            2,
+            6,
+            3,
+            2
+          ],
+          [
+            2,
+            6,
+            3,
+            3
+          ],
+          [
+            2,
+            6,
+            3,
+            4
+          ],
+          [
+            2,
+            6,
+            3,
+            6
+          ],
+          [
+            2,
+            6,
+            4,
+            2
+          ],
+          [
+            2,
+            6,
+            4,
+            3
+          ],
+          [
+            2,
+            6,
+            4,
+            4
+          ],
+          [
+            2,
+            6,
+            4,
+            6
+          ],
+          [
+            2,
+            6,
+            6,
+            3
+          ],
+          [
+            2,
+            6,
+            6,
+            4
+          ],
+          [
+            3,
+            2,
+            2,
+            4
+          ],
+          [
+            3,
+            2,
+            2,
+            6
+          ],
+          [
+            3,
+            2,
+            3,
+            4
+          ],
+          [
+            3,
+            2,
+            3,
+            6
+          ],
+          [
+            3,
+            2,
+            4,
+            2
+          ],
+          [
+            3,
+            2,
+            4,
+            3
+          ],
+          [
+            3,
+            2,
+            4,
+            4
+          ],
+          [
+            3,
+            2,
+            4,
+            6
+          ],
+          [
+            3,
+            2,
+            6,
+            2
+          ],
+          [
+            3,
+            2,
+            6,
+            3
+          ],
+          [
+            3,
+            2,
+            6,
+            4
+          ],
+          [
+            3,
+            2,
+            6,
+            6
+          ],
+          [
+            3,
+            3,
+            2,
+            4
+          ],
+          [
+            3,
+            3,
+            2,
+            6
+          ],
+          [
+            3,
+            3,
+            4,
+            2
+          ],
+          [
+            3,
+            3,
+            4,
+            6
+          ],
+          [
+            3,
+            3,
+            6,
+            2
+          ],
+          [
+            3,
+            3,
+            6,
+            4
+          ],
+          [
+            3,
+            4,
+            2,
+            2
+          ],
+          [
+            3,
+            4,
+            2,
+            3
+          ],
+          [
+            3,
+            4,
+            2,
+            4
+          ],
+          [
+            3,
+            4,
+            2,
+            6
+          ],
+          [
+            3,
+            4,
+            3,
+            2
+          ],
+          [
+            3,
+            4,
+            3,
+            6
+          ],
+          [
+            3,
+            4,
+            4,
+            2
+          ],
+          [
+            3,
+            4,
+            4,
+            6
+          ],
+          [
+            3,
+            4,
+            6,
+            2
+          ],
+          [
+            3,
+            4,
+            6,
+            3
+          ],
+          [
+            3,
+            4,
+            6,
+            4
+          ],
+          [
+            3,
+            4,
+            6,
+            6
+          ],
+          [
+            3,
+            6,
+            2,
+            2
+          ],
+          [
+            3,
+            6,
+            2,
+            3
+          ],
+          [
+            3,
+            6,
+            2,
+            4
+          ],
+          [
+            3,
+            6,
+            2,
+            6
+          ],
+          [
+            3,
+            6,
+            3,
+            2
+          ],
+          [
+            3,
+            6,
+            3,
+            4
+          ],
+          [
+            3,
+            6,
+            4,
+            2
+          ],
+          [
+            3,
+            6,
+            4,
+            3
+          ],
+          [
+            3,
+            6,
+            4,
+            4
+          ],
+          [
+            3,
+            6,
+            4,
+            6
+          ],
+          [
+            3,
+            6,
+            6,
+            2
+          ],
+          [
+            3,
+            6,
+            6,
+            4
+          ],
+          [
+            4,
+            2,
+            2,
+            3
+          ],
+          [
+            4,
+            2,
+            2,
+            6
+          ],
+          [
+            4,
+            2,
+            3,
+            2
+          ],
+          [
+            4,
+            2,
+            3,
+            3
+          ],
+          [
+            4,
+            2,
+            3,
+            4
+          ],
+          [
+            4,
+            2,
+            3,
+            6
+          ],
+          [
+            4,
+            2,
+            4,
+            3
+          ],
+          [
+            4,
+            2,
+            4,
+            6
+          ],
+          [
+            4,
+            2,
+            6,
+            2
+          ],
+          [
+            4,
+            2,
+            6,
+            3
+          ],
+          [
+            4,
+            2,
+            6,
+            4
+          ],
+          [
+            4,
+            2,
+            6,
+            6
+          ],
+          [
+            4,
+            3,
+            2,
+            2
+          ],
+          [
+            4,
+            3,
+            2,
+            3
+          ],
+          [
+            4,
+            3,
+            2,
+            4
+          ],
+          [
+            4,
+            3,
+            2,
+            6
+          ],
+          [
+            4,
+            3,
+            3,
+            2
+          ],
+          [
+            4,
+            3,
+            3,
+            6
+          ],
+          [
+            4,
+            3,
+            4,
+            2
+          ],
+          [
+            4,
+            3,
+            4,
+            6
+          ],
+          [
+            4,
+            3,
+            6,
+            2
+          ],
+          [
+            4,
+            3,
+            6,
+            3
+          ],
+          [
+            4,
+            3,
+            6,
+            4
+          ],
+          [
+            4,
+            3,
+            6,
+            6
+          ],
+          [
+            4,
+            4,
+            2,
+            3
+          ],
+          [
+            4,
+            4,
+            2,
+            6
+          ],
+          [
+            4,
+            4,
+            3,
+            2
+          ],
+          [
+            4,
+            4,
+            3,
+            6
+          ],
+          [
+            4,
+            4,
+            6,
+            2
+          ],
+          [
+            4,
+            4,
+            6,
+            3
+          ],
+          [
+            4,
+            6,
+            2,
+            2
+          ],
+          [
+            4,
+            6,
+            2,
+            3
+          ],
+          [
+            4,
+            6,
+            2,
+            4
+          ],
+          [
+            4,
+            6,
+            2,
+            6
+          ],
+          [
+            4,
+            6,
+            3,
+            2
+          ],
+          [
+            4,
+            6,
+            3,
+            3
+          ],
+          [
+            4,
+            6,
+            3,
+            4
+          ],
+          [
+            4,
+            6,
+            3,
+            6
+          ],
+          [
+            4,
+            6,
+            4,
+            2
+          ],
+          [
+            4,
+            6,
+            4,
+            3
+          ],
+          [
+            4,
+            6,
+            6,
+            2
+          ],
+          [
+            4,
+            6,
+            6,
+            3
+          ],
+          [
+            6,
+            2,
+            2,
+            3
+          ],
+          [
+            6,
+            2,
+            2,
+            4
+          ],
+          [
+            6,
+            2,
+            3,
+            2
+          ],
+          [
+            6,
+            2,
+            3,
+            3
+          ],
+          [
+            6,
+            2,
+            3,
+            4
+          ],
+          [
+            6,
+            2,
+            3,
+            6
+          ],
+          [
+            6,
+            2,
+            4,
+            2
+          ],
+          [
+            6,
+            2,
+            4,
+            3
+          ],
+          [
+            6,
+            2,
+            4,
+            4
+          ],
+          [
+            6,
+            2,
+            4,
+            6
+          ],
+          [
+            6,
+            2,
+            6,
+            3
+          ],
+          [
+            6,
+            2,
+            6,
+            4
+          ],
+          [
+            6,
+            3,
+            2,
+            2
+          ],
+          [
+            6,
+            3,
+            2,
+            3
+          ],
+          [
+            6,
+            3,
+            2,
+            4
+          ],
+          [
+            6,
+            3,
+            2,
+            6
+          ],
+          [
+            6,
+            3,
+            3,
+            2
+          ],
+          [
+            6,
+            3,
+            3,
+            4
+          ],
+          [
+            6,
+            3,
+            4,
+            2
+          ],
+          [
+            6,
+            3,
+            4,
+            3
+          ],
+          [
+            6,
+            3,
+            4,
+            4
+          ],
+          [
+            6,
+            3,
+            4,
+            6
+          ],
+          [
+            6,
+            3,
+            6,
+            2
+          ],
+          [
+            6,
+            3,
+            6,
+            4
+          ],
+          [
+            6,
+            4,
+            2,
+            2
+          ],
+          [
+            6,
+            4,
+            2,
+            3
+          ],
+          [
+            6,
+            4,
+            2,
+            4
+          ],
+          [
+            6,
+            4,
+            2,
+            6
+          ],
+          [
+            6,
+            4,
+            3,
+            2
+          ],
+          [
+            6,
+            4,
+            3,
+            3
+          ],
+          [
+            6,
+            4,
+            3,
+            4
+          ],
+          [
+            6,
+            4,
+            3,
+            6
+          ],
+          [
+            6,
+            4,
+            4,
+            2
+          ],
+          [
+            6,
+            4,
+            4,
+            3
+          ],
+          [
+            6,
+            4,
+            6,
+            2
+          ],
+          [
+            6,
+            4,
+            6,
+            3
+          ],
+          [
+            6,
+            6,
+            2,
+            3
+          ],
+          [
+            6,
+            6,
+            2,
+            4
+          ],
+          [
+            6,
+            6,
+            3,
+            2
+          ],
+          [
+            6,
+            6,
+            3,
+            4
+          ],
+          [
+            6,
+            6,
+            4,
+            2
+          ],
+          [
+            6,
+            6,
+            4,
+            3
+          ]
+        ],
+        "excludedOrderedTrashPatterns": {
+          "trashMultiple": 52,
+          "threePairs": 36,
+          "straight": 0
+        },
+        "representativeEquivalence": {
+          "equivalentSelectionChecks": 504,
+          "disagreements": 0
+        },
+        "eligibleOrderedSixDiceRolls": 2520
+      },
+      {
+        "pair": "15",
+        "singles": [
+          1,
+          5
+        ],
+        "representativeValues": [
+          1,
+          5,
+          2,
+          2,
+          3,
+          4
+        ],
+        "continuations": {
+          "keepBoth": {
+            "selectedValues": [
+              1,
+              5
+            ],
+            "selectedScore": 150,
+            "diceLeft": 4,
+            "chains": {}
+          },
+          "keep1": {
+            "selectedValues": [
+              1
+            ],
+            "selectedScore": 100,
+            "diceLeft": 5,
+            "chains": {}
+          },
+          "keep5": {
+            "selectedValues": [
+              5
+            ],
+            "selectedScore": 50,
+            "diceLeft": 5,
+            "chains": {}
+          }
+        },
+        "totalOrderedTrashPatterns": 256,
+        "eligibleOrderedTrashPatternCount": 180,
+        "eligibleOrderedTrashPatterns": [
+          [
+            2,
+            2,
+            3,
+            3
+          ],
+          [
+            2,
+            2,
+            3,
+            4
+          ],
+          [
+            2,
+            2,
+            3,
+            6
+          ],
+          [
+            2,
+            2,
+            4,
+            3
+          ],
+          [
+            2,
+            2,
+            4,
+            4
+          ],
+          [
+            2,
+            2,
+            4,
+            6
+          ],
+          [
+            2,
+            2,
+            6,
+            3
+          ],
+          [
+            2,
+            2,
+            6,
+            4
+          ],
+          [
+            2,
+            2,
+            6,
+            6
+          ],
+          [
+            2,
+            3,
+            2,
+            3
+          ],
+          [
+            2,
+            3,
+            2,
+            4
+          ],
+          [
+            2,
+            3,
+            2,
+            6
+          ],
+          [
+            2,
+            3,
+            3,
+            2
+          ],
+          [
+            2,
+            3,
+            3,
+            4
+          ],
+          [
+            2,
+            3,
+            3,
+            6
+          ],
+          [
+            2,
+            3,
+            4,
+            2
+          ],
+          [
+            2,
+            3,
+            4,
+            3
+          ],
+          [
+            2,
+            3,
+            4,
+            4
+          ],
+          [
+            2,
+            3,
+            6,
+            2
+          ],
+          [
+            2,
+            3,
+            6,
+            3
+          ],
+          [
+            2,
+            3,
+            6,
+            6
+          ],
+          [
+            2,
+            4,
+            2,
+            3
+          ],
+          [
+            2,
+            4,
+            2,
+            4
+          ],
+          [
+            2,
+            4,
+            2,
+            6
+          ],
+          [
+            2,
+            4,
+            3,
+            2
+          ],
+          [
+            2,
+            4,
+            3,
+            3
+          ],
+          [
+            2,
+            4,
+            3,
+            4
+          ],
+          [
+            2,
+            4,
+            4,
+            2
+          ],
+          [
+            2,
+            4,
+            4,
+            3
+          ],
+          [
+            2,
+            4,
+            4,
+            6
+          ],
+          [
+            2,
+            4,
+            6,
+            2
+          ],
+          [
+            2,
+            4,
+            6,
+            4
+          ],
+          [
+            2,
+            4,
+            6,
+            6
+          ],
+          [
+            2,
+            6,
+            2,
+            3
+          ],
+          [
+            2,
+            6,
+            2,
+            4
+          ],
+          [
+            2,
+            6,
+            2,
+            6
+          ],
+          [
+            2,
+            6,
+            3,
+            2
+          ],
+          [
+            2,
+            6,
+            3,
+            3
+          ],
+          [
+            2,
+            6,
+            3,
+            6
+          ],
+          [
+            2,
+            6,
+            4,
+            2
+          ],
+          [
+            2,
+            6,
+            4,
+            4
+          ],
+          [
+            2,
+            6,
+            4,
+            6
+          ],
+          [
+            2,
+            6,
+            6,
+            2
+          ],
+          [
+            2,
+            6,
+            6,
+            3
+          ],
+          [
+            2,
+            6,
+            6,
+            4
+          ],
+          [
+            3,
+            2,
+            2,
+            3
+          ],
+          [
+            3,
+            2,
+            2,
+            4
+          ],
+          [
+            3,
+            2,
+            2,
+            6
+          ],
+          [
+            3,
+            2,
+            3,
+            2
+          ],
+          [
+            3,
+            2,
+            3,
+            4
+          ],
+          [
+            3,
+            2,
+            3,
+            6
+          ],
+          [
+            3,
+            2,
+            4,
+            2
+          ],
+          [
+            3,
+            2,
+            4,
+            3
+          ],
+          [
+            3,
+            2,
+            4,
+            4
+          ],
+          [
+            3,
+            2,
+            6,
+            2
+          ],
+          [
+            3,
+            2,
+            6,
+            3
+          ],
+          [
+            3,
+            2,
+            6,
+            6
+          ],
+          [
+            3,
+            3,
+            2,
+            2
+          ],
+          [
+            3,
+            3,
+            2,
+            4
+          ],
+          [
+            3,
+            3,
+            2,
+            6
+          ],
+          [
+            3,
+            3,
+            4,
+            2
+          ],
+          [
+            3,
+            3,
+            4,
+            4
+          ],
+          [
+            3,
+            3,
+            4,
+            6
+          ],
+          [
+            3,
+            3,
+            6,
+            2
+          ],
+          [
+            3,
+            3,
+            6,
+            4
+          ],
+          [
+            3,
+            3,
+            6,
+            6
+          ],
+          [
+            3,
+            4,
+            2,
+            2
+          ],
+          [
+            3,
+            4,
+            2,
+            3
+          ],
+          [
+            3,
+            4,
+            2,
+            4
+          ],
+          [
+            3,
+            4,
+            3,
+            2
+          ],
+          [
+            3,
+            4,
+            3,
+            4
+          ],
+          [
+            3,
+            4,
+            3,
+            6
+          ],
+          [
+            3,
+            4,
+            4,
+            2
+          ],
+          [
+            3,
+            4,
+            4,
+            3
+          ],
+          [
+            3,
+            4,
+            4,
+            6
+          ],
+          [
+            3,
+            4,
+            6,
+            3
+          ],
+          [
+            3,
+            4,
+            6,
+            4
+          ],
+          [
+            3,
+            4,
+            6,
+            6
+          ],
+          [
+            3,
+            6,
+            2,
+            2
+          ],
+          [
+            3,
+            6,
+            2,
+            3
+          ],
+          [
+            3,
+            6,
+            2,
+            6
+          ],
+          [
+            3,
+            6,
+            3,
+            2
+          ],
+          [
+            3,
+            6,
+            3,
+            4
+          ],
+          [
+            3,
+            6,
+            3,
+            6
+          ],
+          [
+            3,
+            6,
+            4,
+            3
+          ],
+          [
+            3,
+            6,
+            4,
+            4
+          ],
+          [
+            3,
+            6,
+            4,
+            6
+          ],
+          [
+            3,
+            6,
+            6,
+            2
+          ],
+          [
+            3,
+            6,
+            6,
+            3
+          ],
+          [
+            3,
+            6,
+            6,
+            4
+          ],
+          [
+            4,
+            2,
+            2,
+            3
+          ],
+          [
+            4,
+            2,
+            2,
+            4
+          ],
+          [
+            4,
+            2,
+            2,
+            6
+          ],
+          [
+            4,
+            2,
+            3,
+            2
+          ],
+          [
+            4,
+            2,
+            3,
+            3
+          ],
+          [
+            4,
+            2,
+            3,
+            4
+          ],
+          [
+            4,
+            2,
+            4,
+            2
+          ],
+          [
+            4,
+            2,
+            4,
+            3
+          ],
+          [
+            4,
+            2,
+            4,
+            6
+          ],
+          [
+            4,
+            2,
+            6,
+            2
+          ],
+          [
+            4,
+            2,
+            6,
+            4
+          ],
+          [
+            4,
+            2,
+            6,
+            6
+          ],
+          [
+            4,
+            3,
+            2,
+            2
+          ],
+          [
+            4,
+            3,
+            2,
+            3
+          ],
+          [
+            4,
+            3,
+            2,
+            4
+          ],
+          [
+            4,
+            3,
+            3,
+            2
+          ],
+          [
+            4,
+            3,
+            3,
+            4
+          ],
+          [
+            4,
+            3,
+            3,
+            6
+          ],
+          [
+            4,
+            3,
+            4,
+            2
+          ],
+          [
+            4,
+            3,
+            4,
+            3
+          ],
+          [
+            4,
+            3,
+            4,
+            6
+          ],
+          [
+            4,
+            3,
+            6,
+            3
+          ],
+          [
+            4,
+            3,
+            6,
+            4
+          ],
+          [
+            4,
+            3,
+            6,
+            6
+          ],
+          [
+            4,
+            4,
+            2,
+            2
+          ],
+          [
+            4,
+            4,
+            2,
+            3
+          ],
+          [
+            4,
+            4,
+            2,
+            6
+          ],
+          [
+            4,
+            4,
+            3,
+            2
+          ],
+          [
+            4,
+            4,
+            3,
+            3
+          ],
+          [
+            4,
+            4,
+            3,
+            6
+          ],
+          [
+            4,
+            4,
+            6,
+            2
+          ],
+          [
+            4,
+            4,
+            6,
+            3
+          ],
+          [
+            4,
+            4,
+            6,
+            6
+          ],
+          [
+            4,
+            6,
+            2,
+            2
+          ],
+          [
+            4,
+            6,
+            2,
+            4
+          ],
+          [
+            4,
+            6,
+            2,
+            6
+          ],
+          [
+            4,
+            6,
+            3,
+            3
+          ],
+          [
+            4,
+            6,
+            3,
+            4
+          ],
+          [
+            4,
+            6,
+            3,
+            6
+          ],
+          [
+            4,
+            6,
+            4,
+            2
+          ],
+          [
+            4,
+            6,
+            4,
+            3
+          ],
+          [
+            4,
+            6,
+            4,
+            6
+          ],
+          [
+            4,
+            6,
+            6,
+            2
+          ],
+          [
+            4,
+            6,
+            6,
+            3
+          ],
+          [
+            4,
+            6,
+            6,
+            4
+          ],
+          [
+            6,
+            2,
+            2,
+            3
+          ],
+          [
+            6,
+            2,
+            2,
+            4
+          ],
+          [
+            6,
+            2,
+            2,
+            6
+          ],
+          [
+            6,
+            2,
+            3,
+            2
+          ],
+          [
+            6,
+            2,
+            3,
+            3
+          ],
+          [
+            6,
+            2,
+            3,
+            6
+          ],
+          [
+            6,
+            2,
+            4,
+            2
+          ],
+          [
+            6,
+            2,
+            4,
+            4
+          ],
+          [
+            6,
+            2,
+            4,
+            6
+          ],
+          [
+            6,
+            2,
+            6,
+            2
+          ],
+          [
+            6,
+            2,
+            6,
+            3
+          ],
+          [
+            6,
+            2,
+            6,
+            4
+          ],
+          [
+            6,
+            3,
+            2,
+            2
+          ],
+          [
+            6,
+            3,
+            2,
+            3
+          ],
+          [
+            6,
+            3,
+            2,
+            6
+          ],
+          [
+            6,
+            3,
+            3,
+            2
+          ],
+          [
+            6,
+            3,
+            3,
+            4
+          ],
+          [
+            6,
+            3,
+            3,
+            6
+          ],
+          [
+            6,
+            3,
+            4,
+            3
+          ],
+          [
+            6,
+            3,
+            4,
+            4
+          ],
+          [
+            6,
+            3,
+            4,
+            6
+          ],
+          [
+            6,
+            3,
+            6,
+            2
+          ],
+          [
+            6,
+            3,
+            6,
+            3
+          ],
+          [
+            6,
+            3,
+            6,
+            4
+          ],
+          [
+            6,
+            4,
+            2,
+            2
+          ],
+          [
+            6,
+            4,
+            2,
+            4
+          ],
+          [
+            6,
+            4,
+            2,
+            6
+          ],
+          [
+            6,
+            4,
+            3,
+            3
+          ],
+          [
+            6,
+            4,
+            3,
+            4
+          ],
+          [
+            6,
+            4,
+            3,
+            6
+          ],
+          [
+            6,
+            4,
+            4,
+            2
+          ],
+          [
+            6,
+            4,
+            4,
+            3
+          ],
+          [
+            6,
+            4,
+            4,
+            6
+          ],
+          [
+            6,
+            4,
+            6,
+            2
+          ],
+          [
+            6,
+            4,
+            6,
+            3
+          ],
+          [
+            6,
+            4,
+            6,
+            4
+          ],
+          [
+            6,
+            6,
+            2,
+            2
+          ],
+          [
+            6,
+            6,
+            2,
+            3
+          ],
+          [
+            6,
+            6,
+            2,
+            4
+          ],
+          [
+            6,
+            6,
+            3,
+            2
+          ],
+          [
+            6,
+            6,
+            3,
+            3
+          ],
+          [
+            6,
+            6,
+            3,
+            4
+          ],
+          [
+            6,
+            6,
+            4,
+            2
+          ],
+          [
+            6,
+            6,
+            4,
+            3
+          ],
+          [
+            6,
+            6,
+            4,
+            4
+          ]
+        ],
+        "excludedOrderedTrashPatterns": {
+          "trashMultiple": 52,
+          "threePairs": 0,
+          "straight": 24
+        },
+        "representativeEquivalence": {
+          "equivalentSelectionChecks": 540,
+          "disagreements": 0
+        },
+        "eligibleOrderedSixDiceRolls": 5400
+      }
+    ]
+  },
+  "oneRollComparisons": [
+    {
+      "pair": "11",
+      "action": "keep1",
+      "selectedScore": 100,
+      "forgoneScore": 100,
+      "expectedKeepBoth": {
+        "priorTurnScoreCoefficient": {
+          "numerator": 6552,
+          "denominator": 7776,
+          "reducedNumerator": 91,
+          "reducedDenominator": 108,
+          "decimal": 0.8425925925925926
+        },
+        "constantPoints": {
+          "numerator": 2426400,
+          "denominator": 7776,
+          "reducedNumerator": 8425,
+          "reducedDenominator": 27,
+          "decimal": 312.037037037037
+        }
+      },
+      "expectedKeepOne": {
+        "priorTurnScoreCoefficient": {
+          "numerator": 7176,
+          "denominator": 7776,
+          "reducedNumerator": 299,
+          "reducedDenominator": 324,
+          "decimal": 0.9228395061728395
+        },
+        "constantPoints": {
+          "numerator": 2473350,
+          "denominator": 7776,
+          "reducedNumerator": 412225,
+          "reducedDenominator": 1296,
+          "decimal": 318.07484567901236
+        }
+      },
+      "keepOneMinusKeepBoth": {
+        "priorTurnScoreCoefficient": {
+          "numerator": 624,
+          "denominator": 7776,
+          "reducedNumerator": 13,
+          "reducedDenominator": 162,
+          "decimal": 0.08024691358024691
+        },
+        "constantPoints": {
+          "numerator": 46950,
+          "denominator": 7776,
+          "reducedNumerator": 7825,
+          "reducedDenominator": 1296,
+          "decimal": 6.0378086419753085
+        }
+      }
+    },
+    {
+      "pair": "55",
+      "action": "keep5",
+      "selectedScore": 50,
+      "forgoneScore": 50,
+      "expectedKeepBoth": {
+        "priorTurnScoreCoefficient": {
+          "numerator": 6552,
+          "denominator": 7776,
+          "reducedNumerator": 91,
+          "reducedDenominator": 108,
+          "decimal": 0.8425925925925926
+        },
+        "constantPoints": {
+          "numerator": 1771200,
+          "denominator": 7776,
+          "reducedNumerator": 2050,
+          "reducedDenominator": 9,
+          "decimal": 227.77777777777777
+        }
+      },
+      "expectedKeepOne": {
+        "priorTurnScoreCoefficient": {
+          "numerator": 7176,
+          "denominator": 7776,
+          "reducedNumerator": 299,
+          "reducedDenominator": 324,
+          "decimal": 0.9228395061728395
+        },
+        "constantPoints": {
+          "numerator": 2114550,
+          "denominator": 7776,
+          "reducedNumerator": 117475,
+          "reducedDenominator": 432,
+          "decimal": 271.9328703703704
+        }
+      },
+      "keepOneMinusKeepBoth": {
+        "priorTurnScoreCoefficient": {
+          "numerator": 624,
+          "denominator": 7776,
+          "reducedNumerator": 13,
+          "reducedDenominator": 162,
+          "decimal": 0.08024691358024691
+        },
+        "constantPoints": {
+          "numerator": 343350,
+          "denominator": 7776,
+          "reducedNumerator": 19075,
+          "reducedDenominator": 432,
+          "decimal": 44.155092592592595
+        }
+      }
+    },
+    {
+      "pair": "15",
+      "action": "keep1",
+      "selectedScore": 100,
+      "forgoneScore": 50,
+      "expectedKeepBoth": {
+        "priorTurnScoreCoefficient": {
+          "numerator": 6552,
+          "denominator": 7776,
+          "reducedNumerator": 91,
+          "reducedDenominator": 108,
+          "decimal": 0.8425925925925926
+        },
+        "constantPoints": {
+          "numerator": 2098800,
+          "denominator": 7776,
+          "reducedNumerator": 14575,
+          "reducedDenominator": 54,
+          "decimal": 269.9074074074074
+        }
+      },
+      "expectedKeepOne": {
+        "priorTurnScoreCoefficient": {
+          "numerator": 7176,
+          "denominator": 7776,
+          "reducedNumerator": 299,
+          "reducedDenominator": 324,
+          "decimal": 0.9228395061728395
+        },
+        "constantPoints": {
+          "numerator": 2473350,
+          "denominator": 7776,
+          "reducedNumerator": 412225,
+          "reducedDenominator": 1296,
+          "decimal": 318.07484567901236
+        }
+      },
+      "keepOneMinusKeepBoth": {
+        "priorTurnScoreCoefficient": {
+          "numerator": 624,
+          "denominator": 7776,
+          "reducedNumerator": 13,
+          "reducedDenominator": 162,
+          "decimal": 0.08024691358024691
+        },
+        "constantPoints": {
+          "numerator": 374550,
+          "denominator": 7776,
+          "reducedNumerator": 62425,
+          "reducedDenominator": 1296,
+          "decimal": 48.16743827160494
+        }
+      }
+    },
+    {
+      "pair": "15",
+      "action": "keep5",
+      "selectedScore": 50,
+      "forgoneScore": 100,
+      "expectedKeepBoth": {
+        "priorTurnScoreCoefficient": {
+          "numerator": 6552,
+          "denominator": 7776,
+          "reducedNumerator": 91,
+          "reducedDenominator": 108,
+          "decimal": 0.8425925925925926
+        },
+        "constantPoints": {
+          "numerator": 2098800,
+          "denominator": 7776,
+          "reducedNumerator": 14575,
+          "reducedDenominator": 54,
+          "decimal": 269.9074074074074
+        }
+      },
+      "expectedKeepOne": {
+        "priorTurnScoreCoefficient": {
+          "numerator": 7176,
+          "denominator": 7776,
+          "reducedNumerator": 299,
+          "reducedDenominator": 324,
+          "decimal": 0.9228395061728395
+        },
+        "constantPoints": {
+          "numerator": 2114550,
+          "denominator": 7776,
+          "reducedNumerator": 117475,
+          "reducedDenominator": 432,
+          "decimal": 271.9328703703704
+        }
+      },
+      "keepOneMinusKeepBoth": {
+        "priorTurnScoreCoefficient": {
+          "numerator": 624,
+          "denominator": 7776,
+          "reducedNumerator": 13,
+          "reducedDenominator": 162,
+          "decimal": 0.08024691358024691
+        },
+        "constantPoints": {
+          "numerator": 15750,
+          "denominator": 7776,
+          "reducedNumerator": 875,
+          "reducedDenominator": 432,
+          "decimal": 2.025462962962963
+        }
+      }
+    }
+  ],
+  "singleCarryoverExamples": [
+    {
+      "face": 1,
+      "keptCount": 1,
+      "nextRollMatchingDice": 2,
+      "savedScore": 100,
+      "newScore": 200,
+      "combinedScore": 300,
+      "multipleUpdates": {}
+    },
+    {
+      "face": 1,
+      "keptCount": 2,
+      "nextRollMatchingDice": 1,
+      "savedScore": 200,
+      "newScore": 100,
+      "combinedScore": 300,
+      "multipleUpdates": {}
+    },
+    {
+      "face": 5,
+      "keptCount": 1,
+      "nextRollMatchingDice": 2,
+      "savedScore": 50,
+      "newScore": 100,
+      "combinedScore": 150,
+      "multipleUpdates": {}
+    },
+    {
+      "face": 5,
+      "keptCount": 2,
+      "nextRollMatchingDice": 1,
+      "savedScore": 100,
+      "newScore": 50,
+      "combinedScore": 150,
+      "multipleUpdates": {}
+    }
+  ]
+}
