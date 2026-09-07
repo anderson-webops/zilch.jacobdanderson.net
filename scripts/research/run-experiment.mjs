@@ -36,10 +36,16 @@ const provenance = {
   command: [executable, ...args],
   started_at: new Date().toISOString(),
 }
+assert.equal(provenance.simulator_tracked_status, '', 'Freeze and commit the simulator before recording research evidence.')
 const started = performance.now()
 const result = JSON.parse(execFileSync(executable, args, { cwd: root, encoding: 'utf8', maxBuffer: 1024 * 1024 }))
 provenance.elapsed_seconds = (performance.now() - started) / 1000
 provenance.finished_at = new Date().toISOString()
+assert.equal(sha256(await readFile(executable)), provenance.executable_sha256, 'Executable changed during the experiment.')
+assert.equal(git('rev-parse', 'HEAD'), provenance.simulator_revision, 'Simulator revision changed during the experiment.')
+assert.equal(git('status', '--porcelain', '-uno'), '', 'Simulator source changed during the experiment.')
+for (const [path, hash] of Object.entries(sources))
+  assert.equal(sha256(await readFile(resolve(simulatorRoot, path))), hash, `Simulator source changed: ${path}`)
 await mkdir(dirname(output), { recursive: true })
 await writeFile(output, `${JSON.stringify({ run_id: runId, provenance, ...result }, null, 2)}\n`, { flag: 'wx' })
 const primary = result.mode === 'state'

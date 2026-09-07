@@ -1,0 +1,65 @@
+{
+  "contexts": 201,
+  "totals": [
+    {
+      "stealing": false,
+      "cases": 39685,
+      "mismatches": 0
+    },
+    {
+      "stealing": true,
+      "cases": 39685,
+      "mismatches": 0
+    }
+  ],
+  "source_sha256": {
+    "front-end/src/game/engine.ts": "50f3393175cfa9e2f36c103e8707464a987163bfa1043cd086150525c2c3239a",
+    "front-end/src/game/scoring.ts": "7735907714dcc229d275fcaa1931ace0aeb517c3b4e24cbf743542b91bc0c2a4",
+    "front-end/src/game/roll-risk.ts": "6cc68f4af9f297a566d25777859d8c479dbbbd960089da9a566b0607504dcdd6",
+    "scripts/research/check-decision-parity.mjs": "2656ab35141b8bbe2c0977e8dd5742979789678f3de29d146c66d5094cecf094"
+  },
+  "simulator_source_sha256": {
+    "CMakeLists.txt": "f0a68ee842f5dffa417a91390fe86e3f805b5cc26da37b37ad07cf7023c20433",
+    "Checker.cpp": "fdb3339a50cf415f00edba6632cde18df0da422903141141d7da15aae505e9b6",
+    "Checker.h": "bd35c3ab072247b6e697d68e60c455c80a5328bed2254b864f40aef0c886418a",
+    "ComputerStrategy.cpp": "935bff45e79b5ad0e67eb8d86f9b64d3209c5b0b38b69c4c3a8859e80dfd715a",
+    "ComputerStrategy.h": "b3c043f1363fa8e93c2d81db4a896f32899141481074935d08291100b757a530",
+    "Dice.cpp": "e9d90a8e3c7f903ee8e2257642db82931f13bee48362a1ea9b75c770fb86a59d",
+    "Dice.h": "774a43c8a4d76855e9e8179696c16cf88d576916b927142e82498c5a028513d1",
+    "DiceRenderer.cpp": "a81e49d43911092e9e67d16e6f6cfebb577146e2a617a42b885c5692cb3c5a39",
+    "DiceRenderer.h": "78e7203f04ebce6e604719c844666021fc2f1c24bd092648fef2a71b90326f23",
+    "GameManager.cpp": "59831975785305b34977a90355bd0afcaf5054cde592c222dc8bf626b8466a36",
+    "GameManager.h": "f47103d808c9897d43838ef844d4ec7cb46c78a15d6f74b963f2ebb5ccca32bf",
+    "GameStateMachine.cpp": "5f418936e9e96eab1fee5b383e5dba517a47ab4e9a4650fdd628bf16bbdeb372",
+    "GameStateMachine.h": "215869bc1d4c4144ca5e93e1b33c68750c9907384a418d92c9c18f41319c7526",
+    "GameUI.cpp": "b347d7ada3f7f1ddc1e550e67eec4ce06ba03cd88bc53884591928673b79611a",
+    "GameUI.h": "be85f9c8524d52ee1a5fdb147a0ee421dcab20ff55a03662a6165617eb4cc909",
+    "InputClosed.h": "75a6c2f6dd7fa76016532c2bbace6eabee0ac153f35c6f4e07343601b3f8c96b",
+    "PlatformDefinitions.h": "7c052002ab52fb978eb8b36b5dc7f5452a9ac1ea054173cc582c38d4f076ce72",
+    "Player.h": "4436db7fa36e06e20bdfd38abba555a9c0c23a2c8caef86e828b10df8af6c83a",
+    "ResourcePath.cpp": "d87f01f79a919a67e15908e4e5e0753e114b08732424705067272557d8bef151",
+    "ResourcePath.h": "c1ef52456a36389cacf242a1ababb54f2fad488255058bc3f4e0afdedcc26e60",
+    "RuleConfig.h": "3a0c966ead6c2ef9c4c15184adbabf8c9dfb975f457bbe0f8296dec87f3debf9",
+    "Score.h": "5efb2c96a8547b8499fb2a9f17af2e0d8fac6ea974d5723c20f01173223b20ac",
+    "common/objloader.cpp": "dce652241cb5c3b2df6ddc5e9d1324cc788269149472e6112fc95c61e5f4dbb5",
+    "external/glm-0.9.7.1/glm/detail/dummy.cpp": "23960db9bebf4347eab681bcda3607e9606d89683ac8c68733f9c2d4087542af",
+    "external/glm-0.9.7.1/glm/detail/glm.cpp": "d060021ff59eab7181e1bb68af2ad0314ea01d184fd15b632d50d7f86956d91c",
+    "main.cpp": "ef0a8ca0d9311b4a0751f8066a41f074abe56fd3d108bb9d6c63fa5a31354932",
+    "research/decision_probe.cpp": "6dff683299c623c5cde377f92299087df6254c07a198f6cff2edd5d59dcb9004",
+    "rules/GameOption.h": "38cf5a8f9ca94a9ae18672e82bdbfbf99c100b9ed3b68857cc35c65ee5b2d6f8",
+    "rules/IRule.h": "4bf9fa279308dedfca82354ae144809027d26ba6789450b90e2bb5505aee1961",
+    "rules/RuleContext.h": "7e245319573fe3deb1143e6a18f6985dd4183c0b380e4a7ee34cf4b05688b3c7",
+    "rules/RuleManager.cpp": "9fba5bc8b242689e110effb1457971e9cfc213633f7303ab4a112e5e6dd1fa47",
+    "rules/RuleManager.h": "57971102813f131a802316014ab50dcf4494350110c857b9a98618b1f9d57b64",
+    "tests/test_chain_strategy.cpp": "b34badd9982fbaf0aefa0fdb25863fcbdd19c987c68b32793a3215fbef43cf33",
+    "tests/test_game_rules.cpp": "0b9c548bd9b5db3cfd3e3c81400da8fb94b090618d084238ff7baa04c76a3c96"
+  },
+  "simulator_revision": "9cd59cea13cc3354db83c59b76438e5bab450202",
+  "simulator_tracked_status": "",
+  "probe_sha256": "2144ceefcaa4e2f1ea02280b8b65322d2e1c38a075ac2462be36651083a0d503",
+  "compiled_class_sha256": {},
+  "command_override": [
+    "/tmp/zilch-visual-chain-build.bTKiDv/ZilchDecisionProbe"
+  ],
+  "coverage": "Every unordered 1–6-die roll in base score/endgame contexts, plus all chain faces/sizes with feasible remaining dice across risk and lead/trail positions. Includes legacy counterfactual decision states; not a win-rate sample."
+}

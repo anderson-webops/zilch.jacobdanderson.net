@@ -1,0 +1,34 @@
+{
+  "kind": "multiple-selection-candidate-freeze-before-holdouts",
+  "candidate": "chain-scoped-joint-blend-1-with-safe-finish",
+  "simulator_revision": "76e345c603837841b6b871b71a4d9cd544a6e194",
+  "executable_sha256": "404c47910f9d8fcea0b87da5d6e02e5b22733d598a6567695f1592d0dcbbaf91",
+  "base_policy": "released non-Stealing Hard v1.2.0; unchanged coefficients and base banking cutoffs",
+  "features": {
+    "collect_before_bank": true,
+    "safe_finish_collection": true,
+    "chain_risk_weight": 1,
+    "chain_mode": "blend",
+    "joint_selection": true,
+    "joint_chains_only": true
+  },
+  "selection_basis": "Highest match-point rate in the predeclared chain-scoped grid, with positive direct comparisons against greedy blend 0.5, 0.75, 1, the safe-finish-only control, and chain-scoped blend 1.25. All are tuning, not holdout evidence. No further coefficient tuning after this freeze.",
+  "decision": "For multiple-bearing rolls only, search legal scoring paths and Bank/Roll actions with existing opening and score-position/endgame constraints. Prioritize an available outright win. Value a roll as P + pBust * (adjustedThreshold - P); a saved chain uses exact one-roll expected new score divided by bust probability, before existing score-position adjustments. Hot dice clear the chain and use the existing six-dice calibration. Elsewhere use the released greedy selection and independently protect an available outright win. Stealing, Easy, and Medium retain their separate policies.",
+  "promotion_requirements": "The primary holdout must favor the candidate over released Hard with a paired 95% interval above 50%. Compare with greedy and safe-finish alternatives, Medium, and relevant rules/targets. Preserve losing or inconclusive results and do not relabel a tuned-on holdout. Integration additionally requires deterministic real-scorer, three-axis, parity, persistence, performance, build and release validation.",
+  "primary_seed": 3400000000,
+  "holdouts": [
+    { "id": "holdout-current-hard", "pairs": 250000, "extra_flags": [] },
+    { "id": "holdout-greedy-075", "pairs": 150000, "extra_flags": ["--safe-finish-b", "true", "--chain-risk-b", "0.75", "--chain-mode-b", "blend"] },
+    { "id": "holdout-safe-finish-only", "pairs": 150000, "extra_flags": ["--safe-finish-b", "true"] },
+    { "id": "holdout-medium", "pairs": 100000, "extra_flags": ["--difficulty-b", "medium", "--collect-b", "false"] },
+    { "id": "holdout-sets-off", "pairs": 100000, "extra_flags": ["--sets", "off"] },
+    { "id": "holdout-target2500", "pairs": 50000, "extra_flags": ["--target", "2500"] },
+    { "id": "holdout-target10000", "pairs": 50000, "extra_flags": ["--target", "10000"] },
+    { "id": "holdout-no-final-chase", "pairs": 50000, "extra_flags": ["--final-chase", "off"] },
+    { "id": "holdout-no-ties", "pairs": 50000, "extra_flags": ["--ties", "off"] },
+    { "id": "holdout-no-mercy", "pairs": 50000, "extra_flags": ["--first-roll-mercy", "off"] },
+    { "id": "holdout-stealing-identity", "pairs": 25000, "extra_flags": ["--stealing", "on", "--collect-a", "false", "--collect-b", "false"] },
+    { "id": "holdout-opening-zero", "pairs": 50000, "extra_flags": ["--opening-score", "0"] },
+    { "id": "holdout-opening3000", "pairs": 50000, "extra_flags": ["--opening-score", "3000"] }
+  ]
+}

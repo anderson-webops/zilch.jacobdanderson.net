@@ -1,0 +1,43 @@
+{
+  "contexts": 201,
+  "totals": [
+    {
+      "stealing": false,
+      "cases": 39685,
+      "mismatches": 0
+    },
+    {
+      "stealing": true,
+      "cases": 39685,
+      "mismatches": 0
+    }
+  ],
+  "source_sha256": {
+    "front-end/src/game/engine.ts": "50f3393175cfa9e2f36c103e8707464a987163bfa1043cd086150525c2c3239a",
+    "front-end/src/game/scoring.ts": "7735907714dcc229d275fcaa1931ace0aeb517c3b4e24cbf743542b91bc0c2a4",
+    "front-end/src/game/roll-risk.ts": "6cc68f4af9f297a566d25777859d8c479dbbbd960089da9a566b0607504dcdd6",
+    "scripts/research/check-decision-parity.mjs": "2656ab35141b8bbe2c0977e8dd5742979789678f3de29d146c66d5094cecf094"
+  },
+  "simulator_source_sha256": {
+    "CMakeLists.txt": "c444bcf7e75ed6a723044b45e0c55e57665a3a7f4fac028b58d5291124f5286c",
+    "InputClosed.h": "a8c37f50f1d8234b07137a256ff113643efbcd3fae42a5c8d3988baf7e05ca9f",
+    "computer.cpp": "f513e0d16fcccfe561034fc3fd06435976ded75b8dfad5c72e9d105e035d74f6",
+    "computer.h": "0c2c09e5ac000b490cb2132bec44e09dce190af304a59f08bf710bb47836f3f5",
+    "main.cpp": "31df2aa2abf5e0af887af28bffdb29ada553e4351b17ba1b2291ac268a8ede0b",
+    "research/candidate_tests.cpp": "ba2d24fdb34bb0deb2590998d49f677ee2279281c7d6cb8ff656b5b9a2f4bd5c",
+    "research/decision_probe.cpp": "e75e462942c591e19e808a5abf49c12e3119332afb0c1321bc5308aaa4bd7112",
+    "research/regression_tests.cpp": "9eb6dc63acb890989f23afd604ca6d0411a9a7f840b815d8c2bc97a711871b2a",
+    "research/selection_checkpoint.h": "c8a65d4d318f6347f27c151c29ac7a0ac553af3c51197e72200913855b2f3cb9",
+    "research/selection_cli_tests.cpp": "f64d54d04cfa13791f1889affbc26bfec125bbdef5fe24695562d6d7442a3893",
+    "research/strategy_lab.cpp": "f943ae945e850129afc820e2c836a103833153372d1510328e31e8988aaccd96",
+    "tests/regression_tests.cpp": "a6566c7f473c6e8ac5c10dc4f1db4f34ae39752ba8a67513a13061d900e9a479",
+    "zilch.cpp": "d45c9a9227f9719305d7c4c762e58c72a471ff57b4a2c46b0c60d39cbad68af7",
+    "zilch.h": "386ba31293e56352689dab93cf59e3053c30d64d3ca78effde03025f29e47dc4"
+  },
+  "simulator_revision": "89028a3c7d9963a6924f2565d90319b0a451f60a",
+  "simulator_tracked_status": "",
+  "probe_sha256": "1f3d824ed09f2f330d3fcb849a6fb0d4c3a4be15bb39b8f4369ca7d3e95dc61b",
+  "compiled_class_sha256": {},
+  "command_override": null,
+  "coverage": "Every unordered 1–6-die roll in base score/endgame contexts, plus all chain faces/sizes with feasible remaining dice across risk and lead/trail positions. Includes legacy counterfactual decision states; not a win-rate sample."
+}

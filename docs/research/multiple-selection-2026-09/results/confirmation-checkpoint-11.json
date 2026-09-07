@@ -1,0 +1,413 @@
+{
+  "run_id": "confirmation-checkpoint-11",
+  "provenance": {
+    "simulator_revision": "16abc626802fba0650ac241ee033af72493d51dc",
+    "simulator_tracked_status": "",
+    "source_sha256": {
+      "CMakeLists.txt": "c444bcf7e75ed6a723044b45e0c55e57665a3a7f4fac028b58d5291124f5286c",
+      "InputClosed.h": "a8c37f50f1d8234b07137a256ff113643efbcd3fae42a5c8d3988baf7e05ca9f",
+      "computer.cpp": "305c026530689445ca2eb0d6d783595a8fd8f26c86e6b21ca1695e1190b1a8fd",
+      "computer.h": "a680847c2535c768e7f2bf5670da285850878c2c223d63353b27f0fdaf32c187",
+      "main.cpp": "31df2aa2abf5e0af887af28bffdb29ada553e4351b17ba1b2291ac268a8ede0b",
+      "research/candidate_tests.cpp": "3ece7a20b133105c437e58d338ab5e0f3b8ad10b96c5f6c344395e3fd58c3779",
+      "research/decision_probe.cpp": "aa223dbb771bdaa92a8a6e75878b9539f047076b0d373c9ae8429acb14553955",
+      "research/regression_tests.cpp": "e6f74ad0c85d88fe1f75d4d69f431bda485b769b41d84963ee103274f70ab0dd",
+      "research/selection_checkpoint.h": "e056a208cfe600a979c29d2c0d60b12901069e1a29b00ab40a948dd383ba0ea3",
+      "research/selection_cli_tests.cpp": "cb49007f5c416a52ec65225a123e72bb3d7973d90decf31dcec7c12b33b1c573",
+      "research/strategy_lab.cpp": "1b4b1b99b3c47120c4163a45b4ae0315de73d7987e479621d493ecda2c2b0fb2",
+      "tests/regression_tests.cpp": "a783c0238f873cf76bce07e39eaebcec492f2de68ed0f8a9373afff0733bb493",
+      "zilch.cpp": "d45c9a9227f9719305d7c4c762e58c72a471ff57b4a2c46b0c60d39cbad68af7",
+      "zilch.h": "386ba31293e56352689dab93cf59e3053c30d64d3ca78effde03025f29e47dc4"
+    },
+    "executable_sha256": "dc5026fd69e32750aa58ea89e97626d14f0e6395e0992397a11f7736bd0fae6d",
+    "compiler": "Apple clang version 21.0.0 (clang-2100.3.33.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin",
+    "cmake_build_type": "Release",
+    "platform": "darwin-arm64",
+    "command": [
+      "/tmp/zilch-selection-build.ZrSDxl/zilch_research",
+      "--mode",
+      "selection",
+      "--pairs",
+      "100000",
+      "--threads",
+      "4",
+      "--seed",
+      "3300000010",
+      "--collect-a",
+      "true",
+      "--collect-b",
+      "true",
+      "--roll",
+      "6,6,6,6,6,5",
+      "--at-risk",
+      "0",
+      "--banked-a",
+      "1000",
+      "--banked-b",
+      "1000",
+      "--select-left",
+      "6,6,6,6,6,5",
+      "--action-left",
+      "roll",
+      "--select-right",
+      "6,6,6,6,6",
+      "--action-right",
+      "roll",
+      "--active-final-chase",
+      "false",
+      "--ties",
+      "true",
+      "--saved-multiples",
+      "0,0,0,0,0,0"
+    ],
+    "started_at": "2026-09-07T02:53:44.046Z",
+    "elapsed_seconds": 2.132222375,
+    "finished_at": "2026-09-07T02:53:46.179Z"
+  },
+  "schema_version": 2,
+  "mode": "selection",
+  "seed": 3300000010,
+  "pairs": 100000,
+  "total_games": 200000,
+  "threads": 4,
+  "rng": "mt19937_64 master; each draw seeds mt19937 via seed_seq(low32,high32); same stream within each pair",
+  "interval_method": "sample variance of independent pair observations; normal 95% interval; no multiple-comparison adjustment",
+  "rules": {
+    "target": 5000,
+    "opening_score": 1000,
+    "straight": true,
+    "multiples": true,
+    "singles": true,
+    "three_pairs": true,
+    "stealing": false,
+    "first_roll_mercy": true,
+    "final_chase": true,
+    "ties": true
+  },
+  "policy_a": {
+    "name": "best",
+    "source": "builtin",
+    "difficulty": "Hard",
+    "collect_before_bank": true,
+    "chain_risk_weight": 0,
+    "chain_mode": "raise",
+    "lower_chain_thresholds": false,
+    "safe_finish_collection": false,
+    "bank_thresholds": [
+      200,
+      1021,
+      1128,
+      1506,
+      2130,
+      5000
+    ],
+    "score_weight": 1.0045,
+    "remaining_dice_weight": 36.0805,
+    "hot_dice_weight": 354.561,
+    "multiple_weight": 91.9329,
+    "lead_factor": 0,
+    "trail_factor": 0.293194,
+    "closing_factor": 0.193316,
+    "roll_bias": 136.066
+  },
+  "policy_b": {
+    "name": "best",
+    "source": "builtin",
+    "difficulty": "Hard",
+    "collect_before_bank": true,
+    "chain_risk_weight": 0,
+    "chain_mode": "raise",
+    "lower_chain_thresholds": false,
+    "safe_finish_collection": false,
+    "bank_thresholds": [
+      200,
+      1021,
+      1128,
+      1506,
+      2130,
+      5000
+    ],
+    "score_weight": 1.0045,
+    "remaining_dice_weight": 36.0805,
+    "hot_dice_weight": 354.561,
+    "multiple_weight": 91.9329,
+    "lead_factor": 0,
+    "trail_factor": 0.293194,
+    "closing_factor": 0.193316,
+    "roll_bias": 136.066
+  },
+  "selection_state": {
+    "roll": [
+      6,
+      6,
+      6,
+      6,
+      6,
+      5
+    ],
+    "at_risk_before_selection": 0,
+    "state": {
+      "banked_a": 1000,
+      "banked_b": 1000,
+      "at_risk": 0,
+      "next_dice": 6,
+      "seat": 0,
+      "selected_option": false,
+      "turn_active": true,
+      "can_bank": false,
+      "final_chase_active": false,
+      "last_turn_of_match": false,
+      "final_chase_leader_seat": null,
+      "remaining_rolled_counts": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        5
+      ],
+      "saved_multiple_scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "roll_count_this_turn": 1,
+      "mercy_available_next_roll": false
+    }
+  },
+  "branches": {
+    "left": {
+      "selected_dice": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        5
+      ],
+      "action": "roll",
+      "score_gain": 2450,
+      "applied_options": [
+        {
+          "type": "single",
+          "face": 5,
+          "dice_used": 1,
+          "score_gain": 50,
+          "next_dice": 5,
+          "extends_multiple": false,
+          "hot_dice": false,
+          "label": "Score single 5 (+50)"
+        },
+        {
+          "type": "multiple",
+          "face": 6,
+          "dice_used": 5,
+          "score_gain": 2400,
+          "next_dice": 6,
+          "extends_multiple": false,
+          "hot_dice": true,
+          "label": "Score 5x 6 (+2400)"
+        }
+      ],
+      "state": {
+        "banked_a": 1000,
+        "banked_b": 1000,
+        "at_risk": 2450,
+        "next_dice": 6,
+        "seat": 0,
+        "selected_option": true,
+        "turn_active": true,
+        "can_bank": true,
+        "final_chase_active": false,
+        "last_turn_of_match": false,
+        "final_chase_leader_seat": null,
+        "remaining_rolled_counts": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "saved_multiple_scores": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "roll_count_this_turn": 1,
+        "mercy_available_next_roll": false
+      }
+    },
+    "right": {
+      "selected_dice": [
+        6,
+        6,
+        6,
+        6,
+        6
+      ],
+      "action": "roll",
+      "score_gain": 2400,
+      "applied_options": [
+        {
+          "type": "multiple",
+          "face": 6,
+          "dice_used": 5,
+          "score_gain": 2400,
+          "next_dice": 1,
+          "extends_multiple": false,
+          "hot_dice": false,
+          "label": "Score 5x 6 (+2400)"
+        }
+      ],
+      "state": {
+        "banked_a": 1000,
+        "banked_b": 1000,
+        "at_risk": 2400,
+        "next_dice": 1,
+        "seat": 0,
+        "selected_option": true,
+        "turn_active": true,
+        "can_bank": true,
+        "final_chase_active": false,
+        "last_turn_of_match": false,
+        "final_chase_leader_seat": null,
+        "remaining_rolled_counts": [
+          0,
+          0,
+          0,
+          0,
+          1,
+          0
+        ],
+        "saved_multiple_scores": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          2400
+        ],
+        "roll_count_this_turn": 1,
+        "mercy_available_next_roll": false
+      }
+    }
+  },
+  "incumbent_recommendation": {
+    "selected_dice": [
+      5,
+      6,
+      6,
+      6,
+      6,
+      6
+    ],
+    "action": "roll",
+    "score_gain": 2450,
+    "applied_options": [
+      {
+        "type": "multiple",
+        "face": 6,
+        "dice_used": 5,
+        "score_gain": 2400,
+        "next_dice": 1,
+        "extends_multiple": false,
+        "hot_dice": false,
+        "label": "Score 5x 6 (+2400)"
+      },
+      {
+        "type": "single",
+        "face": 5,
+        "dice_used": 1,
+        "score_gain": 50,
+        "next_dice": 6,
+        "extends_multiple": false,
+        "hot_dice": true,
+        "label": "Score single 5 (+50)"
+      }
+    ],
+    "state": {
+      "banked_a": 1000,
+      "banked_b": 1000,
+      "at_risk": 2450,
+      "next_dice": 6,
+      "seat": 0,
+      "selected_option": true,
+      "turn_active": true,
+      "can_bank": true,
+      "final_chase_active": false,
+      "last_turn_of_match": false,
+      "final_chase_leader_seat": null,
+      "remaining_rolled_counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "saved_multiple_scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "roll_count_this_turn": 1,
+      "mercy_available_next_roll": false
+    }
+  },
+  "left": {
+    "games": 100000,
+    "wins": 80813,
+    "ties": 1550,
+    "losses": 17637,
+    "match_point_rate": 0.81588,
+    "points_for": 525799350,
+    "points_against": 274525150,
+    "average_score": 5257.9935,
+    "average_opponent_score": 2745.2515,
+    "average_score_margin": 2512.742
+  },
+  "right": {
+    "games": 100000,
+    "wins": 65856,
+    "ties": 1577,
+    "losses": 32567,
+    "match_point_rate": 0.666445,
+    "points_for": 480865200,
+    "points_against": 334181450,
+    "average_score": 4808.652,
+    "average_opponent_score": 3341.8145,
+    "average_score_margin": 1466.8375
+  },
+  "right_minus_left_match_points_paired": {
+    "independent_pairs": 100000,
+    "sum": -14943.5,
+    "sum_squares": 37434.25,
+    "mean": -0.149435,
+    "standard_error": 0.0018762068140986197,
+    "ci95": [
+      -0.15311229778318194,
+      -0.14575770221681808
+    ]
+  },
+  "right_minus_left_score_margin_paired": {
+    "independent_pairs": 100000,
+    "sum": -104590450,
+    "sum_squares": 1416568497500,
+    "mean": -1045.9045,
+    "standard_error": 11.433240778919362,
+    "ci95": [
+      -1068.3132401532566,
+      -1023.4957598467435
+    ]
+  }
+}

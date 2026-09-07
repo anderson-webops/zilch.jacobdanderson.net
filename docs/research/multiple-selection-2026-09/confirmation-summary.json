@@ -1,0 +1,892 @@
+{
+  "kind": "independently-recomputed-checkpoint-confirmations",
+  "plan_sha256": "6b7313eb98478afcc14edbd8252fc80d7155ffb75f3b3d9d1b330f71c7f4430b",
+  "exploration_sha256": "56fc35635815182dab2adab980a3250b1d1dd59182a470537e3f1ef4d498a7cb",
+  "simulator_revision": "16abc626802fba0650ac241ee033af72493d51dc",
+  "executable_sha256": "dc5026fd69e32750aa58ea89e97626d14f0e6395e0992397a11f7736bd0fae6d",
+  "total_comparisons": 12,
+  "total_independent_branch_pairs": 1200000,
+  "total_new_games": 2400000,
+  "arithmetic_and_result_checks": 720,
+  "risk_definition": "Points already at risk BEFORE collecting either selection from the fixed roll.",
+  "difference_definition": "Right branch match points minus left branch match points; the right branch retains the specified multiple or subset and rolls.",
+  "inference": "Report the usual paired normal 95% interval, and separately use a predeclared conservative three-standard-error sign screen across these 12 comparisons. This is a normal-approximation multiplicity screen, not an exact simultaneous interval. No retuning or new checkpoint selection based on these outcomes.",
+  "confirmations": [
+    {
+      "run_id": "confirmation-checkpoint-01",
+      "checkpoint_id": "face-6-count-3-single-5-risk-0-level-roll-v-roll",
+      "seed": 3300000000,
+      "result_sha256": "854dd81c3ac5b26b6c90a6cfe04cf94960ed8583d8797a666540337dda2e68a7",
+      "pairs": 100000,
+      "risk_before_selection": 0,
+      "context": {
+        "name": "level",
+        "own": 1000,
+        "opponent": 1000
+      },
+      "fixed_roll": [
+        6,
+        6,
+        6,
+        5,
+        2,
+        3
+      ],
+      "saved_multiple_scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "left": {
+        "selected": [
+          6,
+          6,
+          6,
+          5
+        ],
+        "action": "roll",
+        "score_gain": 650,
+        "next_dice": 2,
+        "match_point_rate": 0.56917
+      },
+      "right": {
+        "selected": [
+          6,
+          6,
+          6
+        ],
+        "action": "roll",
+        "score_gain": 600,
+        "next_dice": 3,
+        "match_point_rate": 0.59672
+      },
+      "difference": {
+        "mean": 0.02755,
+        "standard_error": 0.002124265779051906,
+        "ci95": [
+          0.023386515579467346,
+          0.03171348442053266
+        ]
+      },
+      "score_margin_difference": {
+        "mean": 222.647,
+        "standard_error": 11.444156732636232,
+        "ci95": [
+          200.2168649706014,
+          245.0771350293986
+        ]
+      },
+      "three_standard_error_interval": [
+        0.021177202662844286,
+        0.03392279733715572
+      ],
+      "three_standard_error_sign": "right"
+    },
+    {
+      "run_id": "confirmation-checkpoint-02",
+      "checkpoint_id": "face-6-count-3-single-5-risk-950-level-bank-v-roll",
+      "seed": 3300000001,
+      "result_sha256": "e30790fd22690e764892ffc398d65fc3a2ec3b5e61dd73561cb06343549fc4a1",
+      "pairs": 100000,
+      "risk_before_selection": 950,
+      "context": {
+        "name": "level",
+        "own": 1000,
+        "opponent": 1000
+      },
+      "fixed_roll": [
+        6,
+        6,
+        6,
+        5,
+        2,
+        3
+      ],
+      "saved_multiple_scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "left": {
+        "selected": [
+          6,
+          6,
+          6,
+          5
+        ],
+        "action": "bank",
+        "score_gain": 650,
+        "next_dice": 2,
+        "match_point_rate": 0.671195
+      },
+      "right": {
+        "selected": [
+          6,
+          6,
+          6
+        ],
+        "action": "roll",
+        "score_gain": 600,
+        "next_dice": 3,
+        "match_point_rate": 0.699355
+      },
+      "difference": {
+        "mean": 0.02816,
+        "standard_error": 0.0019975510121397304,
+        "ci95": [
+          0.024244871958924597,
+          0.0320751280410754
+        ]
+      },
+      "score_margin_difference": {
+        "mean": 219.5855,
+        "standard_error": 10.65738810080166,
+        "ci95": [
+          198.697403153163,
+          240.47359684683698
+        ]
+      },
+      "three_standard_error_interval": [
+        0.02216734696358081,
+        0.03415265303641919
+      ],
+      "three_standard_error_sign": "right"
+    },
+    {
+      "run_id": "confirmation-checkpoint-03",
+      "checkpoint_id": "face-6-count-3-single-5-risk-2800-level-bank-v-roll",
+      "seed": 3300000002,
+      "result_sha256": "707832d51372eccf8794c61b7bc9b47ba138cfe1c04640164eb096bb7fbf3d1f",
+      "pairs": 100000,
+      "risk_before_selection": 2800,
+      "context": {
+        "name": "level",
+        "own": 1000,
+        "opponent": 1000
+      },
+      "fixed_roll": [
+        6,
+        6,
+        6,
+        5,
+        2,
+        3
+      ],
+      "saved_multiple_scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "left": {
+        "selected": [
+          6,
+          6,
+          6,
+          5
+        ],
+        "action": "bank",
+        "score_gain": 650,
+        "next_dice": 2,
+        "match_point_rate": 0.88688
+      },
+      "right": {
+        "selected": [
+          6,
+          6,
+          6
+        ],
+        "action": "roll",
+        "score_gain": 600,
+        "next_dice": 3,
+        "match_point_rate": 0.876715
+      },
+      "difference": {
+        "mean": -0.010165,
+        "standard_error": 0.0013746128994579652,
+        "ci95": [
+          -0.012859191775621791,
+          -0.00747080822437821
+        ]
+      },
+      "score_margin_difference": {
+        "mean": 78.3575,
+        "standard_error": 8.606264052987626,
+        "ci95": [
+          61.48953241470254,
+          95.22546758529747
+        ]
+      },
+      "three_standard_error_interval": [
+        -0.014288838698373895,
+        -0.006041161301626105
+      ],
+      "three_standard_error_sign": "left"
+    },
+    {
+      "run_id": "confirmation-checkpoint-04",
+      "checkpoint_id": "face-6-count-3-single-5-risk-950-ahead-bank-v-roll",
+      "seed": 3300000003,
+      "result_sha256": "4cf245f8cfb83df3e5313d96c0089c6584696772f3a4a4c329d1ca3151a489de",
+      "pairs": 100000,
+      "risk_before_selection": 950,
+      "context": {
+        "name": "ahead",
+        "own": 3500,
+        "opponent": 1000
+      },
+      "fixed_roll": [
+        6,
+        6,
+        6,
+        5,
+        2,
+        3
+      ],
+      "saved_multiple_scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "left": {
+        "selected": [
+          6,
+          6,
+          6,
+          5
+        ],
+        "action": "bank",
+        "score_gain": 650,
+        "next_dice": 2,
+        "match_point_rate": 0.95855
+      },
+      "right": {
+        "selected": [
+          6,
+          6,
+          6
+        ],
+        "action": "roll",
+        "score_gain": 600,
+        "next_dice": 3,
+        "match_point_rate": 0.945125
+      },
+      "difference": {
+        "mean": -0.013425,
+        "standard_error": 0.0008879079780899457,
+        "ci95": [
+          -0.015165267658642073,
+          -0.011684732341357926
+        ]
+      },
+      "score_margin_difference": {
+        "mean": 226.922,
+        "standard_error": 5.349748616268111,
+        "ci95": [
+          216.4366853857715,
+          237.40731461422848
+        ]
+      },
+      "three_standard_error_interval": [
+        -0.016088723934269838,
+        -0.010761276065730163
+      ],
+      "three_standard_error_sign": "left"
+    },
+    {
+      "run_id": "confirmation-checkpoint-05",
+      "checkpoint_id": "face-6-count-3-single-5-risk-950-behind-bank-v-roll",
+      "seed": 3300000004,
+      "result_sha256": "6c815a36a42ef205973cb660bd5bedc055c048541a8fe92e342850b38e4e375b",
+      "pairs": 100000,
+      "risk_before_selection": 950,
+      "context": {
+        "name": "behind",
+        "own": 1000,
+        "opponent": 3500
+      },
+      "fixed_roll": [
+        6,
+        6,
+        6,
+        5,
+        2,
+        3
+      ],
+      "saved_multiple_scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "left": {
+        "selected": [
+          6,
+          6,
+          6,
+          5
+        ],
+        "action": "bank",
+        "score_gain": 650,
+        "next_dice": 2,
+        "match_point_rate": 0.312855
+      },
+      "right": {
+        "selected": [
+          6,
+          6,
+          6
+        ],
+        "action": "roll",
+        "score_gain": 600,
+        "next_dice": 3,
+        "match_point_rate": 0.35914
+      },
+      "difference": {
+        "mean": 0.046285,
+        "standard_error": 0.002047069586674798,
+        "ci95": [
+          0.0422728173362701,
+          0.0502971826637299
+        ]
+      },
+      "score_margin_difference": {
+        "mean": 127.5285,
+        "standard_error": 8.267294874898498,
+        "ci95": [
+          111.32489979562637,
+          143.73210020437364
+        ]
+      },
+      "three_standard_error_interval": [
+        0.04014379123997561,
+        0.05242620876002439
+      ],
+      "three_standard_error_sign": "right"
+    },
+    {
+      "run_id": "confirmation-checkpoint-06",
+      "checkpoint_id": "face-1-count-3-single-5-risk-950-level-bank-v-roll",
+      "seed": 3300000005,
+      "result_sha256": "ce6306fbe3a16590711eff7ac3951f850be87593b2852602616ba6f76a9e1421",
+      "pairs": 100000,
+      "risk_before_selection": 950,
+      "context": {
+        "name": "level",
+        "own": 1000,
+        "opponent": 1000
+      },
+      "fixed_roll": [
+        1,
+        1,
+        1,
+        5,
+        2,
+        3
+      ],
+      "saved_multiple_scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "left": {
+        "selected": [
+          1,
+          1,
+          1,
+          5
+        ],
+        "action": "bank",
+        "score_gain": 1050,
+        "next_dice": 2,
+        "match_point_rate": 0.72325
+      },
+      "right": {
+        "selected": [
+          1,
+          1,
+          1
+        ],
+        "action": "roll",
+        "score_gain": 1000,
+        "next_dice": 3,
+        "match_point_rate": 0.709115
+      },
+      "difference": {
+        "mean": -0.014135,
+        "standard_error": 0.0019462823273870057,
+        "ci95": [
+          -0.017949643265425325,
+          -0.010320356734574675
+        ]
+      },
+      "score_margin_difference": {
+        "mean": -13.2855,
+        "standard_error": 11.113489362093055,
+        "ci95": [
+          -35.06753889227141,
+          8.496538892271408
+        ]
+      },
+      "three_standard_error_interval": [
+        -0.019973846982161016,
+        -0.008296153017838983
+      ],
+      "three_standard_error_sign": "left"
+    },
+    {
+      "run_id": "confirmation-checkpoint-07",
+      "checkpoint_id": "face-2-count-3-single-5-risk-950-level-roll-v-roll",
+      "seed": 3300000006,
+      "result_sha256": "c6ee28f9cc149133903c3435d2aeb7f2f2c82c1597ffa11d3f38d06fe2a252d5",
+      "pairs": 100000,
+      "risk_before_selection": 950,
+      "context": {
+        "name": "level",
+        "own": 1000,
+        "opponent": 1000
+      },
+      "fixed_roll": [
+        2,
+        2,
+        2,
+        5,
+        3,
+        4
+      ],
+      "saved_multiple_scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "left": {
+        "selected": [
+          2,
+          2,
+          2,
+          5
+        ],
+        "action": "roll",
+        "score_gain": 250,
+        "next_dice": 2,
+        "match_point_rate": 0.60469
+      },
+      "right": {
+        "selected": [
+          2,
+          2,
+          2
+        ],
+        "action": "roll",
+        "score_gain": 200,
+        "next_dice": 3,
+        "match_point_rate": 0.62298
+      },
+      "difference": {
+        "mean": 0.01829,
+        "standard_error": 0.0020721118926054537,
+        "ci95": [
+          0.014228735318556184,
+          0.022351264681443817
+        ]
+      },
+      "score_margin_difference": {
+        "mean": 147.1465,
+        "standard_error": 10.970744386672285,
+        "ci95": [
+          125.64423611852736,
+          168.64876388147263
+        ]
+      },
+      "three_standard_error_interval": [
+        0.012073664322183639,
+        0.024506335677816363
+      ],
+      "three_standard_error_sign": "right"
+    },
+    {
+      "run_id": "confirmation-checkpoint-08",
+      "checkpoint_id": "face-5-count-3-single-1-risk-2800-level-bank-v-roll",
+      "seed": 3300000007,
+      "result_sha256": "840606f8ce8a5c12fd3dfe685d61a71b2fc3f58ffae8ff0453479a222c319176",
+      "pairs": 100000,
+      "risk_before_selection": 2800,
+      "context": {
+        "name": "level",
+        "own": 1000,
+        "opponent": 1000
+      },
+      "fixed_roll": [
+        5,
+        5,
+        5,
+        1,
+        2,
+        3
+      ],
+      "saved_multiple_scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "left": {
+        "selected": [
+          5,
+          5,
+          5,
+          1
+        ],
+        "action": "bank",
+        "score_gain": 600,
+        "next_dice": 2,
+        "match_point_rate": 0.883385
+      },
+      "right": {
+        "selected": [
+          5,
+          5,
+          5
+        ],
+        "action": "roll",
+        "score_gain": 500,
+        "next_dice": 3,
+        "match_point_rate": 0.790585
+      },
+      "difference": {
+        "mean": -0.0928,
+        "standard_error": 0.0015764378996854002,
+        "ci95": [
+          -0.09588976150724735,
+          -0.08971023849275264
+        ]
+      },
+      "score_margin_difference": {
+        "mean": -643.196,
+        "standard_error": 9.92876333483952,
+        "ci95": [
+          -662.6560185473073,
+          -623.7359814526927
+        ]
+      },
+      "three_standard_error_interval": [
+        -0.0975293136990562,
+        -0.08807068630094379
+      ],
+      "three_standard_error_sign": "left"
+    },
+    {
+      "run_id": "confirmation-checkpoint-09",
+      "checkpoint_id": "opening-boundary-face-6-single-5-bank-v-roll",
+      "seed": 3300000008,
+      "result_sha256": "41fc0e67adb3fca550e7f821f6217ee4236c4ec0a5b826da41fbaaac58383774",
+      "pairs": 100000,
+      "risk_before_selection": 350,
+      "context": {
+        "name": "unopened",
+        "own": 0,
+        "opponent": 0
+      },
+      "fixed_roll": [
+        6,
+        6,
+        6,
+        5,
+        2,
+        3
+      ],
+      "saved_multiple_scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "left": {
+        "selected": [
+          6,
+          6,
+          6,
+          5
+        ],
+        "action": "bank",
+        "score_gain": 650,
+        "next_dice": 2,
+        "match_point_rate": 0.58611
+      },
+      "right": {
+        "selected": [
+          6,
+          6,
+          6
+        ],
+        "action": "roll",
+        "score_gain": 600,
+        "next_dice": 3,
+        "match_point_rate": 0.62092
+      },
+      "difference": {
+        "mean": 0.03481,
+        "standard_error": 0.0021198531969869442,
+        "ci95": [
+          0.030655164081393498,
+          0.03896483591860651
+        ]
+      },
+      "score_margin_difference": {
+        "mean": 311.536,
+        "standard_error": 13.423483493718425,
+        "ci95": [
+          285.226455805244,
+          337.84554419475603
+        ]
+      },
+      "three_standard_error_interval": [
+        0.028450440409039168,
+        0.04116955959096083
+      ],
+      "three_standard_error_sign": "right"
+    },
+    {
+      "run_id": "confirmation-checkpoint-10",
+      "checkpoint_id": "extension-face-6-held-3-risk-600-level-roll-v-roll",
+      "seed": 3300000009,
+      "result_sha256": "3b277654b0df0965d6d1f3270017b249f264c70463e1c645c01749dbf6238bfe",
+      "pairs": 100000,
+      "risk_before_selection": 600,
+      "context": {
+        "name": "level",
+        "own": 1000,
+        "opponent": 1000
+      },
+      "fixed_roll": [
+        6,
+        1,
+        5
+      ],
+      "saved_multiple_scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        600
+      ],
+      "left": {
+        "selected": [
+          6,
+          1,
+          5
+        ],
+        "action": "roll",
+        "score_gain": 750,
+        "next_dice": 6,
+        "match_point_rate": 0.688645
+      },
+      "right": {
+        "selected": [
+          6
+        ],
+        "action": "roll",
+        "score_gain": 600,
+        "next_dice": 2,
+        "match_point_rate": 0.6478
+      },
+      "difference": {
+        "mean": -0.040845,
+        "standard_error": 0.0020622643838979255,
+        "ci95": [
+          -0.04488696391903962,
+          -0.03680303608096038
+        ]
+      },
+      "score_margin_difference": {
+        "mean": -284.168,
+        "standard_error": 11.479071071671553,
+        "ci95": [
+          -306.66656587645184,
+          -261.66943412354817
+        ]
+      },
+      "three_standard_error_interval": [
+        -0.04703179315169378,
+        -0.03465820684830622
+      ],
+      "three_standard_error_sign": "left"
+    },
+    {
+      "run_id": "confirmation-checkpoint-11",
+      "checkpoint_id": "face-6-count-5-single-5-risk-0-level-roll-v-roll",
+      "seed": 3300000010,
+      "result_sha256": "8cf7629d4e4a914900186a464fb18b7f60377c9ff0005af53849dfa1cc7d2380",
+      "pairs": 100000,
+      "risk_before_selection": 0,
+      "context": {
+        "name": "level",
+        "own": 1000,
+        "opponent": 1000
+      },
+      "fixed_roll": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        5
+      ],
+      "saved_multiple_scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "left": {
+        "selected": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          5
+        ],
+        "action": "roll",
+        "score_gain": 2450,
+        "next_dice": 6,
+        "match_point_rate": 0.81588
+      },
+      "right": {
+        "selected": [
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "action": "roll",
+        "score_gain": 2400,
+        "next_dice": 1,
+        "match_point_rate": 0.666445
+      },
+      "difference": {
+        "mean": -0.149435,
+        "standard_error": 0.0018762068140986197,
+        "ci95": [
+          -0.15311229778318194,
+          -0.14575770221681808
+        ]
+      },
+      "score_margin_difference": {
+        "mean": -1045.9045,
+        "standard_error": 11.433240778919362,
+        "ci95": [
+          -1068.3132401532566,
+          -1023.4957598467435
+        ]
+      },
+      "three_standard_error_interval": [
+        -0.15506362044229588,
+        -0.14380637955770414
+      ],
+      "three_standard_error_sign": "left"
+    },
+    {
+      "run_id": "confirmation-checkpoint-12",
+      "checkpoint_id": "finish-face-6-single-5-ties-false-bank-v-roll",
+      "seed": 3300000011,
+      "result_sha256": "0b6394bc92310bf4329d4113f935da79bd3573ba021926c10a77476f8d88be75",
+      "pairs": 100000,
+      "risk_before_selection": 0,
+      "context": {
+        "name": "strict-finish-ties-false",
+        "own": 4900,
+        "opponent": 5500,
+        "chase": true,
+        "ties": false
+      },
+      "fixed_roll": [
+        6,
+        6,
+        6,
+        5,
+        2,
+        3
+      ],
+      "saved_multiple_scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "left": {
+        "selected": [
+          6,
+          6,
+          6,
+          5
+        ],
+        "action": "bank",
+        "score_gain": 650,
+        "next_dice": 2,
+        "match_point_rate": 1
+      },
+      "right": {
+        "selected": [
+          6,
+          6,
+          6
+        ],
+        "action": "roll",
+        "score_gain": 600,
+        "next_dice": 3,
+        "match_point_rate": 0.88877
+      },
+      "difference": {
+        "mean": -0.11123,
+        "standard_error": 0.0009942780078466833,
+        "ci95": [
+          -0.11317874908599973,
+          -0.10928125091400026
+        ]
+      },
+      "score_margin_difference": {
+        "mean": 320.726,
+        "standard_error": 1.9554243953898247,
+        "ci95": [
+          316.89343861054493,
+          324.55856138945506
+        ]
+      },
+      "three_standard_error_interval": [
+        -0.11421283402354004,
+        -0.10824716597645995
+      ],
+      "three_standard_error_sign": "left"
+    }
+  ]
+}

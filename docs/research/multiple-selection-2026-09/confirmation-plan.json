@@ -1,0 +1,88 @@
+{
+  "kind": "predeclared-checkpoint-confirmation-plan",
+  "basis": "Selected from the independently audited exploratory panel before observing fresh confirmation outcomes. Includes positive, negative, and uncertain comparisons.",
+  "exploration_sha256": "56fc35635815182dab2adab980a3250b1d1dd59182a470537e3f1ef4d498a7cb",
+  "simulator_revision": "16abc626802fba0650ac241ee033af72493d51dc",
+  "executable_sha256": "dc5026fd69e32750aa58ea89e97626d14f0e6395e0992397a11f7736bd0fae6d",
+  "pairs_per_comparison": 100000,
+  "seed_base": 3300000000,
+  "total_comparisons": 12,
+  "total_new_games": 2400000,
+  "risk_definition": "Points already at risk BEFORE collecting either selection from the fixed roll.",
+  "difference_definition": "Right branch match points minus left branch match points; the right branch retains the specified multiple or subset and rolls.",
+  "inference": "Report the usual paired normal 95% interval, and separately use a predeclared conservative three-standard-error sign screen across these 12 comparisons. This is a normal-approximation multiplicity screen, not an exact simultaneous interval. No retuning or new checkpoint selection based on these outcomes.",
+  "comparisons": [
+    {
+      "run_id": "confirmation-checkpoint-01",
+      "seed": 3300000000,
+      "checkpoint_id": "face-6-count-3-single-5-risk-0-level-roll-v-roll",
+      "reason": "Original triple-six-plus-five selection question while already open and level, comparing both rolling choices."
+    },
+    {
+      "run_id": "confirmation-checkpoint-02",
+      "seed": 3300000001,
+      "checkpoint_id": "face-6-count-3-single-5-risk-950-level-bank-v-roll",
+      "reason": "Middle-risk checkpoint where incumbent banking may miss useful multiple continuation."
+    },
+    {
+      "run_id": "confirmation-checkpoint-03",
+      "seed": 3300000002,
+      "checkpoint_id": "face-6-count-3-single-5-risk-2800-level-bank-v-roll",
+      "reason": "Higher-risk near-crossover case with an opposite exploratory direction."
+    },
+    {
+      "run_id": "confirmation-checkpoint-04",
+      "seed": 3300000003,
+      "checkpoint_id": "face-6-count-3-single-5-risk-950-ahead-bank-v-roll",
+      "reason": "Same roll and pre-selection risk as comparison 02, but ahead in banked score."
+    },
+    {
+      "run_id": "confirmation-checkpoint-05",
+      "seed": 3300000004,
+      "checkpoint_id": "face-6-count-3-single-5-risk-950-behind-bank-v-roll",
+      "reason": "Same roll and risk as comparisons 02 and 04, but behind in banked score."
+    },
+    {
+      "run_id": "confirmation-checkpoint-06",
+      "seed": 3300000005,
+      "checkpoint_id": "face-1-count-3-single-5-risk-950-level-bank-v-roll",
+      "reason": "Triple ones contrast with triple sixes; exploratory difference was uncertain."
+    },
+    {
+      "run_id": "confirmation-checkpoint-07",
+      "seed": 3300000006,
+      "checkpoint_id": "face-2-count-3-single-5-risk-950-level-roll-v-roll",
+      "reason": "Lower-value triple twos and an uncertain comparison between both rolling selections."
+    },
+    {
+      "run_id": "confirmation-checkpoint-08",
+      "seed": 3300000007,
+      "checkpoint_id": "face-5-count-3-single-1-risk-2800-level-bank-v-roll",
+      "reason": "A different scoring singleton and high-risk banking counterexample."
+    },
+    {
+      "run_id": "confirmation-checkpoint-09",
+      "seed": 3300000008,
+      "checkpoint_id": "opening-boundary-face-6-single-5-bank-v-roll",
+      "reason": "The extra five changes opening-bank eligibility at pre-selection risk 350."
+    },
+    {
+      "run_id": "confirmation-checkpoint-10",
+      "seed": 3300000009,
+      "checkpoint_id": "extension-face-6-held-3-risk-600-level-roll-v-roll",
+      "reason": "Physically reachable saved triple, current roll six/one/five, stronger chain versus hot dice."
+    },
+    {
+      "run_id": "confirmation-checkpoint-11",
+      "seed": 3300000010,
+      "checkpoint_id": "face-6-count-5-single-5-risk-0-level-roll-v-roll",
+      "reason": "Five-of-a-kind tests a different multiple size and the value of collecting the last die for hot dice."
+    },
+    {
+      "run_id": "confirmation-checkpoint-12",
+      "seed": 3300000011,
+      "checkpoint_id": "finish-face-6-single-5-ties-false-bank-v-roll",
+      "reason": "Active Final Chase with ties off: collecting the extra five secures an outright win."
+    }
+  ]
+}

@@ -112,3 +112,27 @@ These are explicitly experimental winning-policy heuristics, not exact
 match-winning values. The first grids use 50,000 mirrored pairs per candidate
 against current Hard with master seed 3,200,000,000, shared for paired candidate
 exploration. Further refinements require a documented tuning extension.
+
+## Tuning extension: isolate joint planning to multiple-bearing rolls
+
+The first complete joint grid lost against released Hard: all candidates
+earned between 41.448% and 46.129% match points in their 100,000-game tuning
+runs. Greedy chain-aware candidates earned up to 50.7365% in the same-sized
+comparisons. Favorable individual checkpoints do not justify replacing the
+ordinary selection strategy across every roll.
+
+Before the next grid, define a separate `jointChainsOnly` switch. With joint
+planning enabled, this switch uses joint planning only if the current roll has
+a legal multiple/extension option or the current dice set already contains a
+saved multiple. Keep the selected planner for the whole selection sequence,
+including a hot-dice reset. Otherwise retain the existing greedy selection
+flow, with only the other explicitly enabled research features applied. This
+isolates the user's multiple-preservation question without changing what the
+existing full-joint experiment means.
+
+Test the same raise/blend weights {0, 0.25, 0.5, 0.75, 1, 1.25}, with 50,000
+mirrored pairs and tuning seed 3,200,000,000. Compare the best resulting
+candidate with greedy blend weights 0.5, 0.75, and 1, and with the safe-finish
+control. Any additional head-to-head selection uses new tuning seed
+3,200,000,001, not a reserved confirmation or holdout seed. Choose the final
+candidate and record its complete feature settings before the fresh holdouts.

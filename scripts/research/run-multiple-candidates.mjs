@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const [source, executable, phase = 'greedy', pairs = '50000', seed = '3200000000'] = process.argv.slice(2)
-assert(source && executable, 'Provide frozen simulator source and executable, optional greedy/joint phase, pairs and tuning seed.')
-assert(['greedy', 'joint'].includes(phase))
+assert(source && executable, 'Provide frozen simulator source and executable, optional greedy/joint/chains phase, pairs and tuning seed.')
+assert(['greedy', 'joint', 'chains'].includes(phase))
 assert(/^\d+$/.test(pairs) && Number(pairs) > 0)
 assert(/^\d+$/.test(seed))
 
@@ -41,8 +41,10 @@ for (const candidate of candidates) {
     '--chain-mode-a',
     candidate.mode,
   ]
-  if (phase === 'joint')
+  if (phase !== 'greedy')
     flags.push('--joint-selection-a', 'true')
+  if (phase === 'chains')
+    flags.push('--joint-chains-only-a', 'true')
   execFileSync(process.execPath, [
     'scripts/research/run-experiment.mjs',
     '--study',
