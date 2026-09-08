@@ -7,8 +7,8 @@ import test, { after, beforeEach } from 'node:test'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { compileScript, parse } from '@vue/compiler-sfc'
 import { build } from 'esbuild'
-import { createRenderer, nextTick } from 'vue'
-import { defaultSettings, restoreGame } from '../src/game/engine.ts'
+import { createRenderer, nextTick, reactive } from 'vue'
+import { acknowledgeBust, bankScore, createGame, defaultSettings, restoreGame, rollDice, selectRecommended } from '../src/game/engine.ts'
 import { ROLL_PREFERENCE_KEY } from '../src/game/roll-presentation.ts'
 import { defaultSetupPreferences, readSetupPreferences, SETUP_PREFERENCE_KEY } from '../src/game/setup-preferences.ts'
 
@@ -22,7 +22,7 @@ async function loadModule(relativePath: string, component = false) {
   const path = resolve(sourceRoot, relativePath)
   const original = await readFile(path, 'utf8')
   const contents = component ? compileScript(parse(original).descriptor, { id: 'setup-test' }).content : original
-  const outfile = join(scratch, component ? 'setup.mjs' : 'game.mjs')
+  const outfile = join(scratch, `${relativePath.replace(/[^a-z0-9]/gi, '_')}.mjs`)
   await build({
     stdin: { contents, sourcefile: path, resolveDir: sourceRoot, loader: 'ts' },
     outfile,
@@ -50,6 +50,7 @@ async function loadModule(relativePath: string, component = false) {
 
 const gameModule = await loadModule('composables/useZilchGame.ts')
 const setupModule = await loadModule('components/GameSetup.vue', true)
+const tableModule = await loadModule('components/GameTable.vue', true)
 beforeEach(() => gameModule.resetTestState())
 const renderer = createRenderer<object, object>({
   patchProp() {},
@@ -105,6 +106,57 @@ function browserFixture() {
 }
 
 const players = [{ name: 'Alice', kind: 'human' }, { name: 'Bob', kind: 'human' }]
+
+test('finished-game review dismisses only presentation and resets for another table', async () => {
+  const finished = bankScore(selectRecommended(rollDice(createGame(players, {
+    ...defaultSettings,
+    winningScore: 1000,
+    finalChase: false,
+  }), Math.random, [1, 1, 1, 2, 3, 4])))
+  const before = JSON.stringify(finished)
+  const props = reactive({ state: finished, rollingResult: null })
+  const emitted: string[] = []
+  const setup = () => tableModule.default.setup(props, { expose() {}, emit: (name: string) => emitted.push(name) })
+  const mounted = mount(setup)
+  const table = mounted.value
+  assert.equal(table.showingFinalResults.value, false, 'a resumed finished game still opens the winner popup')
+  table.showFinalResults()
+  await nextTick()
+  assert.equal(table.showingFinalResults.value, true)
+  assert.equal(JSON.stringify(props.state), before, 'review cannot change scores, winners, events, or saved state')
+  assert.deepEqual(emitted, [], 'review cannot emit newGame or pass')
+  props.state = createGame(players)
+  await nextTick()
+  assert.equal(table.showingFinalResults.value, false)
+  table.showFinalResults()
+  assert.equal(table.showingFinalResults.value, false, 'review is unavailable during a live game')
+  props.state = finished
+  await nextTick()
+  assert.equal(table.showingFinalResults.value, false, 'the next finished game gets its own popup')
+  mounted.unmount()
+})
+
+test('a final chase bust and tied winners can be reviewed without advancing the game', async () => {
+  const state = createGame(players)
+  state.players[0]!.score = 5000
+  state.players[1]!.score = 5000
+  state.currentPlayerIndex = 1
+  state.phase = 'bust'
+  state.endgame = { triggerPlayerId: state.players[0]!.id, remainingTurns: 1 }
+  const props = reactive({ state, rollingResult: null })
+  const mounted = mount(() => tableModule.default.setup(props, { expose() {}, emit() {} }))
+  assert.equal(mounted.value.nextTurnAction.value, 'Continue')
+  props.state = acknowledgeBust(state)
+  await nextTick()
+  assert.equal(props.state.phase, 'finished')
+  assert.equal(mounted.value.winnerTitle.value, 'Alice and Bob tie')
+  const before = JSON.stringify(props.state)
+  mounted.value.showFinalResults()
+  await nextTick()
+  assert.equal(mounted.value.showingFinalResults.value, true)
+  assert.equal(JSON.stringify(props.state), before)
+  mounted.unmount()
+})
 
 test('animation on and off consume the same rolls and produce identical game state', (context) => {
   context.mock.timers.enable({ apis: ['setTimeout'] })

@@ -13,6 +13,7 @@
 - Optional 3D rolling animation, off by default and remembered on this device
 - Remembered difficulty, players, custom scores, and house rules for the next table
 - Device-local save and resume with no account or server-side game data
+- Winner popup with a separate final-results view for reviewing scores and recent game activity before starting over
 - A strategy Tips page with simulation-tested banking guidance, variant findings, and clearly labeled endgame heuristics
 - Keyboard, touch, reduced-motion, and screen-reader support
 

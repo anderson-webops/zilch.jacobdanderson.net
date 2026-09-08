@@ -29,6 +29,14 @@ const emit = defineEmits<{
   animationChange: [enabled: boolean]
 }>()
 
+const showingFinalResults = ref(false)
+watch(() => props.state.phase, () => showingFinalResults.value = false)
+
+function showFinalResults() {
+  if (props.state.phase === 'finished')
+    showingFinalResults.value = true
+}
+
 const currentPlayer = computed(() => props.state.players[props.state.currentPlayerIndex]!)
 const nextPlayer = computed(() => props.state.nextPlayerIndex === null ? null : props.state.players[props.state.nextPlayerIndex])
 const isSecondPerson = (name: string) => name.trim().toLocaleLowerCase() === 'you'
@@ -75,7 +83,7 @@ const nextTurnTitle = computed(() => {
 })
 const nextTurnAction = computed(() => {
   if (bustEndsGame.value)
-    return 'Show final result'
+    return 'Continue'
   if (!nextPlayer.value)
     return 'Continue'
   if (nextPlayer.value.kind === 'computer')
@@ -132,6 +140,8 @@ async function focusCurrentPhase() {
     target = root.querySelector<HTMLButtonElement>('.roll-button:not(:disabled)')
   else if (props.state.phase === 'bust')
     target = root.querySelector<HTMLButtonElement>('.bust-action')
+  else if (props.state.phase === 'finished' && showingFinalResults.value)
+    target = root.querySelector<HTMLElement>('.scoreboard ol')
   else if (props.state.phase === 'pass' || props.state.phase === 'finished')
     target = root.querySelector<HTMLElement>('.phase-dialog')
   else if (props.state.phase === 'steal' && currentPlayer.value.kind === 'human')
@@ -141,7 +151,7 @@ async function focusCurrentPhase() {
 }
 
 watch(
-  () => `${props.state.phase}:${props.state.currentPlayerIndex}:${props.state.rollNumber}:${Boolean(props.rollingResult)}`,
+  () => `${props.state.phase}:${props.state.currentPlayerIndex}:${props.state.rollNumber}:${Boolean(props.rollingResult)}:${showingFinalResults.value}`,
   focusCurrentPhase,
   { flush: 'post' },
 )
@@ -150,17 +160,25 @@ onMounted(focusCurrentPhase)
 </script>
 
 <template>
-  <div ref="playLayout" class="play-layout">
-    <aside class="scoreboard" aria-label="Scoreboard">
+  <div ref="playLayout" class="play-layout" :class="{ 'results-view': showingFinalResults }" :role="showingFinalResults ? 'main' : undefined">
+    <aside class="scoreboard" :aria-label="state.phase === 'finished' ? 'Final results' : 'Scoreboard'">
       <div class="scoreboard-heading">
         <div>
-          <span class="eyebrow">Table score</span>
-          <h2>First to {{ state.settings.winningScore.toLocaleString() }}</h2>
+          <span class="eyebrow">{{ state.phase === 'finished' ? 'Final results' : 'Table score' }}</span>
+          <h1 v-if="showingFinalResults">
+            {{ winnerTitle }}
+          </h1>
+          <h2 v-else-if="state.phase === 'finished'">
+            {{ winnerTitle }}
+          </h2>
+          <h2 v-else>
+            First to {{ state.settings.winningScore.toLocaleString() }}
+          </h2>
         </div>
-        <span v-if="state.endgame" class="chase-badge">Final chase</span>
+        <span v-if="state.endgame && state.phase !== 'finished'" class="chase-badge">Final chase</span>
       </div>
 
-      <ol tabindex="0" aria-label="Player scores">
+      <ol tabindex="0" :aria-label="state.phase === 'finished' ? 'Final player scores' : 'Player scores'">
         <li
           v-for="(tablePlayer, index) in state.players"
           :key="tablePlayer.id"
@@ -169,10 +187,13 @@ onMounted(focusCurrentPhase)
           <span class="score-token" :class="`token-${index % 6}`">{{ initials(tablePlayer.name) }}</span>
           <span class="score-copy">
             <strong>{{ tablePlayer.name }}</strong>
-            <small>
+            <small v-if="state.phase === 'finished' && state.winnerIds.includes(tablePlayer.id)">
+              {{ state.winnerIds.length > 1 ? 'Tied winner' : 'Winner' }}
+            </small>
+            <small v-else>
               {{ tablePlayer.kind === 'computer'
                 ? `${titleCase(tablePlayer.difficulty ?? 'medium')} computer`
-                : index === state.currentPlayerIndex ? 'Current turn' : 'Player' }}
+                : index === state.currentPlayerIndex && state.phase !== 'finished' ? 'Current turn' : 'Player' }}
             </small>
           </span>
           <span class="score-total">{{ tablePlayer.score.toLocaleString() }}</span>
@@ -188,13 +209,14 @@ onMounted(focusCurrentPhase)
         <span v-if="state.settings.stealing">Stealing on</span>
       </div>
       <RollingAnimationToggle
+        v-if="state.phase !== 'finished'"
         :enabled="rollingAnimationEnabled"
         :reduced-motion="reducedMotion"
         @change="emit('animationChange', $event)"
       />
     </aside>
 
-    <main class="felt-table" aria-labelledby="turn-title">
+    <main v-if="!showingFinalResults" class="felt-table" aria-labelledby="turn-title">
       <div class="table-topline">
         <div>
           <p class="turn-kicker">
@@ -402,9 +424,14 @@ onMounted(focusCurrentPhase)
           <p id="winner-description">
             Final high score: {{ highScore.toLocaleString() }} points.
           </p>
-          <button type="button" @click="emit('newGame')">
-            Start a new table
-          </button>
+          <div class="winner-actions">
+            <button type="button" @click="emit('newGame')">
+              Start a new table
+            </button>
+            <button class="show-results-button" type="button" @click="showFinalResults">
+              Show final results
+            </button>
+          </div>
         </div>
       </div>
     </main>
@@ -426,7 +453,7 @@ onMounted(focusCurrentPhase)
         </li>
       </ol>
       <button class="new-game-link" type="button" @click="emit('newGame')">
-        Leave this game
+        {{ state.phase === 'finished' ? 'Start a new table' : 'Leave this game' }}
       </button>
     </aside>
   </div>
@@ -441,6 +468,25 @@ onMounted(focusCurrentPhase)
   min-height: calc(100dvh - 132px);
   align-items: stretch;
   margin: 22px auto 0;
+}
+
+.results-view {
+  max-width: 1000px;
+  min-height: auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  align-items: start;
+}
+
+.results-view .turn-log {
+  grid-column: auto;
+}
+
+.results-view .scoreboard ol {
+  display: block;
+}
+
+.results-view .scoreboard li {
+  min-width: 0;
 }
 
 .scoreboard,
@@ -461,6 +507,16 @@ onMounted(focusCurrentPhase)
   gap: 10px;
 }
 
+.scoreboard-heading > div {
+  min-width: 0;
+}
+
+.scoreboard-heading h1,
+.scoreboard-heading h2 {
+  overflow-wrap: anywhere;
+}
+
+.scoreboard-heading h1,
 .scoreboard-heading h2,
 .log-heading h2 {
   margin: 4px 0 0;
@@ -984,6 +1040,23 @@ onMounted(focusCurrentPhase)
   color: var(--coral);
   font-size: 2rem;
   letter-spacing: 0.2em;
+}
+
+.winner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.winner-actions button {
+  flex: 1 1 160px;
+}
+
+.winner-actions .show-results-button {
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
 }
 
 .turn-log {

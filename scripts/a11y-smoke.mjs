@@ -891,6 +891,31 @@ async function verifyMobileGameFlow(page) {
     issues.push(`finished result: expected "You win", found "${winnerTitle || 'nothing'}"`)
   issues.push(...await findAxeIssues(page, 'finished result'))
 
+  const savedResult = await page.evaluate(() => localStorage.getItem('zilch-browser-game-v1'))
+  const winnerActions = await page.$$eval('.winner-actions button', buttons => buttons.map(button => button.textContent?.trim()))
+  if (JSON.stringify(winnerActions) !== JSON.stringify(['Start a new table', 'Show final results']))
+    issues.push(`finished result: unexpected winner actions ${JSON.stringify(winnerActions)}`)
+  await page.click('.show-results-button')
+  await page.waitForSelector('.results-view')
+  const review = await page.evaluate(() => ({
+    hasPopup: Boolean(document.querySelector('.winner-overlay')),
+    hasPlayArea: Boolean(document.querySelector('.felt-table')),
+    focusedScores: document.activeElement === document.querySelector('.scoreboard ol'),
+    scores: [...document.querySelectorAll('.score-total')].map(element => element.textContent?.trim()),
+    game: localStorage.getItem('zilch-browser-game-v1'),
+    currentTurn: document.querySelector('.scoreboard')?.textContent?.includes('Current turn'),
+  }))
+  if (review.hasPopup || review.hasPlayArea || !review.focusedScores || review.currentTurn)
+    issues.push(`final review: popup dismissal or keyboard focus failed ${JSON.stringify(review)}`)
+  if (review.game !== savedResult || JSON.stringify(review.scores) !== JSON.stringify(['5,000', '4,200']))
+    issues.push('final review: scores or the saved game changed while opening results')
+  issues.push(...await findAxeIssues(page, 'final review'))
+  issues.push(...await findReflowIssues(page, 'final review', ['.results-view', '.scoreboard', '.turn-log']))
+  await page.click('.new-game-link')
+  await page.waitForSelector('.setup-card')
+  if (await page.evaluate(() => localStorage.getItem('zilch-browser-game-v1') !== null))
+    issues.push('final review: Start a new table did not clear the finished game')
+
   return issues
 }
 
