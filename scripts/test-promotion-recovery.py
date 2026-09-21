@@ -43,13 +43,14 @@ if name == 'nginx':
     if '-t' in args and candidate and mode == 'nginx-failure' and once('nginx-failed'):sys.exit(1)
     sys.exit(0)
 if name == 'curl':
-    if candidate and mode in ['bad-health','rollback-failure','first-failure']:sys.exit(22)
+    if candidate and mode in ['bad-health','rollback-failure','first-failure','legacy-probe-failure']:sys.exit(22)
     if candidate and mode == 'ipv6-failure' and '--ipv6' in args:sys.exit(22)
     url=next(a for a in args if a.startswith(('http://','https://')))
     nginx_config=root/'nginx/zilch.jacobdanderson.net'
     modern_nginx=nginx_config.is_file() and 'location = /readyz' in nginx_config.read_text()
     modern_probe=url.endswith(('/healthz','/readyz','/api/healthz','/api/readyz'))
     if modern_probe and (not candidate or ('--resolve' in args and not modern_nginx)):sys.exit(22)
+    if mode=='legacy-probe-failure' and not candidate and url.endswith('/api/health') and '--resolve' in args:sys.exit(22)
     if mode in ['alternate-port','custom-probes'] and '127.0.0.1:3018' in url:sys.exit(22)
     if mode=='wrong-service-readiness' and candidate and ':4006/' in url and url.endswith('/readyz'):sys.exit(22)
     output=pathlib.Path(args[args.index('--output')+1])
@@ -132,6 +133,7 @@ Path('/usr/local/bin').mkdir(parents=True)
 for name in ['curl','systemctl','nginx','sleep']:
     p=Path('/usr/local/bin')/name;p.write_text(STUB);p.chmod(0o755)
 modes=['success','bad-health','ipv6-failure','interrupt','restart-failure','nginx-failure','rollback-failure',
+       'legacy-probe-failure',
        'lock-contention','invalid-current','tampered-artifact','mutable-helper','mutable-parent','mutable-candidate',
        'symlink-module','wrong-digest','first-success','first-failure','mutable-archive','mutable-contract',
        'mutable-previous','previous-is-parent','unsupported-legacy','empty-public-identity',
@@ -173,9 +175,7 @@ for mode in modes:
          'NGINX_SERVER_CONFIG':str(nginx_config),
          'FIXTURE_ROOT':str(root),'FIXTURE_MODE':mode,
          'ZILCH_ISOLATED_TEST_MODE':'1'}
-    command=['bash']
-    if mode=='bad-health':command.append('-x')
-    command.extend([str(control/'deploy/systemd/promote-release.sh'),str(candidate),str(archive),digest,'a'*40])
+    command=['bash',str(control/'deploy/systemd/promote-release.sh'),str(candidate),str(archive),digest,'a'*40]
     sentinel=root/'UNTRUSTED_RUNTIME_EXECUTED'
     if mode.startswith('ambiguous-runtime-'):
         (root/'protected/bin').mkdir(parents=True)
@@ -212,7 +212,7 @@ for mode in modes:
     if mode=='first-failure':assert not (root/'current').exists(),evidence
     elif mode!='invalid-current':assert (root/'current').resolve()==(candidate if success else previous),(mode,evidence)
     records=list(recovery.glob('promotion-????????'))
-    if mode=='rollback-failure':
+    if mode in ['rollback-failure','legacy-probe-failure']:
         assert len(records)==1 and 'protected record retained' in evidence,evidence
         assert stat.S_IMODE(records[0].stat().st_mode)==0o600
     else:

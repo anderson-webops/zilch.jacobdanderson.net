@@ -360,9 +360,11 @@ readiness_matches() {
 edge_probes_match() {
 	local profile="$1"
 	if [[ "$profile" == legacy-v1.4.1 ]]; then
-		edge_probe_is_minimal --ipv4 "$resolve_ipv4" /api/health GET "$headers_ipv4" \
-			&& edge_probe_is_minimal --ipv6 "$resolve_ipv6" /api/health HEAD "$headers_ipv6"
-		return
+		if edge_probe_is_minimal --ipv4 "$resolve_ipv4" /api/health GET "$headers_ipv4" \
+				&& edge_probe_is_minimal --ipv6 "$resolve_ipv6" /api/health HEAD "$headers_ipv6"; then
+			return 0
+		fi
+		return 1
 	fi
 	edge_probe_is_minimal --ipv4 "$resolve_ipv4" /healthz GET "$headers_ipv4" \
 		&& edge_probe_is_minimal --ipv6 "$resolve_ipv6" /healthz HEAD "$headers_ipv6" \
