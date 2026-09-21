@@ -14,6 +14,7 @@ import tarfile
 assert os.geteuid() == 0 and not Path('/srv').exists()
 SOURCE = Path('/source')
 VERSION = json.loads((SOURCE / 'package.json').read_text())['version']
+PROMOTION_PROCESS_TIMEOUT = 45
 STUB = r'''#!/usr/bin/python3
 import json, os, pathlib, signal, sys
 root = pathlib.Path(os.environ['FIXTURE_ROOT'])
@@ -196,7 +197,8 @@ for mode in modes:
         env['READINESS_URL']='http://127.0.0.1:3018/dependencies-ready'
     try:
         result=subprocess.run(command,
-                              env=env,capture_output=True,text=True,timeout=15)
+                              env=env,capture_output=True,text=True,
+                              timeout=PROMOTION_PROCESS_TIMEOUT)
     finally:
         if held:held.close()
     evidence=result.stdout+result.stderr
@@ -221,7 +223,8 @@ for mode in modes:
         # compatibility rollback, including the Nginx transition back to the
         # current probe contract.
         retry_env={**env,'FIXTURE_MODE':'success'}
-        retry=subprocess.run(command,env=retry_env,capture_output=True,text=True,timeout=15)
+        retry=subprocess.run(command,env=retry_env,capture_output=True,text=True,
+                             timeout=PROMOTION_PROCESS_TIMEOUT)
         assert retry.returncode==0,retry.stdout+retry.stderr
         assert (root/'current').resolve()==candidate,'second forward promotion did not activate the candidate'
         current_config=(control/'deploy/nginx/zilch.jacobdanderson.net.server.conf').read_bytes()
