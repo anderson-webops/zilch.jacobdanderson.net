@@ -148,6 +148,7 @@ assert(/normalize_permissions/.test(artifactVerifier) && /PRIVATE_MARKER/.test(a
 assert(/manifest_path\.chmod\(required_file_mode\(MANIFEST\)\)/.test(artifactVerifier), 'The newly written manifest must be normalized before packaging')
 assert(/--allow-format-1-rollback/.test(artifactVerifier) && /only valid for direct verify without archive inputs/.test(artifactVerifier), 'Format 1 must be scoped to explicit retained-tree rollback verification')
 assert(/test-unpacked-artifact\.sh/.test(runtimePackager) && /missing-module/.test(runtimePackager), 'Packager must test the exact unpacked artifact and missing-module rejection')
+assert(/install -d -m 0755/.test(runtimePackager) && /cp -a/.test(runtimePackager), 'Post-copier acceptance must preserve the reviewed artifact modes under restrictive umasks')
 assert(/umask 027/.test(runtimePackager) && /umask-027-success/.test(promotionRecovery) && /umask-077-success/.test(promotionRecovery), 'Packing and recovery fixtures must cover restrictive umasks')
 assert(/ubuntu-24\.04-arm/.test(directWorkflow) && /actions\/upload-artifact@/.test(directWorkflow), 'Release workflow must retain the accepted Linux ARM64 artifact')
 assert(/test-bootstrap-in-vm\.py --disposable-vm/.test(directWorkflow) && /needs: \[prepare, installer\]/.test(directWorkflow), 'Artifact publication must wait for disposable-host installer acceptance')

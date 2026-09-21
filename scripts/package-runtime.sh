@@ -42,7 +42,10 @@ cp "$stage/runtime-manifest.json" "$output/runtime-manifest.json"
 mkdir "$output/unpacked"
 python3 -B scripts/runtime-artifact.py unpack "$output/unpacked" --archive "$archive" --sha256 "$sha" --commit "$commit"
 bash scripts/test-unpacked-artifact.sh "$output/unpacked"
-cp -R "$output/unpacked" "$output/copied"
+# Model the deployment copier without letting the caller's restrictive umask
+# weaken the archive's reviewed service and Nginx readability contract.
+install -d -m 0755 "$output/copied"
+cp -a "$output/unpacked/." "$output/copied/"
 python3 -B scripts/runtime-artifact.py verify "$output/copied" --archive "$archive" --sha256 "$sha" --commit "$commit"
 bash scripts/test-unpacked-artifact.sh "$output/copied"
 rm -- "$output/copied/back-end/dist/boundedRateStore.js"
