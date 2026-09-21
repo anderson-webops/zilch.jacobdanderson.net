@@ -66,6 +66,10 @@ npm run a11y
 
 Game state is stored only in browser local storage. The API exposes no player names, scores, analytics, accounts, sessions, or mutable routes.
 
+- `GET`/`HEAD /healthz` and `/api/healthz` provide minimal liveness; `/api/health` remains compatible.
+- `GET`/`HEAD /readyz` and `/api/readyz` return `200` when ready or `503` when unavailable/stopping. GET returns only `{ "ok": true }` or `{ "ok": false }`; HEAD has no body. Probes set `Cache-Control: no-store` and never create cookies, redirects, sessions or diagnostics.
+- `HEAD` and `OPTIONS` are permitted for existing read-only routes. Other methods return `405`, and unknown routes return JSON `404` responses.
+
 ## Production
 
 Production serves the generated Nuxt files directly from Nginx and proxies `/api` to a dedicated loopback-only Node process on port `3018`. The service runs with Node 24.18.1 and npm 12.0.2 from `/opt/node-24.18.1/bin` without replacing the host-wide runtime. Releases are immutable, version-tagged runtime trees under `/srv/zilch.jacobdanderson.net/releases`, promoted through an atomic `current` symlink with automatic rollback on failed health, identity, header, or dual-stack checks.
@@ -75,6 +79,8 @@ See [`deploy/README.md`](deploy/README.md) for the first-install and promotion p
 ## Repository lineage
 
 `origin` is the dedicated `anderson-webops/zilch.jacobdanderson.net` repository. `template` preserves the hardened Nuxt monorepo template lineage, and `upstream` remains connected to `antfu/vitesse-nuxt` for selective upstream review.
+
+See [`deploy/README.md`](deploy/README.md) for the exact rollout and rollback contract. The direct API never binds a public interface. See [`docs/runtime-artifact-contract.md`](docs/runtime-artifact-contract.md) for the independent Linux ARM64 artifact, hash verification, and isolated runtime acceptance. Existing installed paths and ports remain the operator's contract; adopting template improvements does not authorize replacing live host topology.
 
 ## License
 

@@ -37,6 +37,13 @@
 - Preserve both Docker-free production adapters: direct Nginx/systemd and Netlify. Do not compile and discard the
   backend in either production path.
 - Treat rules-engine and deployment breakage as high impact: both can invalidate a complete game or production release.
+- For direct runtime changes, run the required-path/hash regressions in `npm test`
+  and the exact Linux ARM64 archive workflow in `docs/runtime-artifact-contract.md`.
+  A source build, workspace install or lockfile native entry alone is not artifact
+  acceptance. Verify the copied runtime against the original trusted archive.
+- Preserve the static frontend and minimal independent API. Carry the bounded
+  rate store and repeated-signal drain forward. Adding a dependency or service
+  requires extending the artifact contract and isolated acceptance fixtures.
 
 ## Repository Lineage
 
@@ -88,3 +95,7 @@ Never commit or push dependency/package changes if root `npm ci` fails.
 - Never force-push a shared branch or move an existing published tag unless the user explicitly authorizes that exact history rewrite.
 - If automation or repository policy creates a pull request, review it, wait for required checks, merge it when safe, and remove the merged branch before wrapping up. Do not leave redundant pull requests or branches open.
 - Treat commit, push, tag, and GitHub release publication as source delivery only. Do not claim or perform production deployment unless it was separately authorized and verified.
+## Protected release administration
+
+- Follow `deploy/README.md` for versioned, root-controlled administrative helpers. Never execute build-owned installers, verifiers, units or promotion helpers as root. Preserve protected parent/archive/candidate paths, unprivileged cache creation and installed-host compatibility.
+- Changes to this boundary require `npm run test:promotion` on isolated Linux plus the exact ARM64 artifact workflow. Preserve failure/interrupt rollback, locked promotion and independently validated metadata. Do not substitute a marker file for acceptance.

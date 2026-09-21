@@ -2,6 +2,8 @@ import type { ComputerDifficulty, GameSettings } from './types.ts'
 import { defaultComputerDifficulty, defaultSettings, restoreGame } from './engine.ts'
 
 export const SETUP_PREFERENCE_KEY = 'zilch-setup-preferences-v1'
+const MAX_PREFERENCE_BYTES = 16 * 1024
+const MAX_SAVED_GAME_BYTES = 256 * 1024
 
 export interface SetupPreferences {
   schemaVersion: 1
@@ -78,10 +80,12 @@ export function readSetupPreferences(storage: Pick<Storage, 'getItem'> | null): 
   try {
     const raw = storage?.getItem(SETUP_PREFERENCE_KEY)
     if (raw !== null && raw !== undefined)
-      return restoreSetupPreferences(raw ? JSON.parse(raw) : null)
+      return restoreSetupPreferences(raw && raw.length <= MAX_PREFERENCE_BYTES ? JSON.parse(raw) : null)
     // On upgrade, recover the previous setup from a valid existing saved game.
     const savedGame = storage?.getItem('zilch-browser-game-v1')
-    const game = savedGame ? restoreGame(JSON.parse(savedGame)) : null
+    const game = savedGame && savedGame.length <= MAX_SAVED_GAME_BYTES
+      ? restoreGame(JSON.parse(savedGame))
+      : null
     if (!game)
       return defaultSetupPreferences()
     const defaults = defaultSetupPreferences()

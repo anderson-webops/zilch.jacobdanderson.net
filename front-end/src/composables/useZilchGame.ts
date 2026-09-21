@@ -24,6 +24,7 @@ import {
 import { createRollPresentation, readRollingPreference, writeRollingPreference } from '~/game/roll-presentation'
 
 const STORAGE_KEY = 'zilch-browser-game-v1'
+const MAX_SAVED_GAME_BYTES = 256 * 1024
 
 export function useZilchGame() {
   const state = useState<GameState | null>('zilch-active-game', () => null)
@@ -230,7 +231,9 @@ export function useZilchGame() {
 
     try {
       const raw = storage.getItem(STORAGE_KEY)
-      savedState.value = raw ? restoreGame(JSON.parse(raw)) : null
+      savedState.value = raw && raw.length <= MAX_SAVED_GAME_BYTES
+        ? restoreGame(JSON.parse(raw))
+        : null
       storageAvailable.value = true
       if (!savedState.value && raw) {
         try {

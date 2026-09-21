@@ -46,3 +46,7 @@ Never commit or push dependency/package changes if root `npm ci` fails.
 - Never force-push a shared branch or move an existing published tag unless the user explicitly authorizes that exact history rewrite.
 - If automation or repository policy creates a pull request, review it, wait for required checks, merge it when safe, and remove the merged branch before wrapping up. Do not leave redundant pull requests or branches open.
 - Treat commit, push, tag, and GitHub release publication as source delivery only. Do not claim or perform production deployment unless it was separately authorized and verified.
+## Protected release administration
+
+- Follow `deploy/README.md` for versioned, root-controlled administrative helpers. Never execute build-owned installers, verifiers, units or promotion helpers as root. Preserve protected parent/archive/candidate paths, unprivileged cache creation and installed-host compatibility.
+- Changes to this boundary require `npm run test:promotion` on isolated Linux plus the exact ARM64 artifact workflow. Preserve failure/interrupt rollback, locked promotion and independently validated metadata. Do not substitute a marker file for acceptance.

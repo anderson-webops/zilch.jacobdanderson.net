@@ -14,7 +14,7 @@ export NUXT_TELEMETRY_DISABLED=1
 export PUPPETEER_SKIP_DOWNLOAD=true
 export SKIP_INSTALL_SIMPLE_GIT_HOOKS=1
 
-staging_root="${STAGING_ROOT:-/srv/zilch.jacobdanderson.net/staging}"
+release_root="${BUILD_ROOT:-${STAGING_ROOT:-/srv/zilch.jacobdanderson.net/staging}}"
 
 if [[ $# -ne 1 ]]; then
 		echo "Usage: prepare-release.sh /srv/zilch.jacobdanderson.net/staging/<release>" >&2
@@ -25,14 +25,14 @@ if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
 	exit 1
 fi
 
-staging_root_real="$(cd -- "$staging_root" && pwd -P)"
+release_root_real="$(cd -- "$release_root" && pwd -P)"
 candidate="$(cd -- "$1" && pwd -P)"
 case "$candidate/" in
-	"$staging_root_real/"*) ;;
-	*) echo "Candidate must resolve beneath $staging_root_real: $candidate" >&2; exit 1 ;;
+	"$release_root_real/"*) ;;
+	*) echo "Candidate must resolve beneath $release_root_real: $candidate" >&2; exit 1 ;;
 esac
-if [[ "$candidate" == "$staging_root_real" ]]; then
-	echo "Candidate must be a release checkout beneath, not equal to, $staging_root_real." >&2
+if [[ "$candidate" == "$release_root_real" ]]; then
+	echo "Candidate must be a release checkout beneath, not equal to, $release_root_real." >&2
 	exit 1
 fi
 if [[ ! -f "$candidate/package-lock.json" || ! -d "$candidate/.git" || -L "$candidate/.git" ]] \
@@ -92,7 +92,7 @@ if [[ "$(git -C "$candidate" rev-parse origin/main)" != "$ZILCH_COMMIT_SHA" ]]; 
 	exit 1
 fi
 
-npm_cache="${NPM_CONFIG_CACHE:-$(dirname "$staging_root_real")/shared/npm-cache}"
+npm_cache="${NPM_CONFIG_CACHE:-$(dirname "$release_root_real")/shared/npm-cache}"
 mkdir -p "$npm_cache"
 NPM_CONFIG_CACHE="$(cd -- "$npm_cache" && pwd -P)"
 export NPM_CONFIG_CACHE
@@ -116,6 +116,5 @@ npm ls --prefix back-end --omit=dev --all >/dev/null
 node scripts/prune-direct-runtime.mjs
 node scripts/verify-production-install.mjs
 node scripts/direct-runtime-smoke.mjs
-node scripts/write-runtime-manifest.mjs
 
-echo "Prepared and hashed Zilch staging runtime $candidate at $ZILCH_COMMIT_SHA."
+echo "Prepared and validated Zilch tagged source $candidate at $ZILCH_COMMIT_SHA."

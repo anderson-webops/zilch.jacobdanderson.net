@@ -5,7 +5,7 @@ import { createGame } from '../src/game/engine.ts'
 import { defaultSetupPreferences, readSetupPreferences, restoreSetupPreferences, SETUP_PREFERENCE_KEY, writeSetupPreferences } from '../src/game/setup-preferences.ts'
 
 test('fresh or unreadable preferences keep the original defaults', () => {
-  for (const raw of [null, '', 'null', '{', '[]', '{"schemaVersion":2}'])
+  for (const raw of [null, '', 'null', '{', '[]', '{"schemaVersion":2}', ' '.repeat(16 * 1024 + 1)])
     assert.deepEqual(readSetupPreferences({ getItem: () => raw }), defaultSetupPreferences())
   assert.deepEqual(readSetupPreferences({ getItem: () => {
     throw new Error('blocked')

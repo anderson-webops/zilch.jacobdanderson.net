@@ -225,6 +225,16 @@ test('actual setup restores custom scores and remembers valid edits across remou
   browser.restore()
 })
 
+test('oversized saved game data is rejected and removed before parsing', () => {
+  const browser = browserFixture()
+  browser.storage.setItem('zilch-browser-game-v1', ' '.repeat(256 * 1024 + 1))
+  const mounted = mount(() => gameModule.useZilchGame())
+  assert.equal(mounted.value.hasSavedGame.value, false)
+  assert.equal(browser.storage.getItem('zilch-browser-game-v1'), null)
+  mounted.unmount()
+  browser.restore()
+})
+
 test('actual game keeps animation off initially, saves pending results, and blocks actions until reveal', async (context) => {
   context.mock.timers.enable({ apis: ['setTimeout'] })
   const browser = browserFixture()

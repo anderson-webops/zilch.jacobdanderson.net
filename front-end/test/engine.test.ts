@@ -114,6 +114,9 @@ test('saved games restore only after the complete state shape is validated', () 
     { ...game, players: [{ ...game.players[0], kind: 'robot' }] },
     { ...game, players: [{ ...game.players[0], difficulty: 'impossible' }] },
     { ...game, settings: { ...game.settings, finalChase: 'yes' } },
+    { ...game, message: 'x'.repeat(501) },
+    { ...game, events: Array.from({ length: 9 }, (_, id) => ({ id, text: 'event', tone: 'neutral' })) },
+    { ...game, events: [{ ...game.events[0], text: 'x'.repeat(501) }] },
   ]
 
   for (const malformed of malformedStates)

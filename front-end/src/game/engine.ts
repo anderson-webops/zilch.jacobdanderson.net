@@ -194,6 +194,7 @@ function isPlayer(value: unknown): value is GameState['players'][number] {
     return false
   return typeof value.id === 'string'
     && value.id.length > 0
+    && value.id.length <= 64
     && typeof value.name === 'string'
     && value.name.trim().length > 0
     && value.name.length <= 30
@@ -228,6 +229,8 @@ function isGameEvent(value: unknown): value is GameState['events'][number] {
     return false
   return isNonNegativeInteger(value.id)
     && typeof value.text === 'string'
+    && value.text.length > 0
+    && value.text.length <= 500
     && (value.tone === 'neutral' || value.tone === 'good' || value.tone === 'risk' || value.tone === 'special')
 }
 
@@ -235,8 +238,11 @@ function isContinuation(value: unknown): value is NonNullable<GameState['continu
   if (!isRecord(value))
     return false
   return typeof value.sourcePlayerId === 'string'
+    && value.sourcePlayerId.length > 0
+    && value.sourcePlayerId.length <= 64
     && typeof value.sourcePlayerName === 'string'
     && value.sourcePlayerName.length > 0
+    && value.sourcePlayerName.length <= 30
     && isNonNegativeInteger(value.inheritedScore)
     && Number.isSafeInteger(value.diceInPlay)
     && Number(value.diceInPlay) >= 1
@@ -248,6 +254,8 @@ function isEndgame(value: unknown): value is NonNullable<GameState['endgame']> {
   if (!isRecord(value))
     return false
   return typeof value.triggerPlayerId === 'string'
+    && value.triggerPlayerId.length > 0
+    && value.triggerPlayerId.length <= 64
     && isNonNegativeInteger(value.remainingTurns)
 }
 
@@ -274,6 +282,7 @@ function isRestorableGameState(value: unknown): value is GameState {
     || value.dice.length > 6
     || !value.dice.every(isDie)
     || !Array.isArray(value.selectedDieIds)
+    || value.selectedDieIds.length > 6
     || !value.selectedDieIds.every(isNonNegativeInteger)
     || !Number.isSafeInteger(value.diceInPlay)
     || Number(value.diceInPlay) < 1
@@ -284,11 +293,14 @@ function isRestorableGameState(value: unknown): value is GameState {
     || !isNonNegativeInteger(value.bankSequence)
     || !isNonNegativeInteger(value.eventSequence)
     || typeof value.message !== 'string'
+    || value.message.length > 500
     || !Array.isArray(value.events)
+    || value.events.length > 8
     || !value.events.every(isGameEvent)
     || (value.continuation !== null && !isContinuation(value.continuation))
     || (value.endgame !== null && !isEndgame(value.endgame))
     || !Array.isArray(value.winnerIds)
+    || value.winnerIds.length > 6
     || !value.winnerIds.every(winnerId => typeof winnerId === 'string')) {
     return false
   }

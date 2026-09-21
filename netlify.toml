@@ -12,6 +12,18 @@ directory = "netlify/functions"
 node_bundler = "esbuild"
 
 [[redirects]]
+from = "/healthz"
+to = "/.netlify/functions/api/healthz"
+status = 200
+force = true
+
+[[redirects]]
+from = "/readyz"
+to = "/.netlify/functions/api/readyz"
+status = 200
+force = true
+
+[[redirects]]
 from = "/api/*"
 to = "/.netlify/functions/api/:splat"
 status = 200
@@ -51,6 +63,12 @@ for = "/release.json"
 
 [[headers]]
 for = "/healthz"
+
+  [headers.values]
+  Cache-Control = "no-store"
+
+[[headers]]
+for = "/readyz"
 
   [headers.values]
   Cache-Control = "no-store"

@@ -14,7 +14,6 @@ concurrency:
 
 jobs:
   prepare:
-    name: Validate tagged direct runtime
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -33,14 +32,13 @@ jobs:
       - name: Bind the workflow tag to the package version
         run: |
           expected_tag="v$(node -p 'require("./package.json").version')"
-          if [[ "$GITHUB_REF_NAME" != "$expected_tag" ]]; then
+          if [ "$GITHUB_REF_NAME" != "$expected_tag" ]; then
             echo "Release tag $GITHUB_REF_NAME must be exactly $expected_tag." >&2
             exit 1
           fi
 
       - name: Pin npm
-        # Node 24 does not bundle the exact npm version required by this repository.
-        run: npm install --global npm@12.0.2 --allow-scripts=npm # zizmor: ignore[adhoc-packages]
+        run: npm install --global npm@12.0.2 --allow-scripts=npm
 
       - name: Validate direct deployment configuration syntax
         run: |
@@ -53,7 +51,88 @@ jobs:
           CI: "true"
           PUPPETEER_SKIP_DOWNLOAD: "true"
         run: |
-          STAGING_ROOT="$(dirname "$GITHUB_WORKSPACE")" \
+          printf '/.ai-work/\n' >> "$(git rev-parse --git-path info/exclude)"
+          BUILD_ROOT="$(dirname "$GITHUB_WORKSPACE")" \
           NODE_BIN_DIR="$(dirname "$(command -v node)")" \
           NPM_CONFIG_CACHE="$RUNNER_TEMP/npm-cache" \
           deploy/systemd/prepare-release.sh "$GITHUB_WORKSPACE"
+
+  installer:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.1
+          package-manager-cache: false
+
+      - name: Stage the protected disposable-host runtime
+        run: |
+          npm install --global npm@12.0.2 --allow-scripts=npm
+          node_prefix="$(dirname "$(dirname "$(command -v node)")")"
+          sudo install -d -o root -g root -m 0755 /opt/node-24.18.1
+          sudo cp -a "$node_prefix/." /opt/node-24.18.1/
+          sudo chown -R root:root /opt/node-24.18.1
+          sudo chmod -R go-w /opt/node-24.18.1
+          printf 'isolated-public-source-fixture\n' | sudo tee /run/zilch-source-validation-vm >/dev/null
+          sudo chown root:root /run/zilch-source-validation-vm
+          sudo chmod 0600 /run/zilch-source-validation-vm
+
+      - name: Test privileged bootstrap and concurrent cache swapping
+        run: sudo python3 -B scripts/test-bootstrap-in-vm.py --disposable-vm
+
+  artifact:
+    needs: [prepare, installer]
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.1
+          package-manager-cache: false
+      - name: Prepare isolated artifact-test tools
+        run: |
+          npm install --global npm@12.0.2 --allow-scripts=npm
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bubblewrap apparmor
+          if test -d /sys/kernel/security/apparmor; then
+            printf 'abi <abi/4.0>,\ninclude <tunables/global>\nprofile zilch-artifact-tests /usr/bin/bwrap flags=(unconfined) {\n  userns,\n}\n' | sudo tee /etc/apparmor.d/zilch-artifact-tests >/dev/null
+            sudo apparmor_parser -r /etc/apparmor.d/zilch-artifact-tests
+          fi
+          printf '/.ai-work/\n' >> "$(git rev-parse --git-path info/exclude)"
+      - name: Validate native source and the exact production artifact
+        env:
+          CI: "true"
+          SKIP_INSTALL_SIMPLE_GIT_HOOKS: "1"
+          NUXT_TELEMETRY_DISABLED: "1"
+          PUPPETEER_SKIP_DOWNLOAD: "true"
+        run: |
+          npm ci --include=optional --strict-allow-scripts
+          npm run audit:all
+          npm run audit:prod
+          npm run audit:api
+          npm audit signatures
+          npm run validate
+          npm run test:promotion
+          mkdir -p .ai-work/runs/tagged-artifact
+          npm run package:runtime -- "$PWD/.ai-work/runs/tagged-artifact"
+
+      - name: Retain the accepted Linux ARM64 artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: zilch-${{ github.ref_name }}-${{ github.sha }}-linux-arm64
+          path: .ai-work/runs/tagged-artifact/*
+          if-no-files-found: error
+          retention-days: 30
