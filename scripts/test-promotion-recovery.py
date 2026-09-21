@@ -173,7 +173,9 @@ for mode in modes:
          'NGINX_SERVER_CONFIG':str(nginx_config),
          'FIXTURE_ROOT':str(root),'FIXTURE_MODE':mode,
          'ZILCH_ISOLATED_TEST_MODE':'1'}
-    command=['bash',str(control/'deploy/systemd/promote-release.sh'),str(candidate),str(archive),digest,'a'*40]
+    command=['bash']
+    if mode=='bad-health':command.append('-x')
+    command.extend([str(control/'deploy/systemd/promote-release.sh'),str(candidate),str(archive),digest,'a'*40])
     sentinel=root/'UNTRUSTED_RUNTIME_EXECUTED'
     if mode.startswith('ambiguous-runtime-'):
         (root/'protected/bin').mkdir(parents=True)
@@ -215,7 +217,7 @@ for mode in modes:
         assert stat.S_IMODE(records[0].stat().st_mode)==0o600
     else:
         commands=(root/'commands').read_text()[-12000:]
-        assert not records,(mode,evidence,'synthetic command tail:\n'+commands)
+        assert not records,(mode,evidence[-20000:],'synthetic command tail:\n'+commands)
     if mode=='interrupt':assert result.returncode==143 and (root/'interrupted').exists(),evidence
     if mode=='bad-health':
         probes=(root/'probes').read_text()
