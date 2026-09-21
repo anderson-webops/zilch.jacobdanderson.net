@@ -145,13 +145,13 @@ response_health="$(mktemp)"
 response_release="$(mktemp)"
 headers_ipv4="$(mktemp)"
 headers_ipv6="$(mktemp)"
-# shellcheck disable=SC2329 # Invoked by the EXIT trap below.
+# shellcheck disable=SC2317,SC2329 # Invoked by the EXIT trap below.
 cleanup() {
 	if [[ -L "$next_link" ]]; then unlink -- "$next_link"; fi
 	rm -f -- "$response_health" "$response_release" "$headers_ipv4" "$headers_ipv6"
 }
 # Catch every unsuccessful exit after mutation, including interruption.
-# shellcheck disable=SC2329
+# shellcheck disable=SC2317,SC2329
 on_exit() {
   local status=$?
   trap - EXIT
@@ -301,7 +301,7 @@ readiness_matches() {
 }
 
 # Invoked by the EXIT handler. Do not abandon rollback after the first failure.
-# shellcheck disable=SC2329
+# shellcheck disable=SC2317,SC2329
 rollback() {
   local failed=0
   if [[ -n "$previous_target" ]]; then
