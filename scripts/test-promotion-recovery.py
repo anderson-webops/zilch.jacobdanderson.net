@@ -216,7 +216,9 @@ for mode in modes:
         assert len(records)==1 and 'protected record retained' in evidence,evidence
         assert stat.S_IMODE(records[0].stat().st_mode)==0o600
     else:
-        commands=(root/'commands').read_text()[-12000:]
+        commands_path=root/'commands'
+        commands=(commands_path.read_text()[-12000:] if commands_path.exists()
+                  else '<no synthetic external commands invoked>')
         assert not records,(mode,evidence[-20000:],'synthetic command tail:\n'+commands)
     if mode=='interrupt':assert result.returncode==143 and (root/'interrupted').exists(),evidence
     if mode=='bad-health':
