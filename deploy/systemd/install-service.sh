@@ -19,6 +19,8 @@ node_bin="$node_bin_dir/node"
 
 /usr/bin/python3 -I "$script_dir/trusted-paths.py" --tree "$script_dir" \
   "$source_root/scripts/runtime-artifact.py" "$source_root/deploy/runtime-artifact.json" \
+  "$source_root/deploy/nginx/zilch.jacobdanderson.net.server.conf" \
+  "$source_root/deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf" \
   "$source_root/package.json" "$node_bin"
 if [[ ! -x "$node_bin" || "$("$node_bin" --version)" != v24.18.1 ]]; then
   echo 'NODE_BIN_DIR must select the protected Node 24.18.1 runtime without replacing /usr/bin/node.' >&2
@@ -62,8 +64,10 @@ cleanup_on_exit() {
         "$helper_root/deploy/systemd/promote-release.sh" \
         "$helper_root/deploy/systemd/trusted-paths.py" \
         "$helper_root/scripts/runtime-artifact.py" \
-        "$helper_root/deploy/runtime-artifact.json" 2>/dev/null || true
-      rmdir -- "$helper_root/deploy/systemd" "$helper_root/deploy" "$helper_root/scripts" "$helper_root" 2>/dev/null || true
+        "$helper_root/deploy/runtime-artifact.json" \
+        "$helper_root/deploy/nginx/zilch.jacobdanderson.net.server.conf" \
+        "$helper_root/deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf" 2>/dev/null || true
+      rmdir -- "$helper_root/deploy/systemd" "$helper_root/deploy/nginx" "$helper_root/deploy" "$helper_root/scripts" "$helper_root" 2>/dev/null || true
     fi
     if [[ "$created_helper_parent" == true ]]; then
       rmdir -- "$helper_parent" 2>/dev/null || true
@@ -190,11 +194,17 @@ if [[ -e "$helper_root" || -L "$helper_root" ]]; then
   exit 1
 fi
 
-install -d -o root -g root -m 0755 "$helper_root" "$helper_root/scripts" "$helper_root/deploy" "$helper_root/deploy/systemd"
+install -d -o root -g root -m 0755 \
+  "$helper_root" "$helper_root/scripts" "$helper_root/deploy" \
+  "$helper_root/deploy/nginx" "$helper_root/deploy/systemd"
 created_helper=true
 install -o root -g root -m 0755 "$script_dir/promote-release.sh" "$script_dir/trusted-paths.py" "$helper_root/deploy/systemd/"
 install -o root -g root -m 0755 "$source_root/scripts/runtime-artifact.py" "$helper_root/scripts/"
 install -o root -g root -m 0644 "$source_root/deploy/runtime-artifact.json" "$helper_root/deploy/"
+install -o root -g root -m 0644 \
+  "$source_root/deploy/nginx/zilch.jacobdanderson.net.server.conf" \
+  "$source_root/deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf" \
+  "$helper_root/deploy/nginx/"
 
 /usr/bin/python3 -I "$script_dir/trusted-paths.py" --tree "$helper_root"
 if [[ -e "$wrapper" || -L "$wrapper" ]]; then

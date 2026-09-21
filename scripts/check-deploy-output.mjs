@@ -9,8 +9,9 @@ const paths = {
   artifactContract: resolve(projectRoot, 'deploy/runtime-artifact.json'),
   artifactVerifier: resolve(projectRoot, 'scripts/runtime-artifact.py'),
   directInstall: resolve(projectRoot, 'deploy/systemd/install-service.sh'),
+  legacyNginx: resolve(projectRoot, 'deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf'),
   directNginx: resolve(projectRoot, 'deploy/nginx/zilch.jacobdanderson.net.server.conf'),
-  directPrepare: resolve(projectRoot, 'deploy/systemd/prepare-release.sh'),
+  sourceValidator: resolve(projectRoot, 'scripts/validate-tagged-source.sh'),
   directPromote: resolve(projectRoot, 'deploy/systemd/promote-release.sh'),
   directService: resolve(projectRoot, 'deploy/systemd/zilch-api.service'),
   directWorkflow: resolve(projectRoot, '.github/workflows/direct-release.yml'),
@@ -18,7 +19,9 @@ const paths = {
   frontendTips: resolve(projectRoot, 'front-end/.output/public/tips/index.html'),
   netlifyConfig: resolve(projectRoot, 'netlify.toml'),
   netlifyFunction: resolve(projectRoot, 'netlify/functions/api.ts'),
+  promotionRecovery: resolve(projectRoot, 'scripts/test-promotion-recovery.py'),
   runtimePackager: resolve(projectRoot, 'scripts/package-runtime.sh'),
+  rootBootstrapTest: resolve(projectRoot, 'scripts/test-bootstrap-in-vm.py'),
   trustedPaths: resolve(projectRoot, 'deploy/systemd/trusted-paths.py'),
 }
 
@@ -40,15 +43,18 @@ const {
   artifactContract,
   artifactVerifier,
   directInstall,
+  legacyNginx,
   directNginx,
-  directPrepare,
+  sourceValidator,
   directPromote,
   directService,
   directWorkflow,
   frontendIndex,
   frontendTips,
   netlifyConfig,
+  promotionRecovery,
   runtimePackager,
+  rootBootstrapTest,
   trustedPaths,
 } = values
 
@@ -89,14 +95,16 @@ assert(/return 301 https:\/\/zilch\.jacobdanderson\.net\$request_uri;/.test(dire
 assert(/X-Forwarded-For \$remote_addr/.test(directNginx), 'Nginx must replace, not append, the forwarded chain')
 assert(!/\$proxy_add_x_forwarded_for/.test(directNginx), 'Nginx must not trust a client-supplied forwarded chain')
 
-assert(/npm audit signatures/.test(directPrepare), 'Direct preparation must verify package signatures')
-assert(/NODE_BIN_DIR:-\/opt\/node-24\.18\.1\/bin/.test(directPrepare), 'Preparation must default to isolated Node 24.18.1')
-assert(/refs\/heads\/main:refs\/remotes\/origin\/main/.test(directPrepare), 'Preparation must refresh exact origin/main')
-assert(/--unset-all http\.https:\/\/github\.com\/\.extraheader/.test(directPrepare), 'Preparation must remove checkout credentials before dependency scripts run')
-assert(/node scripts\/clean\.mjs/.test(directPrepare), 'Preparation must remove stale generated output')
+assert(/npm audit signatures/.test(sourceValidator), 'Tagged source validation must verify package signatures')
+assert(/NODE_BIN_DIR:-\/opt\/node-24\.18\.1\/bin/.test(sourceValidator), 'Tagged source validation must default to isolated Node 24.18.1')
+assert(/refs\/heads\/main:refs\/remotes\/origin\/main/.test(sourceValidator), 'Tagged source validation must refresh exact origin/main')
+assert(/--unset-all http\.https:\/\/github\.com\/\.extraheader/.test(sourceValidator), 'Tagged source validation must remove checkout credentials before dependency scripts run')
+assert(/node scripts\/clean\.mjs/.test(sourceValidator), 'Tagged source validation must remove stale generated output')
+assert(/Source validation must not build or prepare a production release tree/.test(sourceValidator), 'Tagged source validation must reject production-tree builds')
 
 assert(/\/usr\/local\/libexec\/zilch-release/.test(directInstall), 'Installer must use versioned root-owned helpers')
 assert(/\/usr\/local\/sbin\/zilch-promote-release/.test(directInstall), 'Installer must atomically update the stable promotion wrapper')
+assert(/legacy-v1\.4\.1\.server\.conf/.test(directInstall), 'Installer must preserve the exact legacy rollback Nginx contract')
 assert(/base=\/srv\/zilch\.jacobdanderson\.net/.test(directInstall) && /ensure_directory "\$base\/staging"/.test(directInstall) && /ensure_directory "\$base\/quarantine"/.test(directInstall), 'Installer must preserve Zilch staging and quarantine paths')
 assert(/ensure_directory "\$base\/shared" 0 "\$service_gid" 750/.test(directInstall) && /ensure_directory "\$base\/shared\/npm-cache" "\$service_uid" "\$service_gid" 700/.test(directInstall), 'Writable npm cache must stay beneath a root-owned no-swap parent')
 assert(/sport = :3018/.test(directInstall), 'Installer must reserve the reviewed Zilch loopback port')
@@ -110,21 +118,34 @@ assert(/edge_http_redirects/.test(directPromote), 'Promotion must verify canonic
 assert(/edge_probe_is_minimal/.test(directPromote) && !/-X POST/.test(directPromote), 'Promotion probes must use minimal GET and HEAD checks only')
 assert(/restoring the previous direct release/i.test(directPromote), 'Promotion must provide source rollback')
 assert(/runtime-manifest\.json/.test(directPromote), 'Promotion must revalidate artifact-era rollback targets')
+assert(/fc43e474c0c402fdea39828e02a59cab9aa60661/.test(directPromote), 'Legacy rollback must be restricted to the exact retained v1.4.1 commit')
+assert(/943b2d1a5a6eab10c38255531f2aa9923118f16b09353a1533995082b8948ecc/.test(directPromote), 'Forward promotion must pin the reviewed current Nginx bytes')
+assert(/afd6eb84e6f35fa55b4cdc872bd4b7e759ec9b5ca1bb727c70ffba3a337adce4/.test(directPromote), 'Legacy rollback must pin the exact historical Nginx bytes')
+assert(/legacy-v1\.4\.1[\s\S]*\/api\/health/.test(directPromote), 'Legacy rollback must use its actual minimal API health route')
+assert(/nginx_server_config=\/etc\/nginx\/sites-available\/zilch\.jacobdanderson\.net/.test(directPromote), 'Production Nginx destination must be fixed to the reviewed Zilch server block')
+assert(/ZILCH_ISOLATED_TEST_MODE/.test(directPromote) && /\^\/fixture\//.test(directPromote), 'Nginx destination overrides must be limited to the isolated regression fixture')
+assert(/install_nginx_for_target/.test(directPromote) && /current_nginx_config/.test(directPromote) && /legacy_nginx_config/.test(directPromote), 'Forward and rollback activation must atomically install their compatible Nginx contracts')
+assert(/location = \/healthz/.test(legacyNginx) && !/location = \/readyz/.test(legacyNginx), 'Legacy Nginx fixture must retain the v1.4.1 probe surface')
+assert(/second forward promotion/.test(promotionRecovery) && /did not install current Nginx configuration/.test(promotionRecovery), 'Recovery regression must prove rollback and a subsequent forward Nginx transition')
 
 assert(JSON.parse(artifactContract).runtime.arch === 'arm64', 'Artifact contract must target Linux ARM64')
 assert(JSON.parse(artifactContract).required.includes('back-end/dist/boundedRateStore.js'), 'Artifact contract must require the security control module')
 assert(/trusted release record/.test(artifactVerifier), 'Artifact verifier must require independent archive identity')
 assert(/Never overwrite an existing artifact/.test(artifactVerifier), 'Artifact verifier must keep release archives write-once')
+assert(/normalize_permissions/.test(artifactVerifier) && /PRIVATE_MARKER/.test(artifactVerifier) && /"format": 2/.test(artifactVerifier), 'Root extraction must normalize public runtime modes while preserving the private marker')
+assert(/--allow-format-1-rollback/.test(artifactVerifier) && /only valid for direct verify without archive inputs/.test(artifactVerifier), 'Format 1 must be scoped to explicit retained-tree rollback verification')
 assert(/test-unpacked-artifact\.sh/.test(runtimePackager) && /missing-module/.test(runtimePackager), 'Packager must test the exact unpacked artifact and missing-module rejection')
 assert(/ubuntu-24\.04-arm/.test(directWorkflow) && /actions\/upload-artifact@/.test(directWorkflow), 'Release workflow must retain the accepted Linux ARM64 artifact')
 assert(/test-bootstrap-in-vm\.py --disposable-vm/.test(directWorkflow) && /needs: \[prepare, installer\]/.test(directWorkflow), 'Artifact publication must wait for disposable-host installer acceptance')
+assert(/install --yes --no-install-recommends nginx/.test(directWorkflow), 'Disposable-host acceptance must include the Nginx worker identity')
+assert(/runuser.*zilch-site/s.test(rootBootstrapTest) && /runuser.*www-data/s.test(rootBootstrapTest) && /privateMarkerRootOnly/.test(rootBootstrapTest), 'Root extraction must be tested with separate service and Nginx identities')
 assert(/stat\.S_ISLNK/.test(trustedPaths) && /st_mode & 0o022/.test(trustedPaths), 'Administrative path validation must reject links and mutable paths')
 
 assert(/from = "\/healthz"[\s\S]*api\/healthz/.test(netlifyConfig), 'Netlify must route root liveness to the same Express app')
 assert(/from = "\/readyz"[\s\S]*api\/readyz/.test(netlifyConfig), 'Netlify must route root readiness to the same Express app')
 assert(/Cache-Control = "no-cache"/.test(netlifyConfig) && /Cache-Control = "no-store"/.test(netlifyConfig) && /immutable/.test(netlifyConfig), 'Netlify must preserve route, identity, probe, and hashed-asset cache policy')
 
-for (const removedPath of ['.dockerignore', 'Dockerfile', 'compose.yaml', 'docker-compose.yml', 'nginx.conf', 'front-end/public/healthz']) {
+for (const removedPath of ['.dockerignore', 'Dockerfile', 'compose.yaml', 'docker-compose.yml', 'nginx.conf', 'front-end/public/healthz', 'deploy/systemd/prepare-release.sh', 'scripts/write-runtime-manifest.mjs']) {
   try {
     await access(resolve(projectRoot, removedPath))
     throw new Error(`${removedPath} must be absent from the direct production repository`)

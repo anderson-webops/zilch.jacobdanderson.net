@@ -12,7 +12,7 @@ trap cleanup EXIT
 
 shellcheck \
 	"$project_root/deploy/systemd/install-service.sh" \
-	"$project_root/deploy/systemd/prepare-release.sh" \
+	"$project_root/scripts/validate-tagged-source.sh" \
 	"$project_root/deploy/systemd/promote-release.sh" \
 	"$project_root/deploy/validate-configs.sh"
 
@@ -36,14 +36,6 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
 	-keyout "$temporary_root/cert/privkey.pem" \
 	-out "$temporary_root/cert/fullchain.pem" >/dev/null 2>&1
 
-sed \
-	-e "s#/etc/nginx/snippets/zilch-security-headers.conf#$project_root/deploy/nginx/zilch-security-headers.conf#g" \
-	-e "s#/etc/letsencrypt/live/zilch.jacobdanderson.net/fullchain.pem#$temporary_root/cert/fullchain.pem#g" \
-	-e "s#/etc/letsencrypt/live/zilch.jacobdanderson.net/privkey.pem#$temporary_root/cert/privkey.pem#g" \
-	-e "s#/srv/zilch.jacobdanderson.net/current/front-end/.output/public#$temporary_root/public#g" \
-	"$project_root/deploy/nginx/zilch.jacobdanderson.net.server.conf" \
-	>"$temporary_root/zilch.server.conf"
-
 cat >"$temporary_root/nginx.conf" <<EOF
 pid $temporary_root/run/nginx.pid;
 error_log $temporary_root/logs/error.log;
@@ -55,5 +47,15 @@ http {
 }
 EOF
 
-nginx -t -p "$temporary_root" -c "$temporary_root/nginx.conf"
-echo "Shell, systemd, and Nginx configuration validation passed"
+for server_config in \
+	"$project_root/deploy/nginx/zilch.jacobdanderson.net.server.conf" \
+	"$project_root/deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf"; do
+	sed \
+		-e "s#/etc/nginx/snippets/zilch-security-headers.conf#$project_root/deploy/nginx/zilch-security-headers.conf#g" \
+		-e "s#/etc/letsencrypt/live/zilch.jacobdanderson.net/fullchain.pem#$temporary_root/cert/fullchain.pem#g" \
+		-e "s#/etc/letsencrypt/live/zilch.jacobdanderson.net/privkey.pem#$temporary_root/cert/privkey.pem#g" \
+		-e "s#/srv/zilch.jacobdanderson.net/current/front-end/.output/public#$temporary_root/public#g" \
+		"$server_config" >"$temporary_root/zilch.server.conf"
+	nginx -t -p "$temporary_root" -c "$temporary_root/nginx.conf"
+done
+echo "Shell, systemd, and current plus legacy Nginx configuration validation passed"

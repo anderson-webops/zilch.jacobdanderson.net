@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -32,9 +33,10 @@ class RuntimeArtifactTests(unittest.TestCase):
         marker = json.dumps({"repository": "anderson-webops/zilch.jacobdanderson.net", "release": "v1.0.0", "commitSha": "a"*40, "builtAt": "2026-09-16T00:00:00Z"})
         (self.root / "front-end/.output/public/release.json").write_text(marker)
         (self.root / ".zilch-release-prepared.json").write_text(marker)
+        artifact.normalize_permissions(self.root)
 
     def manifest(self):
-        return {"format": 1, "commit": "a" * 40, "contract": self.contract,
+        return {"format": 2, "commit": "a" * 40, "contract": self.contract,
                 "files": artifact.inventory(self.root)}
 
     def test_valid_tree(self):
@@ -45,6 +47,46 @@ class RuntimeArtifactTests(unittest.TestCase):
         (self.root / "back-end/dist/app.js").write_text("changed")
         with self.assertRaisesRegex(ValueError, "hashes"):
             artifact.validate(self.root, manifest)
+
+    def test_runtime_modes_are_independently_enforced(self):
+        cases = [
+            (self.root / ".zilch-release-prepared.json", 0o644, "unsafe runtime mode"),
+            (self.root / "front-end/.output/public/index.html", 0o600, "unsafe runtime mode"),
+            (self.root / "front-end/.output/public", 0o700, "directory must be mode 0755"),
+        ]
+        for path, mode, message in cases:
+            with self.subTest(path=path, mode=oct(mode)):
+                artifact.normalize_permissions(self.root)
+                path.chmod(mode)
+                with self.assertRaisesRegex(ValueError, message):
+                    artifact.validate(self.root, self.manifest())
+
+    def test_previous_format_requires_explicit_rollback_scope(self):
+        legacy = {"format": 1, "commit": "a" * 40, "contract": self.contract,
+                  "files": artifact.inventory(self.root, include_modes=False)}
+        with self.assertRaisesRegex(ValueError, "independently trusted runtime contract"):
+            artifact.validate(self.root, legacy)
+        artifact.validate(self.root, legacy, allow_format1_rollback=True)
+
+    def test_format_1_cannot_be_unpacked_as_a_new_candidate(self):
+        with tempfile.TemporaryDirectory(dir=self.root.parent) as temporary:
+            output = Path(temporary)
+            archive = output / "legacy-runtime.tar.gz"
+            unpacked = output / "unpacked"
+            unpacked.mkdir()
+            legacy = {"format": 1, "commit": "a" * 40, "contract": self.contract,
+                      "files": artifact.inventory(self.root, include_modes=False)}
+            (self.root / artifact.MANIFEST).write_text(json.dumps(legacy))
+            with tarfile.open(archive, "w:gz") as target:
+                for path in self.root.rglob("*"):
+                    if path.is_file():
+                        target.add(path, arcname=path.relative_to(self.root).as_posix())
+            command = [sys.executable, "-B", str(Path(artifact.__file__)), "unpack", str(unpacked),
+                       "--archive", str(archive), "--sha256", artifact.digest(archive),
+                       "--commit", "a" * 40]
+            result = subprocess.run(command, capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("independently trusted runtime contract", result.stderr)
 
     def test_missing_module_even_if_the_inventory_omits_it(self):
         (self.root / "back-end/dist/boundedRateStore.js").unlink()
@@ -125,6 +167,9 @@ class RuntimeArtifactTests(unittest.TestCase):
             arguments = ["--archive", str(archive), "--sha256", sha, "--commit", "a" * 40]
             subprocess.run([*command, "unpack", str(unpacked), *arguments], check=True, capture_output=True)
             subprocess.run([*command, "verify", str(unpacked), *arguments], check=True, capture_output=True)
+            self.assertEqual(os.stat(unpacked).st_mode & 0o777, 0o755)
+            self.assertEqual(os.stat(unpacked / ".zilch-release-prepared.json").st_mode & 0o777, 0o600)
+            self.assertEqual(os.stat(unpacked / "front-end/.output/public/index.html").st_mode & 0o777, 0o644)
             (unpacked / "back-end/dist/boundedRateStore.js").unlink()
             # Rehashing the copier's incomplete tree cannot override the trusted archive.
             manifest = json.loads((unpacked / artifact.MANIFEST).read_text())

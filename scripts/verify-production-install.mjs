@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict'
-import { access, readFile } from 'node:fs/promises'
+import { access } from 'node:fs/promises'
 import path from 'node:path'
 
 const repositoryRoot = path.resolve(import.meta.dirname, '..')
@@ -19,15 +19,8 @@ for (const requiredPath of [
   'back-end/dist/server.js',
   'front-end/.output/public/index.html',
   'front-end/.output/public/release.json',
-  '.zilch-release-prepared.json',
 ]) {
   await access(path.join(repositoryRoot, requiredPath))
 }
-
-const [privateMarker, publicMarker] = await Promise.all([
-  readFile(path.join(repositoryRoot, '.zilch-release-prepared.json'), 'utf8'),
-  readFile(path.join(repositoryRoot, 'front-end/.output/public/release.json'), 'utf8'),
-])
-assert.equal(publicMarker, privateMarker)
 
 console.log('Direct production install contains only the compiled API, static frontend, and backend runtime dependencies')

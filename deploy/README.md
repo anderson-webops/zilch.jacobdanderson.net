@@ -29,7 +29,7 @@ Do not activate a candidate until all of the following are true:
 5. The `Validate direct production release` workflow has passed for that tag.
 6. The workflow's Linux ARM64 archive, `SHA256SUMS`, runtime manifest, and acceptance receipt have been downloaded and compared with the published release assets.
 
-The accepted archive is the deployable object. Do not rebuild on the production host and do not regenerate its manifest after copying it.
+The accepted archive is the deployable object. Do not rebuild on the production host and do not regenerate its manifest after copying it. `scripts/validate-tagged-source.sh` is a non-production CI/source validator and explicitly refuses `/srv` and `/var/www` trees. No source builder remains in the production helper directory. The removed `.zilch-runtime.sha256` file is not an activation input.
 
 ## Protected administrative boundary
 
@@ -67,7 +67,7 @@ Use the tagged workflow's exact Linux ARM64 outputs. Verify release asset names,
 Create a fresh empty root-owned target beneath the release root and unpack with the installed verifier, not source-owned code:
 
 ```bash
-release=v1.4.3
+release=v1.4.4
 commit=<full-40-character-source-commit>
 archive=/srv/zilch.jacobdanderson.net/quarantine/zilch-$release-${commit:0:12}-linux-arm64.tar.gz
 sha256=<published-archive-sha256>
@@ -75,13 +75,13 @@ candidate=/srv/zilch.jacobdanderson.net/releases/$release-${commit:0:12}
 
 sudo install -d -o root -g root -m 0755 "$candidate"
 sudo /usr/bin/python3 -I \
-  /usr/local/libexec/zilch-release/1.4.3/scripts/runtime-artifact.py \
+  /usr/local/libexec/zilch-release/1.4.4/scripts/runtime-artifact.py \
   unpack "$candidate" --archive "$archive" --sha256 "$sha256" --commit "$commit"
-sudo chown -R root:root "$candidate"
-sudo chmod -R a-w "$candidate"
 ```
 
-The verifier rejects unsafe archive paths, symlinks, private files, undeclared native code, development dependencies, missing required modules, hash drift, and release identity drift. Keep the original archive and externally supplied digest available for promotion so a rehashed incomplete copy cannot pass.
+The root extractor itself establishes root ownership and the exact recorded modes. Do not recursively chmod or copy the resulting tree. The verifier rejects unsafe archive paths, symlinks, private files, undeclared native code, development dependencies, missing required modules, hash drift, release identity drift, and unsafe installed modes. Root extraction makes the release tree traversable and readable by the separate service and Nginx identities while keeping `.zilch-release-prepared.json` root-owned at mode `0600`. The marker is required for administrative identity checks but is not a service runtime dependency. Keep the original archive and externally supplied digest available for promotion so a rehashed incomplete copy cannot pass.
+
+Before promotion, the server integration must confirm that the release assets came from the successful exact tagged workflow, reverify the installed tree against the unchanged archive, and start the candidate as `zilch-site` on a disposable loopback port. Exercise its liveness, readiness, and graceful shutdown without changing `current`. Do not copy files from a source checkout into the extracted tree.
 
 ## Promote and roll back
 
@@ -94,11 +94,11 @@ sudo env PUBLIC_HOST=zilch.jacobdanderson.net \
   "$candidate" "$archive" "$sha256" "$commit"
 ```
 
-The helper treats candidate files only as data. It independently verifies the candidate against the protected archive, validates trusted paths, takes an exclusive lock, tests Nginx, selects the release atomically, restarts only `zilch-api.service`, and checks health, readiness, exact release identity, HTTP redirection, TLS through local IPv4 and IPv6, security headers, minimal probe responses, and denied unknown API operations.
+The helper treats candidate files only as data. It independently verifies the candidate against the protected archive, validates trusted paths, takes an exclusive lock, installs the reviewed current Nginx server block at its fixed production path, selects the release atomically, restarts only `zilch-api.service`, and checks health, readiness, exact release identity, HTTP redirection, TLS through local IPv4 and IPv6, security headers, minimal probe responses, and denied unknown API operations. The Nginx destination cannot be overridden in production.
 
 An unsuccessful exit or HUP/INT/TERM after mutation restores the prior pointer and its service enablement state, then rechecks it. A failed first activation removes only the new pointer and stops/disables the new service. Rollback continues after individual recovery errors; a degraded rollback leaves a mode `0600` recovery record beneath the protected mode `0700` `.deployment-recovery` directory. Preserve that evidence and the retained releases for operator repair. Never edit an immutable release in place.
 
-Legacy releases without an artifact manifest may remain rollback targets after their identity and protected tree pass the legacy checks. Artifact-era releases must be revalidated before rollback. Migrations are not part of Zilch because it has no server-side database or application state.
+The only accepted pre-artifact rollback target is `v1.4.1` at commit `fc43e474c0c402fdea39828e02a59cab9aa60661`. It has `/api/health` but no readiness endpoint. The promoter uses that route only for this exact identity and atomically restores the installed historical Nginx server block before reloading Nginx. Every artifact-era target must pass the full liveness and readiness gates and must be revalidated before rollback. Other pre-artifact identities are rejected. Migrations are not part of Zilch because it has no server-side database or application state.
 
 ## External acceptance
 
@@ -122,4 +122,4 @@ Confirm that:
 - The root page is revalidated, hashed assets are immutable, and the security headers, social preview, and favicon load.
 - A browser game can start, roll, score, bank, pass turns, reload/resume, and finish Final Chase with keyboard and pointer input.
 
-Only then record the release as live. Keep at least the selected release and one verified rollback target. Production activation remains a separate operator action from this source workflow.
+Only then record the release as live. Keep at least the selected release and one verified rollback target. Production activation remains a separate operator action from this source workflow. Local SNI checks performed from the production server remain origin checks and must not be described as independent WAN acceptance.

@@ -43,6 +43,10 @@ if name == 'curl':
     if candidate and mode in ['bad-health','rollback-failure','first-failure']:sys.exit(22)
     if candidate and mode == 'ipv6-failure' and '--ipv6' in args:sys.exit(22)
     url=next(a for a in args if a.startswith(('http://','https://')))
+    nginx_config=root/'nginx/zilch.jacobdanderson.net'
+    modern_nginx=nginx_config.is_file() and 'location = /readyz' in nginx_config.read_text()
+    modern_probe=url.endswith(('/healthz','/readyz','/api/healthz','/api/readyz'))
+    if modern_probe and (not candidate or ('--resolve' in args and not modern_nginx)):sys.exit(22)
     if mode in ['alternate-port','custom-probes'] and '127.0.0.1:3018' in url:sys.exit(22)
     if mode=='wrong-service-readiness' and candidate and ':4006/' in url and url.endswith('/readyz'):sys.exit(22)
     output=pathlib.Path(args[args.index('--output')+1])
@@ -74,28 +78,29 @@ def setup(root):
         shutil.copytree(SOURCE/folder,control/folder)
     spec=importlib.util.spec_from_file_location('artifact',control/'scripts/runtime-artifact.py')
     artifact=importlib.util.module_from_spec(spec);spec.loader.exec_module(artifact)
-    (control/'package.json').write_text(json.dumps({'version':'1.4.3'}))
+    (control/'package.json').write_text(json.dumps({'version':'1.4.4'}))
     candidate=root/'releases/candidate'
     candidate.mkdir(parents=True)
     contract=json.loads(artifact.CONTRACT.read_text())
     required=contract['required']+[p.replace('*','fixture') for p in contract.get('requiredPatterns',[])]
     for name in required:
         p=candidate/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('Synthetic runtime file\n')
-    package={'version':'1.4.3'}
+    package={'version':'1.4.4'}
     backend={**package,'type':'module','dependencies':{'express':'5.2.1'}}
     express=candidate/'back-end/node_modules/express/package.json'
     express.parent.mkdir(parents=True)
     express.write_text(json.dumps({'version':'5.2.1'}))
     for name,value in [('package.json',package),('front-end/package.json',package),('back-end/package.json',backend),
-                       ('package-lock.json',{'version':'1.4.3','packages':{'':backend,'node_modules/express':{'version':'5.2.1'}}}),
-                       ('back-end/package-lock.json',{'version':'1.4.3','packages':{'':backend,'node_modules/express':{'version':'5.2.1'}}})]:
+                       ('package-lock.json',{'version':'1.4.4','packages':{'':backend,'node_modules/express':{'version':'5.2.1'}}}),
+                       ('back-end/package-lock.json',{'version':'1.4.4','packages':{'':backend,'node_modules/express':{'version':'5.2.1'}}})]:
         (candidate/name).write_text(json.dumps(value))
-    metadata={'repository':'anderson-webops/zilch.jacobdanderson.net','release':'v1.4.3','commitSha':'a'*40,'builtAt':'2026-09-17T00:00:00Z'}
+    metadata={'repository':'anderson-webops/zilch.jacobdanderson.net','release':'v1.4.4','commitSha':'a'*40,'builtAt':'2026-09-21T00:00:00Z'}
     for name in ['.zilch-release-prepared.json','front-end/.output/public/release.json']:
         (candidate/name).write_text(json.dumps(metadata))
     # This application module must never be interpreted by privileged promotion.
     (candidate/'back-end/dist/app.js').write_text("import { writeFileSync } from 'node:fs'; writeFileSync('/fixture/ROOT_CODE_EXECUTED','bad')")
-    manifest={'format':1,'commit':'a'*40,'contract':contract,'files':artifact.inventory(candidate)}
+    artifact.normalize_permissions(candidate)
+    manifest={'format':2,'commit':'a'*40,'contract':contract,'files':artifact.inventory(candidate)}
     (candidate/artifact.MANIFEST).write_text(json.dumps(manifest))
     archive=root/'approved.tar.gz'
     with tarfile.open(archive,'w:gz') as out:
@@ -104,7 +109,7 @@ def setup(root):
     digest=hashlib.sha256(archive.read_bytes()).hexdigest()
     previous=root/'releases/previous'
     shutil.copytree(candidate,previous)
-    metadata.update(release='v1.4.1',commitSha='b'*40)
+    metadata.update(release='v1.4.1',commitSha='fc43e474c0c402fdea39828e02a59cab9aa60661')
     for name in ['.zilch-release-prepared.json','front-end/.output/public/release.json']:
         (previous/name).write_text(json.dumps(metadata))
     # The retained fixture models the existing pre-artifact release. New releases
@@ -112,7 +117,10 @@ def setup(root):
     (previous/artifact.MANIFEST).unlink()
     (root/'current').symlink_to(previous)
     recovery=root/'.deployment-recovery';recovery.mkdir(mode=0o700)
-    return control,candidate,previous,archive,digest,recovery
+    nginx_config=root/'nginx/zilch.jacobdanderson.net'
+    nginx_config.parent.mkdir()
+    nginx_config.write_bytes((control/'deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf').read_bytes())
+    return control,candidate,previous,archive,digest,recovery,nginx_config
 
 
 Path('/fixture/runtime').mkdir(parents=True)
@@ -123,7 +131,7 @@ for name in ['curl','systemctl','nginx','sleep']:
 modes=['success','bad-health','ipv6-failure','interrupt','restart-failure','nginx-failure','rollback-failure',
        'lock-contention','invalid-current','tampered-artifact','mutable-helper','mutable-parent','mutable-candidate',
        'symlink-module','wrong-digest','first-success','first-failure','mutable-archive','mutable-contract',
-       'mutable-previous','previous-is-parent','invalid-previous-identity','empty-public-identity',
+       'mutable-previous','previous-is-parent','unsupported-legacy','empty-public-identity',
        'ambiguous-runtime-promoter','ambiguous-runtime-installer','alternate-port','wrong-service-readiness',
        'mismatched-readiness-origin','custom-probes']
 if len(sys.argv) > 1 and sys.argv[1] != 'all':
@@ -131,7 +139,7 @@ if len(sys.argv) > 1 and sys.argv[1] != 'all':
     modes = [sys.argv[1]]
 for mode in modes:
     root=Path('/fixture')/mode
-    control,candidate,previous,archive,digest,recovery=setup(root)
+    control,candidate,previous,archive,digest,recovery,nginx_config=setup(root)
     if mode.startswith('first-'):(root/'current').unlink()
     if mode=='invalid-current':(root/'current').unlink();(root/'current').mkdir()
     if mode=='tampered-artifact':(candidate/'back-end/dist/server.js').write_text('tampered')
@@ -148,14 +156,20 @@ for mode in modes:
         (root/'current').unlink();(root/'current').symlink_to(root/'releases')
         shutil.copyfile(previous/'.zilch-release-prepared.json',root/'releases/.zilch-release-prepared.json')
         previous=root/'releases'
-    if mode=='invalid-previous-identity':(previous/'.zilch-release-prepared.json').write_text('{}')
+    if mode=='unsupported-legacy':
+        unsupported=json.loads((previous/'.zilch-release-prepared.json').read_text())
+        unsupported.update(release='v1.4.0',commitSha='b'*40)
+        for name in ['.zilch-release-prepared.json','front-end/.output/public/release.json']:
+            (previous/name).write_text(json.dumps(unsupported))
     held=None
     if mode=='lock-contention':
         held=(recovery/'promotion.lock').open('w');fcntl.flock(held,fcntl.LOCK_EX|fcntl.LOCK_NB)
     env={**os.environ,'NODE_BIN_DIR':'/fixture/runtime','PUBLIC_HOST':'zilch.jacobdanderson.net',
          'RELEASE_ROOT':str(root/'releases'),'ARCHIVE_ROOT':str(root),
          'CURRENT_LINK':str(root/'current'),
-         'FIXTURE_ROOT':str(root),'FIXTURE_MODE':mode}
+         'NGINX_SERVER_CONFIG':str(nginx_config),
+         'FIXTURE_ROOT':str(root),'FIXTURE_MODE':mode,
+         'ZILCH_ISOLATED_TEST_MODE':'1'}
     command=['bash',str(control/'deploy/systemd/promote-release.sh'),str(candidate),str(archive),digest,'a'*40]
     sentinel=root/'UNTRUSTED_RUNTIME_EXECUTED'
     if mode.startswith('ambiguous-runtime-'):
@@ -176,6 +190,9 @@ for mode in modes:
     if mode=='custom-probes':
         env['HEALTH_URL']='http://127.0.0.1:4006/status'
         env['READINESS_URL']='http://127.0.0.1:4006/dependencies-ready'
+    if mode=='bad-health':
+        env['HEALTH_URL']='http://127.0.0.1:3018/status'
+        env['READINESS_URL']='http://127.0.0.1:3018/dependencies-ready'
     try:
         result=subprocess.run(command,
                               env=env,capture_output=True,text=True,timeout=15)
@@ -194,8 +211,24 @@ for mode in modes:
         assert stat.S_IMODE(records[0].stat().st_mode)==0o600
     else:assert not records,(mode,evidence)
     if mode=='interrupt':assert result.returncode==143 and (root/'interrupted').exists(),evidence
+    if mode=='bad-health':
+        probes=(root/'probes').read_text()
+        assert '/api/health' in probes and '/healthz' not in probes and '/readyz' not in probes,probes
+        legacy=(control/'deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf').read_bytes()
+        assert nginx_config.read_bytes()==legacy,'legacy Nginx configuration was not restored'
+        # Prove that the same candidate can move forward again after the
+        # compatibility rollback, including the Nginx transition back to the
+        # current probe contract.
+        retry_env={**env,'FIXTURE_MODE':'success'}
+        retry=subprocess.run(command,env=retry_env,capture_output=True,text=True,timeout=15)
+        assert retry.returncode==0,retry.stdout+retry.stderr
+        assert (root/'current').resolve()==candidate,'second forward promotion did not activate the candidate'
+        current_config=(control/'deploy/nginx/zilch.jacobdanderson.net.server.conf').read_bytes()
+        assert nginx_config.read_bytes()==current_config,'second forward promotion did not install current Nginx configuration'
     if success:
         probes=(root/'probes').read_text();assert '--ipv4' in probes and '--ipv6' in probes
         assert ('/dependencies-ready' if mode=='custom-probes' else '/readyz') in probes
         if mode in ['alternate-port','custom-probes']:assert '127.0.0.1:3018' not in probes
+        current_config=(control/'deploy/nginx/zilch.jacobdanderson.net.server.conf').read_bytes()
+        assert nginx_config.read_bytes()==current_config,'forward promotion did not install current Nginx configuration'
     print(json.dumps({'promotionRecovery':mode,'result':'passed'}),flush=True)

@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path, PurePosixPath
 import re
+import stat
 import tarfile
 import sys
 import platform
@@ -13,11 +14,15 @@ sys.dont_write_bytecode = True
 
 CONTRACT = Path(__file__).resolve().parent.parent / "deploy/runtime-artifact.json"
 MANIFEST = "runtime-manifest.json"
+PRIVATE_MARKER = ".zilch-release-prepared.json"
 
 
 def digest(path):
+    checksum = hashlib.sha256()
     with path.open("rb") as stream:
-        return hashlib.file_digest(stream, "sha256").hexdigest()
+        while chunk := stream.read(1024 * 1024):
+            checksum.update(chunk)
+    return checksum.hexdigest()
 
 
 def permitted(name):
@@ -36,7 +41,40 @@ def permitted(name):
     )
 
 
-def inventory(root):
+def required_file_mode(name):
+    return 0o600 if name == PRIVATE_MARKER else 0o644
+
+
+def normalize_permissions(root):
+    """Make a root-extracted tree readable by the service and Nginx accounts."""
+    root.chmod(0o755)
+    for path in sorted(root.rglob("*")):
+        name = path.relative_to(root).as_posix()
+        if path.is_symlink() or not permitted(name):
+            raise ValueError(f"forbidden artifact path: {name}")
+        if path.is_dir():
+            path.chmod(0o755)
+        elif path.is_file():
+            path.chmod(required_file_mode(name))
+        else:
+            raise ValueError(f"not a regular file: {name}")
+
+
+def validate_permissions(root):
+    if stat.S_IMODE(root.stat().st_mode) != 0o755:
+        raise ValueError("artifact root must be mode 0755")
+    for path in sorted(root.rglob("*")):
+        name = path.relative_to(root).as_posix()
+        if path.is_symlink():
+            raise ValueError(f"forbidden artifact path: {name}")
+        mode = stat.S_IMODE(path.stat().st_mode)
+        if path.is_dir() and mode != 0o755:
+            raise ValueError(f"artifact directory must be mode 0755: {name}")
+        if path.is_file() and mode != required_file_mode(name):
+            raise ValueError(f"artifact file has an unsafe runtime mode: {name}")
+
+
+def inventory(root, include_modes=True):
     files = {}
     for path in sorted(root.rglob("*")):
         name = path.relative_to(root).as_posix()
@@ -48,6 +86,8 @@ def inventory(root):
             raise ValueError(f"not a regular file: {name}")
         if name != MANIFEST:
             files[name] = {"sha256": digest(path), "size": path.stat().st_size}
+            if include_modes:
+                files[name]["mode"] = stat.S_IMODE(path.stat().st_mode)
     return files
 
 
@@ -85,15 +125,19 @@ def runtime_dependencies(root):
     return visited
 
 
-def validate(root, manifest):
+def validate(root, manifest, allow_format1_rollback=False):
     contract = json.loads(CONTRACT.read_text())
-    if manifest.get("format") != 1 or manifest.get("contract") != contract:
+    format_version = manifest.get("format")
+    accepted_formats = (1, 2) if allow_format1_rollback else (2,)
+    if format_version not in accepted_formats or manifest.get("contract") != contract:
         raise ValueError("artifact does not match the independently trusted runtime contract")
     if not re.fullmatch(r"[0-9a-f]{40}", manifest.get("commit", "")):
         raise ValueError("an exact source commit is required")
-    actual = inventory(root)
+    if format_version == 2:
+        validate_permissions(root)
+    actual = inventory(root, include_modes=format_version == 2)
     if actual != manifest.get("files"):
-        raise ValueError("artifact paths, hashes or sizes do not match")
+        raise ValueError("artifact paths, hashes, sizes or modes do not match")
     for name in contract["required"]:
         if name not in actual:
             raise ValueError(f"required runtime path missing: {name}")
@@ -151,7 +195,15 @@ def main():
     parser.add_argument("--archive", type=Path)
     parser.add_argument("--commit")
     parser.add_argument("--sha256")
+    parser.add_argument(
+        "--allow-format-1-rollback",
+        action="store_true",
+        help="accept one retained format-1 tree only during rollback verification",
+    )
     args = parser.parse_args()
+    if args.allow_format_1_rollback and (
+            args.operation != "verify" or args.archive or args.sha256):
+        parser.error("--allow-format-1-rollback is only valid for direct verify without archive inputs")
     root = args.tree.resolve(strict=True)
     if args.operation == "unpack":
         if not args.archive or not args.sha256 or not args.commit:
@@ -171,7 +223,11 @@ def main():
                 with archive.extractfile(member) as source, target.open("xb") as output:
                     while chunk := source.read(1024 * 1024):
                         output.write(chunk)
-                target.chmod(member.mode & 0o755)
+                target.chmod(required_file_mode(member.name))
+        # Root commonly invokes unpack with umask 0077. Normalize every parent
+        # explicitly so the distinct service UID can load Node modules and the
+        # Nginx worker can read static files. The private marker stays root-only.
+        normalize_permissions(root)
         manifest = validate(root, json.loads((root / MANIFEST).read_text()))
         if manifest["commit"] != args.commit:
             raise ValueError("artifact source identity mismatch")
@@ -183,7 +239,8 @@ def main():
             parser.error("pack requires --archive and --commit")
         if args.archive.exists():
             raise ValueError("Never overwrite an existing artifact")
-        manifest = {"format": 1, "commit": args.commit,
+        normalize_permissions(root)
+        manifest = {"format": 2, "commit": args.commit,
                     "contract": json.loads(CONTRACT.read_text()), "files": inventory(root)}
         validate(root, manifest)
         (root / MANIFEST).write_text(json.dumps(manifest, indent=2) + "\n")
@@ -201,7 +258,7 @@ def main():
                 trusted = json.load(archive.extractfile(MANIFEST))
             if declared != trusted:
                 raise ValueError("staged manifest differs from trusted archive")
-        manifest = validate(root, declared)
+        manifest = validate(root, declared, allow_format1_rollback=args.allow_format_1_rollback)
         if args.commit and manifest["commit"] != args.commit:
             raise ValueError("artifact source identity mismatch")
         print(json.dumps({"verified": True, "commit": manifest["commit"], "files": len(manifest["files"])}))

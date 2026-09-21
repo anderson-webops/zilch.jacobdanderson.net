@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, writeFile } from 'node:fs/promises'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
@@ -47,10 +47,13 @@ if (git('cat-file', '-t', `refs/tags/${release}`) !== 'tag' || git('rev-parse', 
 
 const marker = `${JSON.stringify({ repository, release, commitSha, builtAt }, null, 2)}\n`
 const publicDirectory = new URL('../front-end/.output/public/', import.meta.url)
+const privateMarker = new URL('../.zilch-release-prepared.json', import.meta.url)
+const publicMarker = new URL('release.json', publicDirectory)
 await mkdir(publicDirectory, { recursive: true })
 await Promise.all([
-  writeFile(new URL('../.zilch-release-prepared.json', import.meta.url), marker, { mode: 0o600 }),
-  writeFile(new URL('release.json', publicDirectory), marker, { mode: 0o644 }),
+  writeFile(privateMarker, marker, { mode: 0o600 }),
+  writeFile(publicMarker, marker, { mode: 0o644 }),
 ])
+await Promise.all([chmod(privateMarker, 0o600), chmod(publicMarker, 0o644)])
 
 console.log(`Prepared release identity ${release} (${commitSha})`)

@@ -63,7 +63,7 @@ receipt["bytes"] = (output / receipt["archive"]).stat().st_size
 receipt["checks"] = ["production-only locked install", "full and production backend audits", "registry signatures", "manifest and required paths", "isolated unpacked runtime", "readiness failure and recovery", "GET and HEAD minimal probes", "repeated-signal drain", "restart", "post-copier verification", "missing-module rejection"]
 receipt["harnessSha256"] = {
     name: hashlib.sha256(Path(name).read_bytes()).hexdigest()
-    for name in ["deploy/runtime-artifact.json", "scripts/runtime-artifact.py", "scripts/package-runtime.sh", "scripts/test-unpacked-artifact.sh", "scripts/direct-runtime-smoke.mjs", "scripts/artifact-acceptance/runtime.mjs", "scripts/write-release-metadata.mjs", "deploy/systemd/install-service.sh", "deploy/systemd/promote-release.sh", "deploy/systemd/trusted-paths.py", "scripts/test-promotion-recovery.py", "scripts/test-promotion-recovery.sh", "scripts/test-bootstrap-in-vm.py"]
+    for name in ["deploy/runtime-artifact.json", "deploy/nginx/zilch.jacobdanderson.net.server.conf", "deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf", "scripts/runtime-artifact.py", "scripts/package-runtime.sh", "scripts/test-unpacked-artifact.sh", "scripts/direct-runtime-smoke.mjs", "scripts/artifact-acceptance/runtime.mjs", "scripts/write-release-metadata.mjs", "scripts/validate-tagged-source.sh", "deploy/systemd/install-service.sh", "deploy/systemd/promote-release.sh", "deploy/systemd/trusted-paths.py", "scripts/test-promotion-recovery.py", "scripts/test-promotion-recovery.sh", "scripts/test-bootstrap-in-vm.py"]
 }
 (output / "acceptance.json").write_text(json.dumps(receipt, indent=2) + "\n")
 PY

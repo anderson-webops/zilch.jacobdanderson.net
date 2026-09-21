@@ -14,10 +14,10 @@ export NUXT_TELEMETRY_DISABLED=1
 export PUPPETEER_SKIP_DOWNLOAD=true
 export SKIP_INSTALL_SIMPLE_GIT_HOOKS=1
 
-release_root="${BUILD_ROOT:-${STAGING_ROOT:-/srv/zilch.jacobdanderson.net/staging}}"
+release_root="${BUILD_ROOT:-}"
 
-if [[ $# -ne 1 ]]; then
-		echo "Usage: prepare-release.sh /srv/zilch.jacobdanderson.net/staging/<release>" >&2
+if [[ $# -ne 1 || -z "$release_root" ]]; then
+		echo "Usage: BUILD_ROOT=/non-production/checkout-parent validate-tagged-source.sh <clean-tagged-checkout>" >&2
 	exit 2
 fi
 if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
@@ -27,6 +27,12 @@ fi
 
 release_root_real="$(cd -- "$release_root" && pwd -P)"
 candidate="$(cd -- "$1" && pwd -P)"
+case "$release_root_real/" in
+	/srv/* | /var/www/*) echo 'Source validation must not build or prepare a production release tree; activate only the accepted published artifact.' >&2; exit 1 ;;
+esac
+case "$candidate/" in
+	/srv/* | /var/www/*) echo 'Source validation must not run from a production release tree; activate only the accepted published artifact.' >&2; exit 1 ;;
+esac
 case "$candidate/" in
 	"$release_root_real/"*) ;;
 	*) echo "Candidate must resolve beneath $release_root_real: $candidate" >&2; exit 1 ;;
@@ -117,4 +123,4 @@ node scripts/prune-direct-runtime.mjs
 node scripts/verify-production-install.mjs
 node scripts/direct-runtime-smoke.mjs
 
-echo "Prepared and validated Zilch tagged source $candidate at $ZILCH_COMMIT_SHA."
+echo "Validated Zilch tagged source $candidate at $ZILCH_COMMIT_SHA; production must use the unchanged published artifact."

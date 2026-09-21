@@ -28,6 +28,25 @@ archive="$2"
 archive_sha="$3"
 commit="$4"
 archive_root="${ARCHIVE_ROOT:-/srv/zilch.jacobdanderson.net/quarantine}"
+legacy_release=v1.4.1
+legacy_commit=fc43e474c0c402fdea39828e02a59cab9aa60661
+current_nginx_sha256=943b2d1a5a6eab10c38255531f2aa9923118f16b09353a1533995082b8948ecc
+legacy_nginx_sha256=afd6eb84e6f35fa55b4cdc872bd4b7e759ec9b5ca1bb727c70ffba3a337adce4
+current_nginx_config="$helper_root/deploy/nginx/zilch.jacobdanderson.net.server.conf"
+legacy_nginx_config="$helper_root/deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf"
+nginx_server_config=/etc/nginx/sites-available/zilch.jacobdanderson.net
+if [[ -n "${NGINX_SERVER_CONFIG:-}" ]]; then
+  fixture_root="${FIXTURE_ROOT:-}"
+  if [[ "${ZILCH_ISOLATED_TEST_MODE:-}" != 1 \
+      || ! "$fixture_root" =~ ^/fixture/[a-z0-9-]+$ \
+      || "$NGINX_SERVER_CONFIG" != "$fixture_root/nginx/zilch.jacobdanderson.net" \
+      || "$release_root" != "$fixture_root/releases" \
+      || "$current_link" != "$fixture_root/current" ]]; then
+    echo 'NGINX_SERVER_CONFIG is fixed in production and may change only inside the bounded isolated fixture.' >&2
+    exit 1
+  fi
+  nginx_server_config="$NGINX_SERVER_CONFIG"
+fi
 if [[ ! "$archive_sha" =~ ^[0-9a-f]{64}$ || ! "$commit" =~ ^[0-9a-f]{40}$ ]]; then
   echo 'Pass the independently reviewed release archive digest and exact source commit.' >&2; exit 1
 fi
@@ -36,7 +55,14 @@ fi
 /usr/bin/python3 -I "$script_dir/trusted-paths.py" \
   "$script_dir/promote-release.sh" "$script_dir/trusted-paths.py" \
   "$helper_root/scripts/runtime-artifact.py" "$helper_root/deploy/runtime-artifact.json" \
+  "$current_nginx_config" "$legacy_nginx_config" \
   "$node" "$archive" "$release_root" "$(dirname -- "$current_link")" --tree "$1"
+if [[ "$(/usr/bin/sha256sum "$current_nginx_config" | cut -d ' ' -f 1)" != "$current_nginx_sha256" ]]; then
+  echo 'The installed current Nginx contract does not match reviewed source.' >&2; exit 1
+fi
+if [[ "$(/usr/bin/sha256sum "$legacy_nginx_config" | cut -d ' ' -f 1)" != "$legacy_nginx_sha256" ]]; then
+  echo 'The installed legacy Nginx rollback contract does not match reviewed v1.4.1 source.' >&2; exit 1
+fi
 if [[ ! -x "$node" || "$("$node" --version)" != v24.18.1 ]]; then
   echo 'NODE_BIN_DIR must select the approved Node24.18.1 runtime.' >&2; exit 1
 fi
@@ -58,6 +84,12 @@ if (!["http:", "https:"].includes(health.protocol) || ready.origin !== health.or
     || health.hash || ready.hash) throw new Error("Health and readiness must use the same service without credentials or fragments")
 process.stdout.write(ready.href)
 ' "$health_url" "${READINESS_URL:-}")"
+legacy_health_url="$("$node" -e '
+const health = new URL(process.argv[1])
+health.pathname = "/api/health"
+health.search = ""
+process.stdout.write(health.href)
+' "$health_url")"
 
 public_origin="${PUBLIC_ORIGIN:-https://$public_host}"
 resolve_ipv4="${ZILCH_RESOLVE_IPV4:-$public_host:443:127.0.0.1}"
@@ -106,6 +138,11 @@ if [[ "$(stat -c '%a' "$recovery_root")" != 700 ]]; then
 fi
 exec 9>"$recovery_root/promotion.lock"
 if ! flock -n 9; then echo 'Another Zilch promotion is active.' >&2; exit 1; fi
+if [[ "$nginx_server_config" != /* || ! -f "$nginx_server_config" || -L "$nginx_server_config" ]]; then
+  echo 'Zilch requires its exact real Nginx server configuration path.' >&2
+  exit 1
+fi
+/usr/bin/python3 -I "$script_dir/trusted-paths.py" "$nginx_server_config"
 if ! nginx -t; then
 	echo "Nginx configuration must pass before promotion." >&2
 	exit 1
@@ -200,6 +237,23 @@ if (expected.repository !== actual.repository || expected.release !== actual.rel
 ' "$expected" "$actual"
 }
 
+target_profile() {
+	local target="$1"
+	if [[ -f "$target/runtime-manifest.json" ]]; then
+		printf '%s\n' artifact
+		return 0
+	fi
+	if "$node" -e '
+const fs = require("node:fs")
+const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
+if (value.release !== process.argv[2] || value.commitSha !== process.argv[3]) process.exit(1)
+' "$target/.zilch-release-prepared.json" "$legacy_release" "$legacy_commit"; then
+		printf '%s\n' legacy-v1.4.1
+		return 0
+	fi
+	return 1
+}
+
 health_is_minimal() {
 	local actual="$1"
 	"$node" -e '
@@ -260,9 +314,13 @@ edge_http_redirects() {
 wait_for_target() {
 	local target="$1"
 	local marker="$target/.zilch-release-prepared.json"
+	local profile
+	if ! profile="$(target_profile "$target")"; then return 1; fi
+	local direct_health_url="$health_url"
+	if [[ "$profile" == legacy-v1.4.1 ]]; then direct_health_url="$legacy_health_url"; fi
 	local _attempt
 	for _attempt in {1..40}; do
-		if curl --noproxy '*' --fail --silent --show-error --max-time 5 "$health_url" --output "$response_health" \
+		if curl --noproxy '*' --fail --silent --show-error --max-time 5 "$direct_health_url" --output "$response_health" \
 			&& health_is_minimal "$response_health" \
         && readiness_matches "$target" \
 			&& curl --noproxy '*' --ipv4 --fail --silent --show-error --max-time 5 --resolve "$resolve_ipv4" \
@@ -277,10 +335,7 @@ wait_for_target() {
 				--dump-header "$headers_ipv6" "$public_origin/" --output /dev/null \
 			&& strict_page_headers "$headers_ipv4" \
 			&& strict_page_headers "$headers_ipv6" \
-			&& edge_probe_is_minimal --ipv4 "$resolve_ipv4" /healthz GET "$headers_ipv4" \
-			&& edge_probe_is_minimal --ipv6 "$resolve_ipv6" /healthz HEAD "$headers_ipv6" \
-			&& edge_probe_is_minimal --ipv4 "$resolve_ipv4" /readyz GET "$headers_ipv4" \
-			&& edge_probe_is_minimal --ipv6 "$resolve_ipv6" /readyz HEAD "$headers_ipv6" \
+			&& edge_probes_match "$profile" \
 			&& [[ "$(edge_status --ipv4 "$resolve_ipv4" "$public_origin/api/admin")" == "404" ]] \
 			&& [[ "$(edge_status --ipv6 "$resolve_ipv6" "$public_origin/api/admin")" == "404" ]] \
 			&& edge_http_redirects --ipv4 "$resolve_http_ipv4" "$headers_ipv4" \
@@ -293,11 +348,45 @@ wait_for_target() {
 }
 
 readiness_matches() {
-  # Releases without an artifact manifest predate readiness; preserve that legacy gate.
-  if [[ ! -f "$1/runtime-manifest.json" ]]; then return 0; fi
+  local profile
+  if ! profile="$(target_profile "$1")"; then return 1; fi
+  # Only the exact retained v1.4.1 release predates direct readiness.
+  if [[ "$profile" == legacy-v1.4.1 ]]; then return 0; fi
   curl --noproxy '*' --fail --silent --show-error --max-time 5 \
     "$readiness_url" --output "$response_health" \
     && health_is_minimal "$response_health"
+}
+
+edge_probes_match() {
+	local profile="$1"
+	if [[ "$profile" == legacy-v1.4.1 ]]; then
+		edge_probe_is_minimal --ipv4 "$resolve_ipv4" /api/health GET "$headers_ipv4" \
+			&& edge_probe_is_minimal --ipv6 "$resolve_ipv6" /api/health HEAD "$headers_ipv6"
+		return
+	fi
+	edge_probe_is_minimal --ipv4 "$resolve_ipv4" /healthz GET "$headers_ipv4" \
+		&& edge_probe_is_minimal --ipv6 "$resolve_ipv6" /healthz HEAD "$headers_ipv6" \
+		&& edge_probe_is_minimal --ipv4 "$resolve_ipv4" /readyz GET "$headers_ipv4" \
+		&& edge_probe_is_minimal --ipv6 "$resolve_ipv6" /readyz HEAD "$headers_ipv6"
+}
+
+# Invoked through the rollback function from the EXIT handler.
+# shellcheck disable=SC2329
+install_nginx_for_target() {
+	local destination_parent profile source temporary
+	if ! profile="$(target_profile "$1")"; then return 1; fi
+	if [[ "$profile" == legacy-v1.4.1 ]]; then
+		source="$legacy_nginx_config"
+	else
+		source="$current_nginx_config"
+	fi
+	destination_parent="$(dirname -- "$nginx_server_config")"
+	temporary="$(mktemp "$destination_parent/.zilch-nginx-XXXXXXXX")" || return 1
+	if ! install -o root -g root -m 0644 "$source" "$temporary" \
+			|| ! mv -Tf -- "$temporary" "$nginx_server_config"; then
+		rm -f -- "$temporary"
+		return 1
+	fi
 }
 
 # Invoked by the EXIT handler. Do not abandon rollback after the first failure.
@@ -306,6 +395,7 @@ rollback() {
   local failed=0
   if [[ -n "$previous_target" ]]; then
     activate_target "$previous_target" || failed=1
+    install_nginx_for_target "$previous_target" || failed=1
     systemctl restart "$service_name" || failed=1
     if [[ "$service_was_enabled" != true ]]; then systemctl disable "$service_name" || failed=1; fi
     nginx -t && systemctl reload nginx || failed=1
@@ -326,7 +416,13 @@ if [[ -n "$previous_target" ]]; then
   fi
   if [[ -f "$previous_target/runtime-manifest.json" ]]; then
     previous_commit="$("$node" -e 'const fs=require("node:fs");const value=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));process.stdout.write(value.commitSha||"")' "$previous_target/.zilch-release-prepared.json")"
-    /usr/bin/python3 -I "$helper_root/scripts/runtime-artifact.py" verify "$previous_target" --commit "$previous_commit"
+    /usr/bin/python3 -I "$helper_root/scripts/runtime-artifact.py" verify "$previous_target" \
+      --commit "$previous_commit" --allow-format-1-rollback
+  elif [[ "$(target_profile "$previous_target" 2>/dev/null || true)" == legacy-v1.4.1 ]]; then
+    /usr/bin/python3 -I "$script_dir/trusted-paths.py" "$current_nginx_config" "$legacy_nginx_config"
+  else
+    echo 'Only the exact v1.4.1 pre-artifact release is an accepted legacy rollback target.' >&2
+    exit 1
   fi
 fi
 service_was_enabled=false
@@ -335,7 +431,8 @@ if systemctl is-enabled --quiet "$service_name"; then
 fi
 mutation_started=true
 activate_target "$candidate"
-if systemctl enable "$service_name" \
+if install_nginx_for_target "$candidate" \
+  && systemctl enable "$service_name" \
   && systemctl restart "$service_name" \
   && nginx -t \
   && systemctl reload nginx \

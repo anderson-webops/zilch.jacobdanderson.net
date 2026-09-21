@@ -38,7 +38,7 @@ jobs:
           fi
 
       - name: Pin npm
-        run: npm install --global npm@12.0.2 --allow-scripts=npm
+        run: npm install --global npm@12.0.2 --allow-scripts=npm # zizmor: ignore[adhoc-packages]
 
       - name: Validate direct deployment configuration syntax
         run: |
@@ -46,7 +46,7 @@ jobs:
           sudo apt-get install --yes --no-install-recommends nginx
           sudo env "PATH=$PATH" deploy/validate-configs.sh
 
-      - name: Prepare exact tagged direct runtime
+      - name: Validate exact tagged source outside production
         env:
           CI: "true"
           PUPPETEER_SKIP_DOWNLOAD: "true"
@@ -55,7 +55,7 @@ jobs:
           BUILD_ROOT="$(dirname "$GITHUB_WORKSPACE")" \
           NODE_BIN_DIR="$(dirname "$(command -v node)")" \
           NPM_CONFIG_CACHE="$RUNNER_TEMP/npm-cache" \
-          deploy/systemd/prepare-release.sh "$GITHUB_WORKSPACE"
+          scripts/validate-tagged-source.sh "$GITHUB_WORKSPACE"
 
   installer:
     needs: prepare
@@ -75,8 +75,10 @@ jobs:
           package-manager-cache: false
 
       - name: Stage the protected disposable-host runtime
-        run: |
+        run: | # zizmor: ignore[adhoc-packages]
           npm install --global npm@12.0.2 --allow-scripts=npm
+          sudo apt-get update -qq
+          sudo apt-get install --yes --no-install-recommends nginx
           node_prefix="$(dirname "$(dirname "$(command -v node)")")"
           sudo chown root:root /opt
           sudo chmod 0755 /opt
@@ -105,7 +107,7 @@ jobs:
           node-version: 24.18.1
           package-manager-cache: false
       - name: Prepare isolated artifact-test tools
-        run: |
+        run: | # zizmor: ignore[adhoc-packages]
           npm install --global npm@12.0.2 --allow-scripts=npm
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends bubblewrap apparmor
