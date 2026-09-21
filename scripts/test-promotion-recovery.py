@@ -305,15 +305,16 @@ for mode in modes:
         assert 'Promoted' in evidence and (root/'current').resolve()==candidate,evidence
         assert json.loads((previous/'.zilch-release-prepared.json').read_text())['release']=='v1.4.3'
         assert json.loads((candidate/'.zilch-release-prepared.json').read_text())['release']=='v1.4.7'
-        github=subprocess.run(['gh','release','view','v1.4.7'],env=env,capture_output=True,text=True)
+        offline_env={**env,'PATH':'/usr/local/bin:/runtime:/usr/bin:/bin'}
+        github=subprocess.run(['gh','release','view','v1.4.7'],env=offline_env,capture_output=True,text=True)
         assert github.returncode==99,'GitHub-unavailable fixture unexpectedly succeeded'
         external=subprocess.run(
             ['curl','--ipv4','--fail','--max-time','5','https://zilch.jacobdanderson.net/healthz'],
-            env=env,capture_output=True,text=True)
+            env=offline_env,capture_output=True,text=True)
         assert external.returncode==28,'outer WAN fixture unexpectedly passed'
         restore=subprocess.run(
             ['bash',str(control/'deploy/systemd/promote-release.sh'),'--restore-retained',str(previous)],
-            env=env,capture_output=True,text=True,timeout=PROMOTION_PROCESS_TIMEOUT)
+            env=offline_env,capture_output=True,text=True,timeout=PROMOTION_PROCESS_TIMEOUT)
         evidence+=restore.stdout+restore.stderr
         assert restore.returncode==0,evidence
         assert 'protected local evidence' in evidence,evidence
