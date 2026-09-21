@@ -382,7 +382,7 @@ install_nginx_for_target() {
 	fi
 	destination_parent="$(dirname -- "$nginx_server_config")"
 	temporary="$(mktemp "$destination_parent/.zilch-nginx-XXXXXXXX")" || return 1
-	if ! install -o root -g root -m 0644 "$source" "$temporary" \
+	if ! install -o 0 -g 0 -m 0644 "$source" "$temporary" \
 			|| ! mv -Tf -- "$temporary" "$nginx_server_config"; then
 		rm -f -- "$temporary"
 		return 1

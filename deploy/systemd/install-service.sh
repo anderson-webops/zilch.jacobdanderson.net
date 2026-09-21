@@ -162,7 +162,7 @@ if [[ -L "$base/shared" ]]; then
   echo "Expected a real managed directory: $base/shared" >&2
   exit 1
 elif [[ ! -e "$base/shared" ]]; then
-  install -d -o root -g "$service_gid" -m 0750 "$base/shared"
+  install -d -o 0 -g "$service_gid" -m 0750 "$base/shared"
 elif [[ ! -d "$base/shared" ]]; then
   echo "Expected a real managed directory: $base/shared" >&2
   exit 1
@@ -186,7 +186,7 @@ done
 if [[ -e "$helper_parent" || -L "$helper_parent" ]]; then
   /usr/bin/python3 -I "$script_dir/trusted-paths.py" "$helper_parent"
 else
-  install -d -o root -g root -m 0755 "$helper_parent"
+  install -d -o 0 -g 0 -m 0755 "$helper_parent"
   created_helper_parent=true
 fi
 if [[ -e "$helper_root" || -L "$helper_root" ]]; then
@@ -194,14 +194,14 @@ if [[ -e "$helper_root" || -L "$helper_root" ]]; then
   exit 1
 fi
 
-install -d -o root -g root -m 0755 \
+install -d -o 0 -g 0 -m 0755 \
   "$helper_root" "$helper_root/scripts" "$helper_root/deploy" \
   "$helper_root/deploy/nginx" "$helper_root/deploy/systemd"
 created_helper=true
-install -o root -g root -m 0755 "$script_dir/promote-release.sh" "$script_dir/trusted-paths.py" "$helper_root/deploy/systemd/"
-install -o root -g root -m 0755 "$source_root/scripts/runtime-artifact.py" "$helper_root/scripts/"
-install -o root -g root -m 0644 "$source_root/deploy/runtime-artifact.json" "$helper_root/deploy/"
-install -o root -g root -m 0644 \
+install -o 0 -g 0 -m 0755 "$script_dir/promote-release.sh" "$script_dir/trusted-paths.py" "$helper_root/deploy/systemd/"
+install -o 0 -g 0 -m 0755 "$source_root/scripts/runtime-artifact.py" "$helper_root/scripts/"
+install -o 0 -g 0 -m 0644 "$source_root/deploy/runtime-artifact.json" "$helper_root/deploy/"
+install -o 0 -g 0 -m 0644 \
   "$source_root/deploy/nginx/zilch.jacobdanderson.net.server.conf" \
   "$source_root/deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf" \
   "$helper_root/deploy/nginx/"
@@ -212,11 +212,11 @@ if [[ -e "$wrapper" || -L "$wrapper" ]]; then
 fi
 wrapper_new="$(mktemp /usr/local/sbin/.zilch-promote-release.XXXXXXXX)"
 printf '#!/bin/sh\nexec %s "$@"\n' "$helper_root/deploy/systemd/promote-release.sh" >"$wrapper_new"
-chown root:root "$wrapper_new"
+chown 0:0 "$wrapper_new"
 chmod 0755 "$wrapper_new"
 
 if [[ "$install_unit" == true ]]; then
-  install -o root -g root -m 0644 "$script_dir/zilch-api.service" "$unit"
+  install -o 0 -g 0 -m 0644 "$script_dir/zilch-api.service" "$unit"
   created_unit=true
   systemctl daemon-reload
 fi

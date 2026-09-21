@@ -10,5 +10,6 @@ timeout -k 5 120 bwrap --unshare-all --die-with-parent --new-session --uid 0 --g
   --ro-bind /usr /usr --symlink usr/bin /bin --symlink usr/lib /lib \
   --tmpfs /usr/local --ro-bind "$node" /runtime/node --proc /proc --dev /dev --tmpfs /tmp \
   --ro-bind "$root/deploy" /source/deploy --ro-bind "$root/scripts" /source/scripts \
+  --ro-bind "$root/package.json" /source/package.json \
   --clearenv --setenv PATH /runtime:/usr/bin:/bin --setenv HOME /tmp \
   --chdir /tmp /usr/bin/python3 -B /source/scripts/test-promotion-recovery.py "${1:-all}"
