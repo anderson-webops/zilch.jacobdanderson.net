@@ -74,23 +74,23 @@ def setup(root):
         shutil.copytree(SOURCE/folder,control/folder)
     spec=importlib.util.spec_from_file_location('artifact',control/'scripts/runtime-artifact.py')
     artifact=importlib.util.module_from_spec(spec);spec.loader.exec_module(artifact)
-    (control/'package.json').write_text(json.dumps({'version':'1.4.2'}))
+    (control/'package.json').write_text(json.dumps({'version':'1.4.3'}))
     candidate=root/'releases/candidate'
     candidate.mkdir(parents=True)
     contract=json.loads(artifact.CONTRACT.read_text())
     required=contract['required']+[p.replace('*','fixture') for p in contract.get('requiredPatterns',[])]
     for name in required:
         p=candidate/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('Synthetic runtime file\n')
-    package={'version':'1.4.2'}
+    package={'version':'1.4.3'}
     backend={**package,'type':'module','dependencies':{'express':'5.2.1'}}
     express=candidate/'back-end/node_modules/express/package.json'
     express.parent.mkdir(parents=True)
     express.write_text(json.dumps({'version':'5.2.1'}))
     for name,value in [('package.json',package),('front-end/package.json',package),('back-end/package.json',backend),
-                       ('package-lock.json',{'version':'1.4.2','packages':{'':backend,'node_modules/express':{'version':'5.2.1'}}}),
-                       ('back-end/package-lock.json',{'version':'1.4.2','packages':{'':backend,'node_modules/express':{'version':'5.2.1'}}})]:
+                       ('package-lock.json',{'version':'1.4.3','packages':{'':backend,'node_modules/express':{'version':'5.2.1'}}}),
+                       ('back-end/package-lock.json',{'version':'1.4.3','packages':{'':backend,'node_modules/express':{'version':'5.2.1'}}})]:
         (candidate/name).write_text(json.dumps(value))
-    metadata={'repository':'anderson-webops/zilch.jacobdanderson.net','release':'v1.4.2','commitSha':'a'*40,'builtAt':'2026-09-17T00:00:00Z'}
+    metadata={'repository':'anderson-webops/zilch.jacobdanderson.net','release':'v1.4.3','commitSha':'a'*40,'builtAt':'2026-09-17T00:00:00Z'}
     for name in ['.zilch-release-prepared.json','front-end/.output/public/release.json']:
         (candidate/name).write_text(json.dumps(metadata))
     # This application module must never be interpreted by privileged promotion.

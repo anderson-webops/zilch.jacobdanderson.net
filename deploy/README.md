@@ -67,7 +67,7 @@ Use the tagged workflow's exact Linux ARM64 outputs. Verify release asset names,
 Create a fresh empty root-owned target beneath the release root and unpack with the installed verifier, not source-owned code:
 
 ```bash
-release=v1.4.2
+release=v1.4.3
 commit=<full-40-character-source-commit>
 archive=/srv/zilch.jacobdanderson.net/quarantine/zilch-$release-${commit:0:12}-linux-arm64.tar.gz
 sha256=<published-archive-sha256>
@@ -75,7 +75,7 @@ candidate=/srv/zilch.jacobdanderson.net/releases/$release-${commit:0:12}
 
 sudo install -d -o root -g root -m 0755 "$candidate"
 sudo /usr/bin/python3 -I \
-  /usr/local/libexec/zilch-release/1.4.2/scripts/runtime-artifact.py \
+  /usr/local/libexec/zilch-release/1.4.3/scripts/runtime-artifact.py \
   unpack "$candidate" --archive "$archive" --sha256 "$sha256" --commit "$commit"
 sudo chown -R root:root "$candidate"
 sudo chmod -R a-w "$candidate"

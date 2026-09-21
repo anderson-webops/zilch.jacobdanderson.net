@@ -78,6 +78,8 @@ jobs:
         run: |
           npm install --global npm@12.0.2 --allow-scripts=npm
           node_prefix="$(dirname "$(dirname "$(command -v node)")")"
+          sudo chown root:root /opt
+          sudo chmod 0755 /opt
           sudo install -d -o root -g root -m 0755 /opt/node-24.18.1
           sudo cp -a "$node_prefix/." /opt/node-24.18.1/
           sudo chown -R root:root /opt/node-24.18.1
