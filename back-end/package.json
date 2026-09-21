@@ -1,6 +1,6 @@
 {
 	"name": "zilch-back-end",
-	"version": "1.4.6",
+	"version": "1.4.7",
 	"private": true,
 	"description": "Minimal read-only health API for the Zilch browser game.",
 	"type": "module",

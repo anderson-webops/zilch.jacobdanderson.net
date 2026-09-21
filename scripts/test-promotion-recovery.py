@@ -23,6 +23,7 @@ name = pathlib.Path(sys.argv[0]).name
 args = sys.argv[1:]
 current = root / 'current'
 candidate = current.is_symlink() and current.resolve().name == 'candidate'
+with (root/'commands').open('a') as f:f.write(name+' '+' '.join(args)+'\n')
 def once(key):
     p=root/key
     if p.exists():return False
@@ -212,7 +213,9 @@ for mode in modes:
     if mode=='rollback-failure':
         assert len(records)==1 and 'protected record retained' in evidence,evidence
         assert stat.S_IMODE(records[0].stat().st_mode)==0o600
-    else:assert not records,(mode,evidence)
+    else:
+        commands=(root/'commands').read_text()[-12000:]
+        assert not records,(mode,evidence,'synthetic command tail:\n'+commands)
     if mode=='interrupt':assert result.returncode==143 and (root/'interrupted').exists(),evidence
     if mode=='bad-health':
         probes=(root/'probes').read_text()
