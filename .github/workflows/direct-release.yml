@@ -42,8 +42,7 @@ jobs:
 
       - name: Validate direct deployment configuration syntax
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install --yes --no-install-recommends nginx
+          sudo env CI="$CI" RUNNER_ENVIRONMENT="$RUNNER_ENVIRONMENT" scripts/install-ci-nginx.sh
           sudo env "PATH=$PATH" deploy/validate-configs.sh
 
       - name: Validate exact tagged source outside production

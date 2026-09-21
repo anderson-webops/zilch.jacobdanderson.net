@@ -12,6 +12,7 @@ trap cleanup EXIT
 
 shellcheck \
 	"$project_root/deploy/systemd/install-service.sh" \
+	"$project_root/scripts/install-ci-nginx.sh" \
 	"$project_root/scripts/validate-tagged-source.sh" \
 	"$project_root/deploy/systemd/promote-release.sh" \
 	"$project_root/deploy/validate-configs.sh"

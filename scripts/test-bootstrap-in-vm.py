@@ -19,6 +19,7 @@ marker = Path('/run/zilch-source-validation-vm')
 assert marker.is_file() and marker.read_text() == 'isolated-public-source-fixture\n'
 assert marker.stat().st_uid == 0
 assert not Path('/srv/zilch.jacobdanderson.net').exists(), 'Use a fresh disposable VM, never an installed host'
+os.umask(0o077)
 source = Path(__file__).resolve().parent.parent
 control = Path('/root/zilch-admin-fixture')
 control.mkdir(mode=0o700)
@@ -38,7 +39,7 @@ helper = Path('/usr/local/libexec/zilch-release') / version
 assert (helper / 'deploy/systemd/promote-release.sh').is_file()
 current_nginx = helper / 'deploy/nginx/zilch.jacobdanderson.net.server.conf'
 assert current_nginx.read_bytes() == (source / 'deploy/nginx/zilch.jacobdanderson.net.server.conf').read_bytes()
-assert hashlib.sha256(current_nginx.read_bytes()).hexdigest() == '943b2d1a5a6eab10c38255531f2aa9923118f16b09353a1533995082b8948ecc'
+assert hashlib.sha256(current_nginx.read_bytes()).hexdigest() == 'ed28fb3dc980ba2fd2f48464abed50f6228bcc3f578412f8697c03fdb358ba26'
 legacy_nginx = helper / 'deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf'
 assert legacy_nginx.read_bytes() == (source / 'deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf').read_bytes()
 assert hashlib.sha256(legacy_nginx.read_bytes()).hexdigest() == 'afd6eb84e6f35fa55b4cdc872bd4b7e759ec9b5ca1bb727c70ffba3a337adce4'
@@ -104,7 +105,11 @@ process.on('SIGTERM', () => server.close(() => process.exit(0)))
 ''')
 artifact.normalize_permissions(artifact_source)
 manifest = {'format': 2, 'commit': release_commit, 'contract': contract, 'files': artifact.inventory(artifact_source)}
-(artifact_source / artifact.MANIFEST).write_text(json.dumps(manifest))
+manifest_path = artifact_source / artifact.MANIFEST
+manifest_path.write_text(json.dumps(manifest))
+manifest_path.chmod(0o644)
+artifact.validate(artifact_source, manifest)
+assert stat.S_IMODE(manifest_path.stat().st_mode) == 0o644
 artifact_archive = Path('/root/zilch-root-extractor-fixture.tar.gz')
 with tarfile.open(artifact_archive, 'w:gz') as archive:
     for path in sorted(artifact_source.rglob('*')):

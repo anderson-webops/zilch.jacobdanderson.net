@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Package already validated, compiled exact source away from the production host.
 set -euo pipefail
+umask 027
 root=$(cd -- "$(dirname -- "$0")/.." && pwd)
 cd -- "$root"
 test "$(uname -s)" = Linux

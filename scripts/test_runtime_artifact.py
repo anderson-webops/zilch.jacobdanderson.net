@@ -1,12 +1,16 @@
+import contextlib
 import importlib.util
+import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 import tempfile
 import tarfile
 import unittest
+from unittest import mock
 
 spec = importlib.util.spec_from_file_location("artifact", Path(__file__).with_name("runtime-artifact.py"))
 artifact = importlib.util.module_from_spec(spec)
@@ -67,6 +71,17 @@ class RuntimeArtifactTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "independently trusted runtime contract"):
             artifact.validate(self.root, legacy)
         artifact.validate(self.root, legacy, allow_format1_rollback=True)
+
+    def test_version_specific_contract_is_explicit(self):
+        alternate_contract = {**self.contract, "topology": "protected retained-release fixture"}
+        contract_path = self.root.parent / f"{self.root.name}-contract.json"
+        self.addCleanup(contract_path.unlink, missing_ok=True)
+        contract_path.write_text(json.dumps(alternate_contract))
+        manifest = {"format": 2, "commit": "a" * 40, "contract": alternate_contract,
+                    "files": artifact.inventory(self.root)}
+        with self.assertRaisesRegex(ValueError, "independently trusted runtime contract"):
+            artifact.validate(self.root, manifest)
+        artifact.validate(self.root, manifest, contract_path=contract_path)
 
     def test_format_1_cannot_be_unpacked_as_a_new_candidate(self):
         with tempfile.TemporaryDirectory(dir=self.root.parent) as temporary:
@@ -178,6 +193,43 @@ class RuntimeArtifactTests(unittest.TestCase):
             result = subprocess.run([*command, "verify", str(unpacked), *arguments], capture_output=True, text=True)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("differs from trusted archive", result.stderr)
+
+    def test_packing_normalizes_manifest_under_restrictive_umasks(self):
+        observations = []
+        for mask in (0o027, 0o077):
+            with self.subTest(umask=oct(mask)), tempfile.TemporaryDirectory(dir=self.root.parent) as temporary:
+                output = Path(temporary)
+                tree = output / "tree"
+                shutil.copytree(self.root, tree)
+                archive = output / "runtime.tar.gz"
+                previous_umask = os.umask(mask)
+                try:
+                    with (
+                        mock.patch.object(artifact.platform, "system", return_value="Linux"),
+                        mock.patch.object(artifact.platform, "machine", return_value="aarch64"),
+                        mock.patch.object(sys, "argv", [
+                            str(Path(artifact.__file__)), "pack", str(tree),
+                            "--archive", str(archive), "--commit", "a" * 40,
+                        ]),
+                        contextlib.redirect_stdout(io.StringIO()),
+                    ):
+                        artifact.main()
+                finally:
+                    os.umask(previous_umask)
+                manifest_path = tree / artifact.MANIFEST
+                self.assertEqual(stat_mode(manifest_path), 0o644)
+                self.assertEqual(stat_mode(tree / ".zilch-release-prepared.json"), 0o600)
+                artifact.validate(tree, json.loads(manifest_path.read_text()))
+                with tarfile.open(archive, "r:gz") as packaged:
+                    members = {member.name: member.mode for member in packaged.getmembers()}
+                self.assertEqual(members[artifact.MANIFEST], 0o644)
+                self.assertEqual(members[".zilch-release-prepared.json"], 0o600)
+                observations.append((manifest_path.read_bytes(), members))
+        self.assertEqual(observations[0], observations[1])
+
+
+def stat_mode(path):
+    return path.stat().st_mode & 0o777
 
 
 if __name__ == "__main__":

@@ -43,8 +43,7 @@ jobs:
 
       - name: Validate direct deployment configuration syntax
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install --yes --no-install-recommends nginx
+          sudo env CI="$CI" RUNNER_ENVIRONMENT="$RUNNER_ENVIRONMENT" scripts/install-ci-nginx.sh
           sudo env "PATH=$PATH" deploy/validate-configs.sh
 
       - name: Install locked dependencies
@@ -70,6 +69,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7

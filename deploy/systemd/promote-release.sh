@@ -12,8 +12,22 @@ service_name="${SERVICE_NAME:-zilch-api.service}"
 health_url="${HEALTH_URL:-http://127.0.0.1:3018/api/health}"
 public_host="${PUBLIC_HOST:-}"
 
-if [[ $# -ne 4 ]]; then
+operation=promote
+candidate_argument=''
+archive=''
+archive_sha=''
+commit=''
+if [[ $# -eq 2 && "$1" == --restore-retained ]]; then
+	operation=restore
+	candidate_argument="$2"
+elif [[ $# -eq 4 && "$1" != --restore-retained ]]; then
+	candidate_argument="$1"
+	archive="$2"
+	archive_sha="$3"
+	commit="$4"
+else
 	echo "Usage: PUBLIC_HOST=zilch.jacobdanderson.net promote-release.sh <protected-release> <protected-archive> <sha256> <commit>" >&2
+	echo "   or: PUBLIC_HOST=zilch.jacobdanderson.net promote-release.sh --restore-retained <protected-release>" >&2
 	exit 2
 fi
 if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
@@ -24,20 +38,29 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 helper_root="$(cd -- "$script_dir/../.." && pwd -P)"
 node_bin_dir="${NODE_BIN_DIR:-/opt/node-24.18.1/bin}"
 node="$node_bin_dir/node"
-archive="$2"
-archive_sha="$3"
-commit="$4"
 archive_root="${ARCHIVE_ROOT:-/srv/zilch.jacobdanderson.net/quarantine}"
 legacy_release=v1.4.1
 legacy_commit=fc43e474c0c402fdea39828e02a59cab9aa60661
-current_nginx_sha256=943b2d1a5a6eab10c38255531f2aa9923118f16b09353a1533995082b8948ecc
+current_nginx_sha256=ed28fb3dc980ba2fd2f48464abed50f6228bcc3f578412f8697c03fdb358ba26
 legacy_nginx_sha256=afd6eb84e6f35fa55b4cdc872bd4b7e759ec9b5ca1bb727c70ffba3a337adce4
 current_nginx_config="$helper_root/deploy/nginx/zilch.jacobdanderson.net.server.conf"
 legacy_nginx_config="$helper_root/deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf"
+helper_parent="$(dirname -- "$helper_root")"
+fixture_root="${FIXTURE_ROOT:-}"
+if [[ -n "${HELPER_PARENT:-}" ]]; then
+	if [[ "${ZILCH_ISOLATED_TEST_MODE:-}" != 1 \
+			|| ! "$fixture_root" =~ ^/fixture/[a-z0-9-]+$ \
+			|| "$HELPER_PARENT" != "$fixture_root/helpers" \
+			|| "$release_root" != "$fixture_root/releases" \
+			|| "$current_link" != "$fixture_root/current" ]]; then
+		echo 'HELPER_PARENT is fixed in production and may change only inside the bounded isolated fixture.' >&2
+		exit 1
+	fi
+	helper_parent="$HELPER_PARENT"
+fi
 nginx_server_config=/etc/nginx/sites-available/zilch.jacobdanderson.net
 if [[ -n "${NGINX_SERVER_CONFIG:-}" ]]; then
-  fixture_root="${FIXTURE_ROOT:-}"
-  if [[ "${ZILCH_ISOLATED_TEST_MODE:-}" != 1 \
+	if [[ "${ZILCH_ISOLATED_TEST_MODE:-}" != 1 \
       || ! "$fixture_root" =~ ^/fixture/[a-z0-9-]+$ \
       || "$NGINX_SERVER_CONFIG" != "$fixture_root/nginx/zilch.jacobdanderson.net" \
       || "$release_root" != "$fixture_root/releases" \
@@ -47,16 +70,21 @@ if [[ -n "${NGINX_SERVER_CONFIG:-}" ]]; then
   fi
   nginx_server_config="$NGINX_SERVER_CONFIG"
 fi
-if [[ ! "$archive_sha" =~ ^[0-9a-f]{64}$ || ! "$commit" =~ ^[0-9a-f]{40}$ ]]; then
-  echo 'Pass the independently reviewed release archive digest and exact source commit.' >&2; exit 1
+if [[ "$operation" == promote \
+		&& ( ! "$archive_sha" =~ ^[0-9a-f]{64}$ || ! "$commit" =~ ^[0-9a-f]{40}$ ) ]]; then
+	echo 'Pass the independently reviewed release archive digest and exact source commit.' >&2; exit 1
 fi
 # These checks supplement the trusted bootstrap; never run this helper from a
 # build-owned checkout in the first place, since such a file can replace its guard.
+trusted_inputs=(
+	"$script_dir/promote-release.sh" "$script_dir/trusted-paths.py"
+	"$helper_root/scripts/runtime-artifact.py" "$helper_root/deploy/runtime-artifact.json"
+	"$current_nginx_config" "$legacy_nginx_config" "$helper_parent"
+	"$node" "$release_root" "$(dirname -- "$current_link")"
+)
+if [[ "$operation" == promote ]]; then trusted_inputs+=("$archive"); fi
 /usr/bin/python3 -I "$script_dir/trusted-paths.py" \
-  "$script_dir/promote-release.sh" "$script_dir/trusted-paths.py" \
-  "$helper_root/scripts/runtime-artifact.py" "$helper_root/deploy/runtime-artifact.json" \
-  "$current_nginx_config" "$legacy_nginx_config" \
-  "$node" "$archive" "$release_root" "$(dirname -- "$current_link")" --tree "$1"
+	"${trusted_inputs[@]}" --tree "$candidate_argument"
 if [[ "$(/usr/bin/sha256sum "$current_nginx_config" | cut -d ' ' -f 1)" != "$current_nginx_sha256" ]]; then
   echo 'The installed current Nginx contract does not match reviewed source.' >&2; exit 1
 fi
@@ -97,13 +125,15 @@ resolve_ipv6="${ZILCH_RESOLVE_IPV6:-$public_host:443:[::1]}"
 resolve_http_ipv4="${ZILCH_RESOLVE_HTTP_IPV4:-$public_host:80:127.0.0.1}"
 resolve_http_ipv6="${ZILCH_RESOLVE_HTTP_IPV6:-$public_host:80:[::1]}"
 release_root_real="$(cd -- "$release_root" && pwd -P)"
-archive_root_real="$(cd -- "$archive_root" && pwd -P)"
-archive_real="$(cd -- "$(dirname -- "$archive")" && pwd -P)/$(basename -- "$archive")"
-case "$archive_real" in
-	"$archive_root_real"/*) ;;
-	*) echo "Protected release archive must be beneath $archive_root_real." >&2; exit 1 ;;
-esac
-candidate="$(cd -- "$1" && pwd -P)"
+if [[ "$operation" == promote ]]; then
+	archive_root_real="$(cd -- "$archive_root" && pwd -P)"
+	archive_real="$(cd -- "$(dirname -- "$archive")" && pwd -P)/$(basename -- "$archive")"
+	case "$archive_real" in
+		"$archive_root_real"/*) ;;
+		*) echo "Protected release archive must be beneath $archive_root_real." >&2; exit 1 ;;
+	esac
+fi
+candidate="$(cd -- "$candidate_argument" && pwd -P)"
 case "$candidate/" in
 	"$release_root_real/"*) ;;
 	*) echo "Candidate must resolve beneath $release_root_real: $candidate" >&2; exit 1 ;;
@@ -112,6 +142,79 @@ if [[ "$candidate" == "$release_root_real" ]]; then
 	echo "Candidate must be a prepared release beneath, not equal to, $release_root_real." >&2
 	exit 1
 fi
+
+identity_matches() {
+	local expected="$1"
+	local actual="$2"
+	"$node" -e '
+const fs = require("node:fs")
+const expected = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
+const actual = JSON.parse(fs.readFileSync(process.argv[2], "utf8"))
+const valid = value => value && !Array.isArray(value)
+  && Object.keys(value).sort().join(",") === "builtAt,commitSha,release,repository"
+  && value.repository === "anderson-webops/zilch.jacobdanderson.net"
+  && /^v\d+\.\d+\.\d+$/.test(value.release)
+  && /^[0-9a-f]{40}$/.test(value.commitSha)
+  && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(value.builtAt)
+  && Number.isFinite(Date.parse(value.builtAt))
+  && new Date(value.builtAt).toISOString().slice(0, 19) === value.builtAt.slice(0, 19)
+if (!valid(expected) || !valid(actual)) process.exit(1)
+if (expected.repository !== actual.repository || expected.release !== actual.release
+    || expected.commitSha !== actual.commitSha || expected.builtAt !== actual.builtAt) process.exit(1)
+' "$expected" "$actual"
+}
+
+target_identity() {
+	"$node" -e '
+const fs = require("node:fs")
+const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
+if (!value || Array.isArray(value)
+    || Object.keys(value).sort().join(",") !== "builtAt,commitSha,release,repository"
+    || value.repository !== "anderson-webops/zilch.jacobdanderson.net"
+    || !/^v\d+\.\d+\.\d+$/.test(value.release)
+    || !/^[0-9a-f]{40}$/.test(value.commitSha)) process.exit(1)
+process.stdout.write(value.release + "\t" + value.commitSha + "\n")
+' "$1/.zilch-release-prepared.json"
+}
+
+is_exact_legacy_target() {
+	local release target_commit
+	IFS=$'\t' read -r release target_commit < <(target_identity "$1") \
+		&& [[ "$release" == "$legacy_release" && "$target_commit" == "$legacy_commit" ]]
+}
+
+artifact_helper_for_target() {
+	local release target_commit version selected resolved contract nginx_config
+	IFS=$'\t' read -r release target_commit < <(target_identity "$1") || return 1
+	version="${release#v}"
+	selected="$helper_parent/$version"
+	if [[ ! -d "$selected" || -L "$selected" ]]; then
+		echo "The protected helper for retained release $release is unavailable: $selected" >&2
+		return 1
+	fi
+	resolved="$(cd -- "$selected" && pwd -P)" || return 1
+	if [[ "$resolved" != "$selected" ]]; then
+		echo "The protected helper for $release must not traverse aliases." >&2
+		return 1
+	fi
+	contract="$selected/deploy/runtime-artifact.json"
+	nginx_config="$selected/deploy/nginx/zilch.jacobdanderson.net.server.conf"
+	/usr/bin/python3 -I "$script_dir/trusted-paths.py" \
+		"$helper_parent" "$contract" "$nginx_config" --tree "$selected" || return 1
+	printf '%s\n' "$selected"
+}
+
+artifact_contract_for_target() {
+	local selected
+	selected="$(artifact_helper_for_target "$1")" || return 1
+	printf '%s\n' "$selected/deploy/runtime-artifact.json"
+}
+
+artifact_nginx_for_target() {
+	local selected
+	selected="$(artifact_helper_for_target "$1")" || return 1
+	printf '%s\n' "$selected/deploy/nginx/zilch.jacobdanderson.net.server.conf"
+}
 
 for required_path in \
 	.zilch-release-prepared.json \
@@ -122,10 +225,31 @@ for required_path in \
 	if [[ ! -e "$candidate/$required_path" ]]; then
 		echo "Prepared release is missing $required_path." >&2
 		exit 1
-	fi
+		fi
 done
-/usr/bin/python3 -I "$helper_root/scripts/runtime-artifact.py" verify "$candidate" \
-  --archive "$archive" --sha256 "$archive_sha" --commit "$commit"
+if ! identity_matches "$candidate/.zilch-release-prepared.json" "$candidate/front-end/.output/public/release.json"; then
+	echo 'The selected release has invalid or inconsistent deployment identity.' >&2
+	exit 1
+fi
+IFS=$'\t' read -r _candidate_release candidate_commit < <(target_identity "$candidate")
+if [[ "$operation" == promote && "$candidate_commit" != "$commit" ]]; then
+	echo 'Candidate deployment identity does not match the reviewed source commit.' >&2
+	exit 1
+fi
+if [[ "$operation" == restore ]]; then commit="$candidate_commit"; fi
+if [[ -f "$candidate/runtime-manifest.json" ]]; then
+	candidate_contract="$(artifact_contract_for_target "$candidate")"
+	if [[ "$operation" == promote ]]; then
+		/usr/bin/python3 -I "$helper_root/scripts/runtime-artifact.py" verify "$candidate" \
+			--contract "$candidate_contract" --archive "$archive" --sha256 "$archive_sha" --commit "$commit"
+	else
+		/usr/bin/python3 -I "$helper_root/scripts/runtime-artifact.py" verify "$candidate" \
+			--contract "$candidate_contract" --commit "$commit" --allow-format-1-rollback
+	fi
+elif [[ "$operation" != restore ]] || ! is_exact_legacy_target "$candidate"; then
+	echo 'Only the exact retained v1.4.1 pre-artifact release may be restored without a runtime manifest.' >&2
+	exit 1
+fi
 if [[ -e "$current_link" && ! -L "$current_link" ]]; then
 	echo "Refusing to replace non-symlink deployment path: $current_link" >&2
 	exit 1
@@ -216,38 +340,13 @@ activate_target() {
 	mv -Tf -- "$next_link" "$current_link"
 }
 
-identity_matches() {
-	local expected="$1"
-	local actual="$2"
-	"$node" -e '
-const fs = require("node:fs")
-const expected = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
-const actual = JSON.parse(fs.readFileSync(process.argv[2], "utf8"))
-const valid = value => value && !Array.isArray(value)
-  && Object.keys(value).sort().join(",") === "builtAt,commitSha,release,repository"
-  && value.repository === "anderson-webops/zilch.jacobdanderson.net"
-  && /^v\d+\.\d+\.\d+$/.test(value.release)
-  && /^[0-9a-f]{40}$/.test(value.commitSha)
-  && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(value.builtAt)
-  && Number.isFinite(Date.parse(value.builtAt))
-  && new Date(value.builtAt).toISOString().slice(0, 19) === value.builtAt.slice(0, 19)
-if (!valid(expected) || !valid(actual)) process.exit(1)
-if (expected.repository !== actual.repository || expected.release !== actual.release
-    || expected.commitSha !== actual.commitSha || expected.builtAt !== actual.builtAt) process.exit(1)
-' "$expected" "$actual"
-}
-
 target_profile() {
 	local target="$1"
 	if [[ -f "$target/runtime-manifest.json" ]]; then
 		printf '%s\n' artifact
 		return 0
 	fi
-	if "$node" -e '
-const fs = require("node:fs")
-const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
-if (value.release !== process.argv[2] || value.commitSha !== process.argv[3]) process.exit(1)
-' "$target/.zilch-release-prepared.json" "$legacy_release" "$legacy_commit"; then
+	if is_exact_legacy_target "$target"; then
 		printf '%s\n' legacy-v1.4.1
 		return 0
 	fi
@@ -380,7 +479,7 @@ install_nginx_for_target() {
 	if [[ "$profile" == legacy-v1.4.1 ]]; then
 		source="$legacy_nginx_config"
 	else
-		source="$current_nginx_config"
+		source="$(artifact_nginx_for_target "$1")" || return 1
 	fi
 	destination_parent="$(dirname -- "$nginx_server_config")"
 	temporary="$(mktemp "$destination_parent/.zilch-nginx-XXXXXXXX")" || return 1
@@ -412,14 +511,16 @@ rollback() {
 }
 
 if [[ -n "$previous_target" ]]; then
-  if ! identity_matches "$previous_target/.zilch-release-prepared.json" "$previous_target/.zilch-release-prepared.json"; then
+  if [[ ! -f "$previous_target/front-end/.output/public/release.json" ]] \
+      || ! identity_matches "$previous_target/.zilch-release-prepared.json" "$previous_target/front-end/.output/public/release.json"; then
     echo 'The retained release has invalid rollback identity.' >&2
     exit 1
   fi
   if [[ -f "$previous_target/runtime-manifest.json" ]]; then
     previous_commit="$("$node" -e 'const fs=require("node:fs");const value=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));process.stdout.write(value.commitSha||"")' "$previous_target/.zilch-release-prepared.json")"
+    previous_contract="$(artifact_contract_for_target "$previous_target")"
     /usr/bin/python3 -I "$helper_root/scripts/runtime-artifact.py" verify "$previous_target" \
-      --commit "$previous_commit" --allow-format-1-rollback
+      --contract "$previous_contract" --commit "$previous_commit" --allow-format-1-rollback
   elif [[ "$(target_profile "$previous_target" 2>/dev/null || true)" == legacy-v1.4.1 ]]; then
     /usr/bin/python3 -I "$script_dir/trusted-paths.py" "$current_nginx_config" "$legacy_nginx_config"
   else
@@ -437,11 +538,15 @@ if install_nginx_for_target "$candidate" \
   && systemctl enable "$service_name" \
   && systemctl restart "$service_name" \
   && nginx -t \
-  && systemctl reload nginx \
-  && wait_for_target "$candidate"; then
-  finished=true
-  echo "Promoted $candidate and verified exact identity and read-only policy over local IPv4 and IPv6 TLS."
-  exit 0
-fi
+	  && systemctl reload nginx \
+	  && wait_for_target "$candidate"; then
+	  finished=true
+	  if [[ "$operation" == restore ]]; then
+	    echo "Restored retained release $candidate from protected local evidence and verified origin acceptance over local IPv4 and IPv6 TLS."
+	  else
+	    echo "Promoted $candidate and verified exact identity and read-only policy over local IPv4 and IPv6 TLS."
+	  fi
+	  exit 0
+	fi
 echo 'Candidate acceptance failed; restoring the previous direct release.' >&2
 exit 1

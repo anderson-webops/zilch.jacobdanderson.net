@@ -35,7 +35,7 @@ The accepted archive is the deployable object. Do not rebuild on the production 
 
 Never run a privileged installer, verifier, or promotion helper from a build-owned checkout. Package scripts can modify that checkout even if it started clean, and changing ownership later does not revoke an already-open writable file descriptor.
 
-Bootstrap or upgrade administrative helpers from a fresh, independently reviewed, root-created checkout of the published tag beneath root-controlled ancestors. Review `deploy/systemd/install-service.sh` before running it. The installer copies immutable, versioned helpers beneath `/usr/local/libexec/zilch-release/<version>/` and atomically updates `/usr/local/sbin/zilch-promote-release`. It preserves an existing unit and does not start or restart the service.
+Bootstrap or upgrade administrative helpers from a fresh, independently reviewed, root-created checkout of the published tag beneath root-controlled ancestors. Review `deploy/systemd/install-service.sh` before running it. The installer copies immutable, versioned helpers beneath `/usr/local/libexec/zilch-release/<version>/` and atomically updates `/usr/local/sbin/zilch-promote-release`. It preserves an existing unit and does not start or restart the service. Retain the protected helper for every retained rollback release. Recovery uses the newest verifier with the selected release's own protected contract and Nginx template; it never executes old helper code or silently substitutes the newest template for an older release.
 
 The unprivileged build account may write only staging and its npm cache. Archives, release trees, helper code, deployment recovery records, and their ancestors stay root-controlled and non-writable to the service account. Existing paths with unexpected ownership, modes, or symlinks require operator review and are not silently normalized.
 
@@ -67,7 +67,7 @@ Use the tagged workflow's exact Linux ARM64 outputs. Verify release asset names,
 Create a fresh empty root-owned target beneath the release root and unpack with the installed verifier, not source-owned code:
 
 ```bash
-release=v1.4.7
+release=v1.4.8
 commit=<full-40-character-source-commit>
 archive=/srv/zilch.jacobdanderson.net/quarantine/zilch-$release-${commit:0:12}-linux-arm64.tar.gz
 sha256=<published-archive-sha256>
@@ -75,7 +75,7 @@ candidate=/srv/zilch.jacobdanderson.net/releases/$release-${commit:0:12}
 
 sudo install -d -o root -g root -m 0755 "$candidate"
 sudo /usr/bin/python3 -I \
-  /usr/local/libexec/zilch-release/1.4.7/scripts/runtime-artifact.py \
+  /usr/local/libexec/zilch-release/1.4.8/scripts/runtime-artifact.py \
   unpack "$candidate" --archive "$archive" --sha256 "$sha256" --commit "$commit"
 ```
 
@@ -94,15 +94,26 @@ sudo env PUBLIC_HOST=zilch.jacobdanderson.net \
   "$candidate" "$archive" "$sha256" "$commit"
 ```
 
-The helper treats candidate files only as data. It independently verifies the candidate against the protected archive, validates trusted paths, takes an exclusive lock, installs the reviewed current Nginx server block at its fixed production path, selects the release atomically, restarts only `zilch-api.service`, and checks health, readiness, exact release identity, HTTP redirection, TLS through local IPv4 and IPv6, security headers, minimal probe responses, and denied unknown API operations. The Nginx destination cannot be overridden in production.
+The helper treats candidate files only as data. It independently verifies the candidate against the protected archive and the matching protected versioned contract, validates trusted paths, takes an exclusive lock, installs that release's reviewed Nginx server block at its fixed production path, selects the release atomically, restarts only `zilch-api.service`, and checks health, readiness, exact release identity, HTTP redirection, TLS through local IPv4 and IPv6, security headers, minimal probe responses, and denied unknown API operations. These checks are deterministic origin acceptance, not external WAN evidence. The Nginx destination and helper parent cannot be overridden in production.
 
-An unsuccessful exit or HUP/INT/TERM after mutation restores the prior pointer and its service enablement state, then rechecks it. A failed first activation removes only the new pointer and stops/disables the new service. Rollback continues after individual recovery errors; a degraded rollback leaves a mode `0600` recovery record beneath the protected mode `0700` `.deployment-recovery` directory. Preserve that evidence and the retained releases for operator repair. Never edit an immutable release in place.
+An unsuccessful exit or HUP/INT/TERM after mutation restores the prior pointer, that release's versioned Nginx configuration, and its service enablement state, then rechecks it. A failed first activation removes only the new pointer and stops/disables the new service. Rollback continues after individual recovery errors; a degraded rollback leaves a mode `0600` recovery record beneath the protected mode `0700` `.deployment-recovery` directory. Preserve that evidence and the retained releases for operator repair. Never edit an immutable release in place.
+
+If a separately executed external acceptance gate fails after deterministic origin promotion has completed, restore the already verified retained release without rebuilding it or contacting GitHub:
+
+```bash
+sudo env PUBLIC_HOST=zilch.jacobdanderson.net \
+  NODE_BIN_DIR=/opt/node-24.18.1/bin \
+  /usr/local/sbin/zilch-promote-release \
+  --restore-retained /srv/zilch.jacobdanderson.net/releases/<retained-release>
+```
+
+The retained tree, its identity marker, and its matching root-owned versioned helper are the protected local recovery evidence. The operation revalidates artifact-era trees with the newest verifier and the retained release's contract, atomically restores its compatible Nginx template, and repeats origin acceptance. If restoration fails, the helper restores the release that was selected when recovery began. Do not use this path for an unprotected build tree or as a substitute for archive verification of a new candidate.
 
 The only accepted pre-artifact rollback target is `v1.4.1` at commit `fc43e474c0c402fdea39828e02a59cab9aa60661`. It has `/api/health` but no readiness endpoint. The promoter uses that route only for this exact identity and atomically restores the installed historical Nginx server block before reloading Nginx. Every artifact-era target must pass the full liveness and readiness gates and must be revalidated before rollback. Other pre-artifact identities are rejected. Migrations are not part of Zilch because it has no server-side database or application state.
 
 ## External acceptance
 
-After the promoter succeeds, verify from a separate external network with current public DNS and real certificate validation:
+After the promoter succeeds, verify from a separate external network with current public DNS and real certificate validation. A production-host request through public DNS or a known-unreliable NAT hairpin is still server-origin evidence and must not be labeled independent WAN acceptance:
 
 ```bash
 curl --ipv4 --fail --show-error --silent https://zilch.jacobdanderson.net/healthz
@@ -122,4 +133,4 @@ Confirm that:
 - The root page is revalidated, hashed assets are immutable, and the security headers, social preview, and favicon load.
 - A browser game can start, roll, score, bank, pass turns, reload/resume, and finish Final Chase with keyboard and pointer input.
 
-Only then record the release as live. Keep at least the selected release and one verified rollback target. Production activation remains a separate operator action from this source workflow. Local SNI checks performed from the production server remain origin checks and must not be described as independent WAN acceptance.
+Only then record the release as fully accepted from the WAN. Keep at least the selected release, one verified rollback target, and both releases' protected versioned helpers. Production activation remains a separate operator action from this source workflow. If independent IPv4 evidence is unavailable, report that gate as unverified rather than silently ignoring it or treating a hairpin timeout as an application failure.

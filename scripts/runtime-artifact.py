@@ -91,10 +91,10 @@ def inventory(root, include_modes=True):
     return files
 
 
-def runtime_dependencies(root):
+def runtime_dependencies(root, contract):
     lock = json.loads((root / "back-end/package-lock.json").read_text())
     # Direct runtime uses the independent backend lock, never the development workspace graph.
-    pending = list(json.loads(CONTRACT.read_text())["dependencyRoots"])
+    pending = list(contract["dependencyRoots"])
     visited = set()
     while pending:
         directory = pending.pop()
@@ -125,8 +125,8 @@ def runtime_dependencies(root):
     return visited
 
 
-def validate(root, manifest, allow_format1_rollback=False):
-    contract = json.loads(CONTRACT.read_text())
+def validate(root, manifest, allow_format1_rollback=False, contract_path=CONTRACT):
+    contract = json.loads(contract_path.read_text())
     format_version = manifest.get("format")
     accepted_formats = (1, 2) if allow_format1_rollback else (2,)
     if format_version not in accepted_formats or manifest.get("contract") != contract:
@@ -164,7 +164,7 @@ def validate(root, manifest, allow_format1_rollback=False):
         raise ValueError("invalid deployment identity timestamp") from error
     if metadata != marker or metadata.get("commitSha") != manifest["commit"] or metadata.get("release") != "v" + package["version"]:
         raise ValueError("static deployment identity mismatch")
-    visited = runtime_dependencies(root)
+    visited = runtime_dependencies(root, contract)
     for name in actual:
         if re.search(r"(?:^|/)node_modules/(?:@[^/]+/)?[^/]+/package\.json$", name):
             directory = str(PurePosixPath(name).parent)
@@ -196,6 +196,11 @@ def main():
     parser.add_argument("--commit")
     parser.add_argument("--sha256")
     parser.add_argument(
+        "--contract",
+        type=Path,
+        help="verify against a protected version-specific runtime contract",
+    )
+    parser.add_argument(
         "--allow-format-1-rollback",
         action="store_true",
         help="accept one retained format-1 tree only during rollback verification",
@@ -204,6 +209,9 @@ def main():
     if args.allow_format_1_rollback and (
             args.operation != "verify" or args.archive or args.sha256):
         parser.error("--allow-format-1-rollback is only valid for direct verify without archive inputs")
+    if args.contract and args.operation != "verify":
+        parser.error("--contract is only valid for verification")
+    contract_path = args.contract.resolve(strict=True) if args.contract else CONTRACT
     root = args.tree.resolve(strict=True)
     if args.operation == "unpack":
         if not args.archive or not args.sha256 or not args.commit:
@@ -242,8 +250,13 @@ def main():
         normalize_permissions(root)
         manifest = {"format": 2, "commit": args.commit,
                     "contract": json.loads(CONTRACT.read_text()), "files": inventory(root)}
+        manifest_path = root / MANIFEST
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+        # The manifest is created after the rest of the tree is normalized.
+        # Normalize and validate it explicitly so restrictive caller umasks do
+        # not produce an archive that Nginx or the service cannot inspect.
+        manifest_path.chmod(required_file_mode(MANIFEST))
         validate(root, manifest)
-        (root / MANIFEST).write_text(json.dumps(manifest, indent=2) + "\n")
         with tarfile.open(args.archive, "w:gz") as archive:
             for name in sorted([MANIFEST, *manifest["files"]]):
                 archive.add(root / name, arcname=name, recursive=False)
@@ -258,7 +271,12 @@ def main():
                 trusted = json.load(archive.extractfile(MANIFEST))
             if declared != trusted:
                 raise ValueError("staged manifest differs from trusted archive")
-        manifest = validate(root, declared, allow_format1_rollback=args.allow_format_1_rollback)
+        manifest = validate(
+            root,
+            declared,
+            allow_format1_rollback=args.allow_format_1_rollback,
+            contract_path=contract_path,
+        )
         if args.commit and manifest["commit"] != args.commit:
             raise ValueError("artifact source identity mismatch")
         print(json.dumps({"verified": True, "commit": manifest["commit"], "files": len(manifest["files"])}))

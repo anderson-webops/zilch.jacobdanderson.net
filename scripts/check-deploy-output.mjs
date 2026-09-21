@@ -8,6 +8,8 @@ const paths = {
   apiServer: resolve(projectRoot, 'back-end/dist/server.js'),
   artifactContract: resolve(projectRoot, 'deploy/runtime-artifact.json'),
   artifactVerifier: resolve(projectRoot, 'scripts/runtime-artifact.py'),
+  ciNginxInstaller: resolve(projectRoot, 'scripts/install-ci-nginx.sh'),
+  ciWorkflow: resolve(projectRoot, '.github/workflows/ci.yml'),
   directInstall: resolve(projectRoot, 'deploy/systemd/install-service.sh'),
   legacyNginx: resolve(projectRoot, 'deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf'),
   directNginx: resolve(projectRoot, 'deploy/nginx/zilch.jacobdanderson.net.server.conf'),
@@ -42,6 +44,8 @@ const {
   apiServer,
   artifactContract,
   artifactVerifier,
+  ciNginxInstaller,
+  ciWorkflow,
   directInstall,
   legacyNginx,
   directNginx,
@@ -118,26 +122,39 @@ assert(/edge_http_redirects/.test(directPromote), 'Promotion must verify canonic
 assert(/edge_probe_is_minimal/.test(directPromote) && !/-X POST/.test(directPromote), 'Promotion probes must use minimal GET and HEAD checks only')
 assert(/restoring the previous direct release/i.test(directPromote), 'Promotion must provide source rollback')
 assert(/runtime-manifest\.json/.test(directPromote), 'Promotion must revalidate artifact-era rollback targets')
+assert(/--restore-retained/.test(directPromote) && /protected local evidence/.test(directPromote), 'Outer acceptance recovery must use the bounded retained-release path without GitHub')
+assert(/artifact_helper_for_target/.test(directPromote) && /--contract/.test(directPromote), 'Artifact rollback must select its protected version-specific helper contract')
+assert(/HELPER_PARENT is fixed in production/.test(directPromote), 'Versioned helper overrides must remain isolated-test-only')
 assert(/fc43e474c0c402fdea39828e02a59cab9aa60661/.test(directPromote), 'Legacy rollback must be restricted to the exact retained v1.4.1 commit')
-assert(/943b2d1a5a6eab10c38255531f2aa9923118f16b09353a1533995082b8948ecc/.test(directPromote), 'Forward promotion must pin the reviewed current Nginx bytes')
+assert(/ed28fb3dc980ba2fd2f48464abed50f6228bcc3f578412f8697c03fdb358ba26/.test(directPromote), 'Forward promotion must pin the reviewed current Nginx bytes')
 assert(/afd6eb84e6f35fa55b4cdc872bd4b7e759ec9b5ca1bb727c70ffba3a337adce4/.test(directPromote), 'Legacy rollback must pin the exact historical Nginx bytes')
 assert(/legacy-v1\.4\.1[\s\S]*\/api\/health/.test(directPromote), 'Legacy rollback must use its actual minimal API health route')
 assert(/nginx_server_config=\/etc\/nginx\/sites-available\/zilch\.jacobdanderson\.net/.test(directPromote), 'Production Nginx destination must be fixed to the reviewed Zilch server block')
 assert(/ZILCH_ISOLATED_TEST_MODE/.test(directPromote) && /\^\/fixture\//.test(directPromote), 'Nginx destination overrides must be limited to the isolated regression fixture')
 assert(/install_nginx_for_target/.test(directPromote) && /current_nginx_config/.test(directPromote) && /legacy_nginx_config/.test(directPromote), 'Forward and rollback activation must atomically install their compatible Nginx contracts')
 assert(/location = \/healthz/.test(legacyNginx) && !/location = \/readyz/.test(legacyNginx), 'Legacy Nginx fixture must retain the v1.4.1 probe surface')
+assert(/listen 443 ssl;/.test(directNginx) && /listen \[::\]:443 ssl;/.test(directNginx) && /http2 on;/.test(directNginx), 'Current Nginx must use the supported standalone HTTP/2 directive')
+assert(!/listen .*http2/.test(directNginx), 'Current Nginx must not use deprecated listen http2 parameters')
+assert(/listen 443 ssl http2;/.test(legacyNginx), 'Historical v1.4.1 rollback bytes must remain unchanged')
 assert(/second forward promotion/.test(promotionRecovery) && /did not install current Nginx configuration/.test(promotionRecovery), 'Recovery regression must prove rollback and a subsequent forward Nginx transition')
+assert(/outer-network-restore/.test(promotionRecovery) && /v1\.4\.3/.test(promotionRecovery) && /v1\.4\.7/.test(promotionRecovery), 'Recovery regression must cover the exact historical outer-acceptance sequence')
+assert(/GitHub-unavailable fixture/.test(promotionRecovery) && /--restore-retained/.test(promotionRecovery), 'Recovery must pass from protected local evidence while GitHub is unavailable')
 
 assert(JSON.parse(artifactContract).runtime.arch === 'arm64', 'Artifact contract must target Linux ARM64')
 assert(JSON.parse(artifactContract).required.includes('back-end/dist/boundedRateStore.js'), 'Artifact contract must require the security control module')
 assert(/trusted release record/.test(artifactVerifier), 'Artifact verifier must require independent archive identity')
 assert(/Never overwrite an existing artifact/.test(artifactVerifier), 'Artifact verifier must keep release archives write-once')
 assert(/normalize_permissions/.test(artifactVerifier) && /PRIVATE_MARKER/.test(artifactVerifier) && /"format": 2/.test(artifactVerifier), 'Root extraction must normalize public runtime modes while preserving the private marker')
+assert(/manifest_path\.chmod\(required_file_mode\(MANIFEST\)\)/.test(artifactVerifier), 'The newly written manifest must be normalized before packaging')
 assert(/--allow-format-1-rollback/.test(artifactVerifier) && /only valid for direct verify without archive inputs/.test(artifactVerifier), 'Format 1 must be scoped to explicit retained-tree rollback verification')
 assert(/test-unpacked-artifact\.sh/.test(runtimePackager) && /missing-module/.test(runtimePackager), 'Packager must test the exact unpacked artifact and missing-module rejection')
+assert(/umask 027/.test(runtimePackager) && /umask-027-success/.test(promotionRecovery) && /umask-077-success/.test(promotionRecovery), 'Packing and recovery fixtures must cover restrictive umasks')
 assert(/ubuntu-24\.04-arm/.test(directWorkflow) && /actions\/upload-artifact@/.test(directWorkflow), 'Release workflow must retain the accepted Linux ARM64 artifact')
 assert(/test-bootstrap-in-vm\.py --disposable-vm/.test(directWorkflow) && /needs: \[prepare, installer\]/.test(directWorkflow), 'Artifact publication must wait for disposable-host installer acceptance')
 assert(/install --yes --no-install-recommends nginx/.test(directWorkflow), 'Disposable-host acceptance must include the Nginx worker identity')
+assert(/install-ci-nginx\.sh/.test(directWorkflow) && /install-ci-nginx\.sh/.test(ciWorkflow), 'Exact Nginx syntax checks must use a current signed CI binary')
+assert(/573BFD6B3D8FBC641079A6ABABF5BD827BD9BF62/.test(ciNginxInstaller) && /nginx\.org\/packages\/mainline\/ubuntu/.test(ciNginxInstaller), 'CI Nginx must come from the fingerprint-verified official repository')
+assert(/promotion-arm64:[\s\S]*fetch-depth: 0/.test(ciWorkflow), 'Historical recovery fixtures require complete local tagged history')
 assert(/runuser.*zilch-site/s.test(rootBootstrapTest) && /runuser.*www-data/s.test(rootBootstrapTest) && /privateMarkerRootOnly/.test(rootBootstrapTest), 'Root extraction must be tested with separate service and Nginx identities')
 assert(/stat\.S_ISLNK/.test(trustedPaths) && /st_mode & 0o022/.test(trustedPaths), 'Administrative path validation must reject links and mutable paths')
 
