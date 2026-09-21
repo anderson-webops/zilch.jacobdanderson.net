@@ -349,7 +349,9 @@ for mode in modes:
         assert nginx_config.read_bytes()==current_config,'second forward promotion did not install current Nginx configuration'
     if mode=='artifact-bad-health':
         probes=(root/'probes').read_text()
-        assert '/healthz' in probes and '/readyz' in probes and '/api/health' not in probes,probes
+        edge_probes='\n'.join(line for line in probes.splitlines() if '--resolve' in line)
+        assert '/healthz' in edge_probes and '/readyz' in edge_probes,probes
+        assert 'https://zilch.jacobdanderson.net/api/health' not in edge_probes,probes
         historical=HISTORICAL['1.4.3']['nginx'].read_bytes()
         assert nginx_config.read_bytes()==historical,'artifact rollback did not restore its versioned Nginx configuration'
     if success:
