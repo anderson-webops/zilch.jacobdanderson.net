@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Build/verify a strictly inventoried production tree; never archive runtime state."""
 import argparse
+from contextlib import contextmanager
 import datetime
+import gzip
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
@@ -15,14 +17,149 @@ sys.dont_write_bytecode = True
 CONTRACT = Path(__file__).resolve().parent.parent / "deploy/runtime-artifact.json"
 MANIFEST = "runtime-manifest.json"
 PRIVATE_MARKER = ".zilch-release-prepared.json"
+MAX_ARCHIVE_FILES = 100_000
+MAX_ARCHIVE_FILE_BYTES = 1024 * 1024 * 1024
+MAX_ARCHIVE_HEADERS = 200_000
+MAX_ARCHIVE_METADATA_BYTES = 16 * 1024 * 1024
+MAX_ARCHIVE_METADATA_ENTRY_BYTES = 1024 * 1024
+MAX_ARCHIVE_METADATA_RECORDS = 250_000
+MAX_ARCHIVE_DECOMPRESSED_BYTES = MAX_ARCHIVE_FILE_BYTES + 256 * 1024 * 1024
+MAX_ARCHIVE_COMPRESSED_BYTES = MAX_ARCHIVE_DECOMPRESSED_BYTES + 32 * 1024 * 1024
+MAX_RUNTIME_MANIFEST_BYTES = 64 * 1024 * 1024
+
+
+def digest_stream(stream):
+    checksum = hashlib.sha256()
+    while chunk := stream.read(1024 * 1024):
+        checksum.update(chunk)
+    return checksum.hexdigest()
 
 
 def digest(path):
-    checksum = hashlib.sha256()
     with path.open("rb") as stream:
-        while chunk := stream.read(1024 * 1024):
-            checksum.update(chunk)
-    return checksum.hexdigest()
+        return digest_stream(stream)
+
+
+def read_manifest(stream):
+    payload = stream.read(MAX_RUNTIME_MANIFEST_BYTES + 1)
+    if len(payload) > MAX_RUNTIME_MANIFEST_BYTES:
+        raise ValueError("runtime manifest exceeds the reviewed size limit")
+    return json.loads(payload)
+
+
+def check_pax_metadata(payload):
+    position = 0
+    record_count = 0
+    while position < len(payload):
+        separator = payload.find(b" ", position)
+        if separator < 0 or separator - position > 10:
+            raise ValueError("invalid archive metadata record")
+        length_bytes = payload[position:separator]
+        if not length_bytes.isdigit():
+            raise ValueError("invalid archive metadata record")
+        length = int(length_bytes)
+        end = position + length
+        if length < 5 or end > len(payload):
+            raise ValueError("invalid archive metadata record")
+        record = payload[separator + 1:end]
+        name, equals, _value = record[:-1].partition(b"=")
+        if not record.endswith(b"\n") or not name or not equals:
+            raise ValueError("invalid archive metadata record")
+        if name == b"size" or name.startswith(b"GNU.sparse."):
+            raise ValueError("archive metadata changes file size or sparse layout")
+        position = end
+        record_count += 1
+    return record_count
+
+
+def preflight_archive_stream(stream):
+    consumed = 0
+    file_count = 0
+    file_bytes = 0
+    header_count = 0
+    metadata_bytes = 0
+    metadata_records = 0
+    zero_block = bytes(512)
+    metadata_types = {
+        tarfile.XHDTYPE,
+        tarfile.GNUTYPE_LONGNAME,
+        tarfile.GNUTYPE_LONGLINK,
+    }
+
+    def read_exact(length):
+        nonlocal consumed
+        if consumed + length > MAX_ARCHIVE_DECOMPRESSED_BYTES:
+            raise ValueError("archive exceeds the decompressed size limit")
+        data = stream.read(length)
+        if len(data) != length:
+            raise ValueError("truncated archive payload")
+        consumed += length
+        return data
+
+    while True:
+        header = read_exact(512)
+        if header == zero_block:
+            if read_exact(512) != zero_block:
+                raise ValueError("invalid archive end marker")
+            while True:
+                remaining = MAX_ARCHIVE_DECOMPRESSED_BYTES - consumed
+                trailing = stream.read(min(1024 * 1024, remaining + 1))
+                if not trailing:
+                    return
+                consumed += len(trailing)
+                if consumed > MAX_ARCHIVE_DECOMPRESSED_BYTES or trailing.strip(b"\0"):
+                    raise ValueError("archive contains unexpected trailing data")
+
+        header_count += 1
+        if header_count > MAX_ARCHIVE_HEADERS:
+            raise ValueError("archive contains too many headers")
+        try:
+            member = tarfile.TarInfo.frombuf(header, tarfile.ENCODING, "surrogateescape")
+        except tarfile.HeaderError as error:
+            raise ValueError("invalid archive header") from error
+        if member.size < 0:
+            raise ValueError("archive header has a negative size")
+        if member.type == tarfile.XGLTYPE:
+            raise ValueError("global archive metadata is not supported")
+        if member.type in metadata_types:
+            metadata_bytes += member.size
+            if (member.size > MAX_ARCHIVE_METADATA_ENTRY_BYTES
+                    or metadata_bytes > MAX_ARCHIVE_METADATA_BYTES):
+                raise ValueError("archive metadata exceeds the reviewed size limit")
+            payload = read_exact(member.size)
+            if member.type == tarfile.XHDTYPE:
+                metadata_records += check_pax_metadata(payload)
+                if metadata_records > MAX_ARCHIVE_METADATA_RECORDS:
+                    raise ValueError("archive metadata has too many records")
+            read_exact((-member.size) % 512)
+        elif member.isfile():
+            file_count += 1
+            file_bytes += member.size
+            if file_count > MAX_ARCHIVE_FILES or file_bytes > MAX_ARCHIVE_FILE_BYTES:
+                raise ValueError("archive file count or size exceeds the reviewed limit")
+            remaining = member.size + (-member.size) % 512
+            while remaining:
+                length = min(remaining, 1024 * 1024)
+                read_exact(length)
+                remaining -= length
+        else:
+            raise ValueError("unsafe archive member type")
+
+
+@contextmanager
+def open_checked_archive(path, expected_sha256):
+    with path.open("rb") as source:
+        if source.seek(0, 2) > MAX_ARCHIVE_COMPRESSED_BYTES:
+            raise ValueError("archive exceeds the compressed size limit")
+        source.seek(0)
+        if digest_stream(source) != expected_sha256:
+            raise ValueError("trusted archive checksum mismatch")
+        source.seek(0)
+        with gzip.GzipFile(fileobj=source, mode="rb") as decompressed:
+            preflight_archive_stream(decompressed)
+        source.seek(0)
+        with tarfile.open(fileobj=source, mode="r:gz") as archive:
+            yield archive
 
 
 def permitted(name):
@@ -216,13 +353,13 @@ def main():
     if args.operation == "unpack":
         if not args.archive or not args.sha256 or not args.commit:
             parser.error("unpack requires --archive, --sha256 and --commit from the trusted release record")
-        if digest(args.archive) != args.sha256 or any(root.iterdir()):
-            raise ValueError("archive hash mismatch or destination not empty")
-        with tarfile.open(args.archive, "r:gz") as archive:
+        if any(root.iterdir()):
+            raise ValueError("destination is not empty")
+        with open_checked_archive(args.archive, args.sha256) as archive:
             members = archive.getmembers()
             names = [member.name for member in members]
-            if (len(names) != len(set(names)) or len(names) > 100_000
-                    or sum(member.size for member in members) > 1024 * 1024 * 1024
+            if (len(names) != len(set(names)) or len(names) > MAX_ARCHIVE_FILES
+                    or sum(member.size for member in members) > MAX_ARCHIVE_FILE_BYTES
                     or any(not member.isfile() or not permitted(member.name) for member in members)):
                 raise ValueError("unsafe archive members")
             for member in members:
@@ -236,7 +373,8 @@ def main():
         # explicitly so the distinct service UID can load Node modules and the
         # Nginx worker can read static files. The private marker stays root-only.
         normalize_permissions(root)
-        manifest = validate(root, json.loads((root / MANIFEST).read_text()))
+        with (root / MANIFEST).open("rb") as stream:
+            manifest = validate(root, read_manifest(stream))
         if manifest["commit"] != args.commit:
             raise ValueError("artifact source identity mismatch")
         print(json.dumps({"unpacked": True, "commit": manifest["commit"], "files": len(manifest["files"])}))
@@ -251,24 +389,38 @@ def main():
         manifest = {"format": 2, "commit": args.commit,
                     "contract": json.loads(CONTRACT.read_text()), "files": inventory(root)}
         manifest_path = root / MANIFEST
-        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+        manifest_payload = json.dumps(manifest, indent=2) + "\n"
+        if len(manifest_payload.encode()) > MAX_RUNTIME_MANIFEST_BYTES:
+            raise ValueError("runtime manifest exceeds the reviewed size limit")
+        manifest_path.write_text(manifest_payload)
         # The manifest is created after the rest of the tree is normalized.
         # Normalize and validate it explicitly so restrictive caller umasks do
         # not produce an archive that Nginx or the service cannot inspect.
         manifest_path.chmod(required_file_mode(MANIFEST))
         validate(root, manifest)
-        with tarfile.open(args.archive, "w:gz") as archive:
-            for name in sorted([MANIFEST, *manifest["files"]]):
-                archive.add(root / name, arcname=name, recursive=False)
+        try:
+            with tarfile.open(args.archive, "w:gz") as archive:
+                for name in sorted([MANIFEST, *manifest["files"]]):
+                    archive.add(root / name, arcname=name, recursive=False)
+            with open_checked_archive(args.archive, digest(args.archive)):
+                pass
+        except Exception:
+            args.archive.unlink(missing_ok=True)
+            raise
         print(json.dumps({"archive": args.archive.name, "sha256": digest(args.archive),
                           "commit": args.commit, "files": len(manifest["files"])}))
     else:
-        declared = json.loads((root / MANIFEST).read_text())
+        with (root / MANIFEST).open("rb") as stream:
+            declared = read_manifest(stream)
         if args.archive or args.sha256:
-            if not args.archive or not args.sha256 or digest(args.archive) != args.sha256:
-                raise ValueError("trusted archive checksum mismatch")
-            with tarfile.open(args.archive, "r:gz") as archive:
-                trusted = json.load(archive.extractfile(MANIFEST))
+            if not args.archive or not args.sha256:
+                raise ValueError("trusted archive checksum is required")
+            with open_checked_archive(args.archive, args.sha256) as archive:
+                source = archive.extractfile(MANIFEST)
+                if source is None:
+                    raise ValueError("trusted archive lacks the runtime manifest")
+                with source:
+                    trusted = read_manifest(source)
             if declared != trusted:
                 raise ValueError("staged manifest differs from trusted archive")
         manifest = validate(

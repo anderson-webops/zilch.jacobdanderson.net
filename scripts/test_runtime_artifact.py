@@ -1,4 +1,5 @@
 import contextlib
+import gzip
 import importlib.util
 import io
 import json
@@ -42,6 +43,124 @@ class RuntimeArtifactTests(unittest.TestCase):
     def manifest(self):
         return {"format": 2, "commit": "a" * 40, "contract": self.contract,
                 "files": artifact.inventory(self.root)}
+
+    def archive_with_metadata(self, archive, records, header_type=tarfile.XHDTYPE):
+        with tarfile.open(archive, "w:gz") as target:
+            for payload in records:
+                header = tarfile.TarInfo("metadata")
+                header.type = header_type
+                header.size = len(payload)
+                target.addfile(header, io.BytesIO(payload))
+            content = b"synthetic payload"
+            member = tarfile.TarInfo("back-end/dist/synthetic.txt")
+            member.size = len(content)
+            target.addfile(member, io.BytesIO(content))
+
+    def run_artifact(self, operation, tree, archive):
+        arguments = [str(Path(artifact.__file__)), operation, str(tree),
+                     "--archive", str(archive), "--sha256", artifact.digest(archive)]
+        if operation == "unpack":
+            arguments.extend(["--commit", "a" * 40])
+        with mock.patch.object(sys, "argv", arguments), contextlib.redirect_stdout(io.StringIO()):
+            artifact.main()
+
+    def test_archive_metadata_budget_precedes_tar_parser_on_both_paths(self):
+        (self.root / artifact.MANIFEST).write_text(json.dumps(self.manifest()))
+        with tempfile.TemporaryDirectory(dir=self.root.parent) as temporary:
+            output = Path(temporary)
+            archive = output / "oversized-metadata.tar.gz"
+            self.archive_with_metadata(archive, [b"x" * (artifact.MAX_ARCHIVE_METADATA_ENTRY_BYTES + 1)])
+            unpacked = output / "unpacked"
+            unpacked.mkdir()
+            for operation, tree in (("unpack", unpacked), ("verify", self.root)):
+                with self.subTest(operation=operation), mock.patch.object(artifact.tarfile, "open", side_effect=AssertionError("tar parser was reached")):
+                    with self.assertRaisesRegex(ValueError, "archive metadata exceeds"):
+                        self.run_artifact(operation, tree, archive)
+
+    def test_archive_metadata_overrides_and_aggregate_budget_are_rejected(self):
+        def record(name, value):
+            body = f"{name}={value}\n".encode()
+            length = len(body) + 3
+            while True:
+                updated = len(body) + len(str(length)) + 1
+                if updated == length:
+                    return f"{length} ".encode() + body
+                length = updated
+
+        with tempfile.TemporaryDirectory(dir=self.root.parent) as temporary:
+            archive = Path(temporary) / "metadata.tar.gz"
+            for name in ("size", "GNU.sparse.map"):
+                with self.subTest(name=name):
+                    self.archive_with_metadata(archive, [record(name, "1")])
+                    with self.assertRaisesRegex(ValueError, "changes file size or sparse layout"):
+                        with artifact.open_checked_archive(archive, artifact.digest(archive)):
+                            pass
+                    archive.unlink()
+            self.archive_with_metadata(archive, [record("comment", "a" * 40), record("comment", "b" * 40)])
+            with mock.patch.object(artifact, "MAX_ARCHIVE_METADATA_BYTES", 60):
+                with self.assertRaisesRegex(ValueError, "archive metadata exceeds"):
+                    with artifact.open_checked_archive(archive, artifact.digest(archive)):
+                        pass
+            archive.unlink()
+            self.archive_with_metadata(archive, [record("comment", "a") + record("comment", "b")])
+            with mock.patch.object(artifact, "MAX_ARCHIVE_METADATA_RECORDS", 1):
+                with self.assertRaisesRegex(ValueError, "too many records"):
+                    with artifact.open_checked_archive(archive, artifact.digest(archive)):
+                        pass
+
+    def test_global_pax_metadata_cannot_amplify_across_members(self):
+        with tempfile.TemporaryDirectory(dir=self.root.parent) as temporary:
+            archive = Path(temporary) / "global-metadata.tar.gz"
+            self.archive_with_metadata(archive, [b"13 comment=x\n"], tarfile.XGLTYPE)
+            with mock.patch.object(artifact.tarfile, "open", side_effect=AssertionError("tar parser was reached")):
+                with self.assertRaisesRegex(ValueError, "global archive metadata is not supported"):
+                    with artifact.open_checked_archive(archive, artifact.digest(archive)):
+                        pass
+
+    def test_manifest_is_bounded_in_unpack_and_archive_backed_verify(self):
+        declared = json.dumps(self.manifest())
+        (self.root / artifact.MANIFEST).write_text(declared)
+        with tempfile.TemporaryDirectory(dir=self.root.parent) as temporary:
+            output = Path(temporary)
+            archive = output / "oversized-manifest.tar.gz"
+            with tarfile.open(archive, "w:gz") as target:
+                for path in self.root.rglob("*"):
+                    if path.is_file():
+                        name = path.relative_to(self.root).as_posix()
+                        if name == artifact.MANIFEST:
+                            payload = (declared + " " * 100).encode()
+                            member = tarfile.TarInfo(name)
+                            member.size = len(payload)
+                            target.addfile(member, io.BytesIO(payload))
+                        else:
+                            target.add(path, arcname=name)
+            unpacked = output / "unpacked"
+            unpacked.mkdir()
+            with mock.patch.object(artifact, "MAX_RUNTIME_MANIFEST_BYTES", len(declared) + 10):
+                for operation, tree in (("unpack", unpacked), ("verify", self.root)):
+                    with self.subTest(operation=operation):
+                        with self.assertRaisesRegex(ValueError, "runtime manifest exceeds"):
+                            self.run_artifact(operation, tree, archive)
+
+    def test_trailing_gzip_member_is_rejected(self):
+        with tempfile.TemporaryDirectory(dir=self.root.parent) as temporary:
+            archive = Path(temporary) / "extra-member.tar.gz"
+            self.archive_with_metadata(archive, [])
+            with archive.open("ab") as stream:
+                stream.write(gzip.compress(b"unexpected"))
+            with self.assertRaisesRegex(ValueError, "unexpected trailing data"):
+                with artifact.open_checked_archive(archive, artifact.digest(archive)):
+                    pass
+
+    def test_negative_tar_size_is_rejected_before_payload_read(self):
+        with tempfile.TemporaryDirectory(dir=self.root.parent) as temporary:
+            archive = Path(temporary) / "negative-size.tar.gz"
+            member = tarfile.TarInfo("back-end/dist/negative.txt")
+            member.size = -1
+            archive.write_bytes(gzip.compress(member.tobuf(format=tarfile.GNU_FORMAT) + bytes(1024)))
+            with self.assertRaisesRegex(ValueError, "negative size"):
+                with artifact.open_checked_archive(archive, artifact.digest(archive)):
+                    pass
 
     def test_valid_tree(self):
         artifact.validate(self.root, self.manifest())
@@ -172,6 +291,8 @@ class RuntimeArtifactTests(unittest.TestCase):
             unpacked = output / "unpacked"
             unpacked.mkdir()
             command = [sys.executable, "-B", str(Path(artifact.__file__))]
+            long_path = self.root / "front-end/.output/public" / ("long-path-" + "a" * 110 + ".txt")
+            long_path.write_text("synthetic long-path payload")
             # Handcrafted synthetic fixture exercises verification on any host;
             # the production pack command itself requires Linux ARM64.
             (self.root / artifact.MANIFEST).write_text(json.dumps(self.manifest()))
@@ -226,6 +347,21 @@ class RuntimeArtifactTests(unittest.TestCase):
                 self.assertEqual(members[".zilch-release-prepared.json"], 0o600)
                 observations.append((manifest_path.read_bytes(), members))
         self.assertEqual(observations[0], observations[1])
+
+    def test_pack_never_reports_an_archive_its_reader_rejects(self):
+        with tempfile.TemporaryDirectory(dir=self.root.parent) as temporary:
+            archive = Path(temporary) / "runtime.tar.gz"
+            with (
+                mock.patch.object(artifact.platform, "system", return_value="Linux"),
+                mock.patch.object(artifact.platform, "machine", return_value="aarch64"),
+                mock.patch.object(artifact, "MAX_ARCHIVE_COMPRESSED_BYTES", 1),
+                mock.patch.object(sys, "argv", [str(Path(artifact.__file__)), "pack", str(self.root),
+                                               "--archive", str(archive), "--commit", "a" * 40]),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                with self.assertRaisesRegex(ValueError, "compressed size limit"):
+                    artifact.main()
+            self.assertFalse(archive.exists())
 
 
 def stat_mode(path):
