@@ -155,6 +155,7 @@ assert(/test-bootstrap-in-vm\.py --disposable-vm/.test(directWorkflow) && /needs
 assert(/install --yes --no-install-recommends nginx/.test(directWorkflow), 'Disposable-host acceptance must include the Nginx worker identity')
 assert(/install-ci-nginx\.sh/.test(directWorkflow) && /install-ci-nginx\.sh/.test(ciWorkflow), 'Exact Nginx syntax checks must use a current signed CI binary')
 assert(/573BFD6B3D8FBC641079A6ABABF5BD827BD9BF62/.test(ciNginxInstaller) && /nginx\.org\/packages\/mainline\/ubuntu/.test(ciNginxInstaller), 'CI Nginx must come from the fingerprint-verified official repository')
+assert(/expected_bundle_sha256=55385da31d198fa6a5012d40ae98ecb272a6c4e8fffffba94719ffd3e87de37a/.test(ciNginxInstaller) && /\[\[ "\$actual_bundle_sha256" != "\$expected_bundle_sha256" \]\][\s\S]*?exit 1/.test(ciNginxInstaller) && ciNginxInstaller.indexOf('actual_bundle_sha256=$(sha256sum "$temporary_key")') < ciNginxInstaller.indexOf('gpg --batch --yes --dearmor'), 'CI Nginx must reject changed signing-key bundles before installing repository trust')
 assert(/promotion-arm64:[\s\S]*fetch-depth: 0/.test(ciWorkflow), 'Historical recovery fixtures require complete local tagged history')
 assert(/runuser.*zilch-site/s.test(rootBootstrapTest) && /runuser.*www-data/s.test(rootBootstrapTest) && /privateMarkerRootOnly/.test(rootBootstrapTest), 'Root extraction must be tested with separate service and Nginx identities')
 assert(/stat\.S_ISLNK/.test(trustedPaths) && /st_mode & 0o022/.test(trustedPaths), 'Administrative path validation must reject links and mutable paths')

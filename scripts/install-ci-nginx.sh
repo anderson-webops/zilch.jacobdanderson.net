@@ -24,6 +24,13 @@ cleanup() {
 trap cleanup EXIT
 curl --fail --show-error --silent --proto '=https' --tlsv1.2 \
 	--output "$temporary_key" https://nginx.org/keys/nginx_signing.key
+expected_bundle_sha256=55385da31d198fa6a5012d40ae98ecb272a6c4e8fffffba94719ffd3e87de37a
+actual_bundle_sha256=$(sha256sum "$temporary_key")
+actual_bundle_sha256=${actual_bundle_sha256%% *}
+if [[ "$actual_bundle_sha256" != "$expected_bundle_sha256" ]]; then
+	echo 'The Nginx signing-key bundle differs from the reviewed bytes.' >&2
+	exit 1
+fi
 expected_fingerprint=573BFD6B3D8FBC641079A6ABABF5BD827BD9BF62
 if ! gpg --batch --show-keys --with-colons "$temporary_key" \
 		| awk -F: '$1 == "fpr" { print $10 }' \
