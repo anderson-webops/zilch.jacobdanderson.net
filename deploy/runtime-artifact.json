@@ -1,5 +1,25 @@
 {
-  "version": 1,
+  "version": 2,
+  "application": "anderson-webops/zilch.jacobdanderson.net",
+  "adapter": {
+    "name": "zilch-direct",
+    "minimumContractVersion": 1,
+    "requiredCapabilities": [
+      "verified-tagged-artifact-v2",
+      "protected-versioned-helpers",
+      "candidate-runtime-acceptance",
+      "atomic-service-and-nginx-promotion",
+      "retained-artifact-rollback"
+    ]
+  },
+  "probes": {
+    "liveness": { "method": "GET", "path": "/healthz" },
+    "readiness": { "method": "GET", "path": "/readyz" }
+  },
+  "database": {
+    "migrations": "none",
+    "rollbackCompatibility": "Retain the prior verified artifact and its versioned Nginx policy; no database state exists."
+  },
   "entrypoints": [
     "back-end/dist/server.js"
   ],

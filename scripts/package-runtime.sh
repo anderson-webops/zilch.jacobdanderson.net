@@ -62,8 +62,27 @@ from pathlib import Path
 import sys
 output = Path(sys.argv[1])
 receipt = json.loads((output / "pack.json").read_text())
+runtime_manifest = json.loads((output / "runtime-manifest.json").read_text())
+contract = json.loads(Path("deploy/runtime-artifact.json").read_text())
+if runtime_manifest["contract"] != contract or runtime_manifest["commit"] != receipt["commit"]:
+    raise SystemExit("Accepted artifact and reviewed deployment contract disagree")
+with (output / receipt["archive"]).open("rb") as archive_stream:
+    archive_digest = hashlib.file_digest(archive_stream, "sha256").hexdigest()
+if archive_digest != receipt["sha256"]:
+    raise SystemExit("Accepted artifact digest changed before publication")
 receipt["acceptedAt"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
 receipt["bytes"] = (output / receipt["archive"]).stat().st_size
+receipt["deployment"] = {
+    "contractVersion": contract["version"],
+    "application": contract["application"],
+    "adapter": contract["adapter"],
+    "runtime": contract["runtime"],
+    "probes": contract["probes"],
+    "database": contract["database"],
+    "artifactSha256": receipt["sha256"],
+}
+with (output / "runtime-manifest.json").open("rb") as manifest_stream:
+    receipt["deployment"]["runtimeManifestSha256"] = hashlib.file_digest(manifest_stream, "sha256").hexdigest()
 receipt["checks"] = ["production-only locked install", "full and production backend audits", "registry signatures", "manifest and required paths", "isolated unpacked runtime", "readiness failure and recovery", "GET and HEAD minimal probes", "repeated-signal drain", "restart", "post-copier verification", "missing-module rejection"]
 receipt["harnessSha256"] = {
     name: hashlib.sha256(Path(name).read_bytes()).hexdigest()

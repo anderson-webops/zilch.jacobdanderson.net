@@ -31,6 +31,8 @@ Do not activate a candidate until all of the following are true:
 
 The accepted archive is the deployable object. Do not rebuild on the production host and do not regenerate its manifest after copying it. `scripts/validate-tagged-source.sh` is a non-production CI/source validator and explicitly refuses `/srv` and `/var/www` trees. No source builder remains in the production helper directory. The removed `.zilch-runtime.sha256` file is not an activation input.
 
+The release receipt now declares a versioned deployment contract and the host-adapter capabilities it requires. A server adapter should compare those requirements with its independently installed capabilities before extraction or activation and report `host adapter update required` for an unsupported contract. This source declaration alone does not install that server-side check or authorize a host change. Keep transport retries, release rejection, and post-activation rollback as separate outcomes rather than treating every failure as a bad source release.
+
 ## Protected administrative boundary
 
 Never run a privileged installer, verifier, or promotion helper from a build-owned checkout. Package scripts can modify that checkout even if it started clean, and changing ownership later does not revoke an already-open writable file descriptor.
@@ -67,7 +69,7 @@ Use the tagged workflow's exact Linux ARM64 outputs. Verify release asset names,
 Create a fresh empty root-owned target beneath the release root and unpack with the installed verifier, not source-owned code:
 
 ```bash
-release=v1.4.9
+release=v1.4.10
 commit=<full-40-character-source-commit>
 archive=/srv/zilch.jacobdanderson.net/quarantine/zilch-$release-${commit:0:12}-linux-arm64.tar.gz
 sha256=<published-archive-sha256>
@@ -75,7 +77,7 @@ candidate=/srv/zilch.jacobdanderson.net/releases/$release-${commit:0:12}
 
 sudo install -d -o root -g root -m 0755 "$candidate"
 sudo /usr/bin/python3 -I \
-  /usr/local/libexec/zilch-release/1.4.9/scripts/runtime-artifact.py \
+  /usr/local/libexec/zilch-release/1.4.10/scripts/runtime-artifact.py \
   unpack "$candidate" --archive "$archive" --sha256 "$sha256" --commit "$commit"
 ```
 
