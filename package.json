@@ -1,7 +1,7 @@
 {
 	"name": "zilch-browser-game",
 	"type": "module",
-	"version": "1.4.10",
+	"version": "1.4.11",
 	"private": true,
 	"packageManager": "npm@12.0.2",
 	"engines": {
@@ -36,7 +36,7 @@
 		"lint": "npm run lint:root && npm run -w front-end lint && npm run -w back-end lint",
 		"lint-fix": "eslint \"*.{js,ts,mjs,cjs}\" scripts netlify --fix && npm run -w front-end lint-fix && npm run -w back-end lint-fix",
 		"typecheck": "npm run -w front-end typecheck && npm run -w back-end typecheck && tsc -p netlify/tsconfig.json --noEmit",
-		"test": "npm run test:game && npm run -w back-end test && python3 -B -m unittest discover -s scripts -p test_runtime_artifact.py -v",
+		"test": "npm run test:game && npm run -w back-end test && node --test scripts/test-braces-compat.mjs scripts/test-listhen-compat.mjs && python3 -B -m unittest discover -s scripts -p test_runtime_artifact.py -v",
 		"test:game": "node --test front-end/test/*.test.ts",
 		"clean": "node scripts/clean.mjs",
 		"deps:check": "taze",
@@ -74,9 +74,11 @@
 		"@types/node": "^24.13.6",
 		"@typescript-eslint/types": "^8.70.0",
 		"axe-core": "^4.11.4",
+		"braces": "file:vendor/braces",
 		"esbuild": "^0.28.2",
 		"eslint": "^10.8.0",
 		"eslint-plugin-format": "^2.0.1",
+		"listhen": "file:vendor/listhen",
 		"puppeteer-core": "^25.4.0",
 		"simple-git-hooks": "^2.13.1",
 		"taze": "^19.16.0",
@@ -92,6 +94,8 @@
 		"pre-commit": "npm run lint"
 	},
 	"overrides": {
+		"braces": "$braces",
+		"listhen": "$listhen",
 		"devalue": "5.9.4",
 		"nanoid@^3": "3.3.18",
 		"qs": "6.16.0",
