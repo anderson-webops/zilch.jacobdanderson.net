@@ -1,5 +1,10 @@
 # Workspace Instructions
 
+## GitGuardian Availability
+
+- Use GitGuardian/`ggshield` when available. Quota, authentication, network, or service failures are not commit or push blockers. Record the scan as unavailable, review staged and outgoing changes, run an available independent local secret scan, and proceed with the other required checks. Never ignore a confirmed secret finding or claim a failed scan passed.
+- If only the global GitGuardian hook blocks delivery, inspect it for other checks, then use a command-scoped `core.hooksPath` pointing to the repository's own hooks for that commit or push. Do not disable hooks globally or skip unrelated checks.
+
 - This repository is the Zilch browser game at `zilch.jacobdanderson.net`.
 - Keep `origin` pointed at `anderson-webops/zilch.jacobdanderson.net`, `template` at the hardened Nuxt monorepo template, and `upstream` at `antfu/vitesse-nuxt`.
 - Maintain the root npm workspace pattern with exactly two primary workspaces: `front-end` and `back-end`.
