@@ -70,11 +70,8 @@ const stealingThresholds = [
       <section class="threshold-card" aria-labelledby="threshold-title">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">
-              Standard game
-            </p>
             <h2 id="threshold-title">
-              Base banking targets
+              Standard game
             </h2>
           </div>
         </div>
@@ -123,14 +120,10 @@ const stealingThresholds = [
       <section class="variants" aria-labelledby="variants-title">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">
-              Stealing game
-            </p>
             <h2 id="variants-title">
-              Use the stealing policy
+              Stealing game
             </h2>
           </div>
-          <p>Stealing changes both when to bank and when a carried score is worth taking.</p>
         </div>
         <div class="table-wrap">
           <table>
@@ -172,7 +165,6 @@ const stealingThresholds = [
     </main>
 
     <footer class="site-footer">
-      <span>Simulation-tested Zilch strategy</span>
       <NuxtLink to="/">
         Back to the table
       </NuxtLink>

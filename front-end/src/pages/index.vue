@@ -68,16 +68,9 @@ function confirmNewGame() {
     <template v-if="!state">
       <main class="game-frame">
         <section class="welcome-card" aria-labelledby="welcome-title">
-          <p class="eyebrow">
-            Six dice. One nerve.
-          </p>
           <h1 id="welcome-title">
-            Press your luck.<br><em>Bank before you bust.</em>
+            Zilch
           </h1>
-          <p class="intro-copy">
-            A faithful browser edition of the classic dice game. Play the computer or gather up to six
-            people around one screen.
-          </p>
 
           <GameSetup
             :has-saved-game="hasSavedGame"
@@ -99,11 +92,6 @@ function confirmNewGame() {
             <span v-for="value in [1, 5, 3, 6, 2, 4]" :key="value" class="preview-die">
               {{ value }}
             </span>
-          </div>
-          <div class="turn-preview">
-            <span class="turn-kicker">Your turn</span>
-            <strong>Ready to roll?</strong>
-            <span>Choose scoring dice, then bank or risk another roll.</span>
           </div>
         </aside>
       </main>
@@ -142,9 +130,6 @@ function confirmNewGame() {
     <RulesDialog :open="rulesOpen" @close="rulesOpen = false" />
 
     <dialog ref="newGameDialog" class="confirm-dialog" aria-labelledby="new-game-title">
-      <p class="eyebrow">
-        Leave this table?
-      </p>
       <h2 id="new-game-title">
         Start a new game
       </h2>

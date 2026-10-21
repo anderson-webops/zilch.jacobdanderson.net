@@ -30,9 +30,6 @@ onMounted(() => {
   <dialog ref="dialog" class="rules-dialog" aria-labelledby="rules-title" @close="emit('close')">
     <div class="dialog-header">
       <div>
-        <p class="eyebrow">
-          Rules of the table
-        </p>
         <h2 id="rules-title">
           How to play Zilch
         </h2>

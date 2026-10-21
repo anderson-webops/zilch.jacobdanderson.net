@@ -221,11 +221,8 @@ async function submit() {
   >
     <div class="setup-heading">
       <div>
-        <p class="step-label">
-          New table
-        </p>
         <h2 id="setup-title">
-          Choose your players
+          Players
         </h2>
       </div>
       <button v-if="hasSavedGame" class="resume-button" type="button" @click="emit('resume')">
@@ -239,8 +236,7 @@ async function submit() {
         <input v-model="mode" type="radio" value="computer">
         <span class="mode-icon" aria-hidden="true">♟</span>
         <span>
-          <strong>Solo game</strong>
-          <small>Play against the computer</small>
+          <strong>Play the computer</strong>
         </span>
       </label>
       <label :class="{ active: mode === 'local' }">
@@ -248,7 +244,6 @@ async function submit() {
         <span class="mode-icon" aria-hidden="true">●●</span>
         <span>
           <strong>Pass &amp; play</strong>
-          <small>Share this device</small>
         </span>
       </label>
     </fieldset>

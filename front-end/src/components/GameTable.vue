@@ -276,20 +276,12 @@ onMounted(focusCurrentPhase)
       </section>
 
       <section v-if="rollingResult" class="action-panel ready-actions">
-        <div>
-          <span class="action-label">Rolling dice</span>
-          <strong>Let them settle…</strong>
-        </div>
         <button class="roll-button" type="button" disabled>
           Rolling…
         </button>
       </section>
 
       <section v-else-if="state.phase === 'ready'" class="action-panel ready-actions">
-        <div>
-          <span class="action-label">{{ state.turnScore ? 'Keep the turn alive' : 'Start the turn' }}</span>
-          <strong>{{ state.turnScore ? `${state.turnScore.toLocaleString()} points are riding` : 'Ready to roll?' }}</strong>
-        </div>
         <button class="roll-button" type="button" :disabled="currentPlayer.kind === 'computer'" @click="emit('roll')">
           {{ currentPlayer.kind === 'computer' ? 'Computer is thinking…' : rollButtonLabel }}
         </button>
@@ -329,7 +321,6 @@ onMounted(focusCurrentPhase)
           >
             Bank {{ projectedScore.toLocaleString() }}
             <span v-if="openingNeeded">Need {{ openingNeeded.toLocaleString() }} more to open</span>
-            <span v-else>Keep it safe</span>
           </button>
         </div>
       </section>
@@ -338,7 +329,7 @@ onMounted(focusCurrentPhase)
         <div>
           <span class="action-label">Bust</span>
           <strong id="bust-title">Zilch. Nothing scores.</strong>
-          <small>The roll stays on the table so you can see what happened. Any points at risk are lost.</small>
+          <small>Any points at risk are lost.</small>
         </div>
         <button class="bust-action" type="button" @click="emit('pass')">
           {{ nextTurnAction }}
@@ -439,7 +430,6 @@ onMounted(focusCurrentPhase)
     <aside class="turn-log" aria-label="Game activity">
       <div class="log-heading">
         <div>
-          <span class="eyebrow">Table talk</span>
           <h2>Game activity</h2>
         </div>
         <button type="button" @click="emit('rules')">

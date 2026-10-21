@@ -1,11 +1,7 @@
 <template>
   <main class="not-found">
     <span class="wordmark-mark" aria-hidden="true">0</span>
-    <p class="eyebrow">
-      Zilch
-    </p>
-    <h1>Nothing scored here.</h1>
-    <p>The page you rolled for does not exist.</p>
+    <h1>Page not found</h1>
     <NuxtLink class="home-link" to="/">
       Play Zilch
     </NuxtLink>
