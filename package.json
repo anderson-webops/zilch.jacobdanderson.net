@@ -1,7 +1,7 @@
 {
 	"name": "zilch-browser-game",
 	"type": "module",
-	"version": "1.4.11",
+	"version": "1.4.12",
 	"private": true,
 	"packageManager": "npm@12.0.2",
 	"engines": {
@@ -103,19 +103,17 @@
 		"esbuild": "$esbuild",
 		"js-yaml": "4.3.2",
 		"launch-editor": {
-			".": "2.14.1",
-			"shell-quote": "1.9.0"
+			".": "2.14.2",
+			"shell-quote": "1.11.0"
 		},
-		"shell-quote": "1.10.0",
+		"shell-quote": "1.11.0",
+		"katex": "0.18.2",
+		"tinypool": "2.1.2",
 		"@nuxt/devtools": {
-			"launch-editor": "2.14.1"
+			"launch-editor": "2.14.2"
 		},
-		"vite": {
-			".": "^8.1.0",
-			"esbuild": "$esbuild"
-		},
+		"vite": "8.3.4",
 		"nitropack": "2.13.4",
-		"simple-git": "3.36.0",
 		"brace-expansion": "5.0.12",
 		"fast-uri": "3.1.8",
 		"postcss": "8.5.24",

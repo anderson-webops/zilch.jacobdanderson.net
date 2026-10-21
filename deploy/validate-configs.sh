@@ -43,6 +43,7 @@ error_log $temporary_root/logs/error.log;
 events {}
 http {
   include /etc/nginx/mime.types;
+  ssl_protocols TLSv1.2 TLSv1.3;
   access_log $temporary_root/logs/access.log;
   include $temporary_root/zilch.server.conf;
 }

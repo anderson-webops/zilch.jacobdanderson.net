@@ -60,7 +60,7 @@ sudo env NODE_BIN_DIR=/opt/node-24.18.1/bin \
 
 On first installation, the script creates the dedicated account and the protected release layout, installs a disabled service, and installs the versioned promotion helper. On an existing compatible installation, it adds the reviewed helper version while leaving the live release, unit, and service state unchanged.
 
-Install or update Nginx files only through the host's separately reviewed procedure. Test the complete Nginx configuration before reload. The repository files preserve the fixed host and proxy `/api`, `/healthz`, and `/readyz` to `127.0.0.1:3018`.
+Install or update Nginx files only through the host's separately reviewed procedure. Test the complete merged Nginx configuration and the platform TLS policy before reload. The current server block inherits the host's TLS protocol and cipher policy; the exact historical v1.4.1 rollback block remains unchanged. The repository files preserve the fixed host and proxy `/api`, `/healthz`, and `/readyz` to `127.0.0.1:3018`.
 
 ## Accept and stage the artifact
 

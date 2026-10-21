@@ -39,7 +39,7 @@ helper = Path('/usr/local/libexec/zilch-release') / version
 assert (helper / 'deploy/systemd/promote-release.sh').is_file()
 current_nginx = helper / 'deploy/nginx/zilch.jacobdanderson.net.server.conf'
 assert current_nginx.read_bytes() == (source / 'deploy/nginx/zilch.jacobdanderson.net.server.conf').read_bytes()
-assert hashlib.sha256(current_nginx.read_bytes()).hexdigest() == 'ed28fb3dc980ba2fd2f48464abed50f6228bcc3f578412f8697c03fdb358ba26'
+assert hashlib.sha256(current_nginx.read_bytes()).hexdigest() == '2e7c46962f1aeaaf55654d4302e41d545cc2de448e28f9b8bf51bb478f7d5ff7'
 legacy_nginx = helper / 'deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf'
 assert legacy_nginx.read_bytes() == (source / 'deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf').read_bytes()
 assert hashlib.sha256(legacy_nginx.read_bytes()).hexdigest() == 'afd6eb84e6f35fa55b4cdc872bd4b7e759ec9b5ca1bb727c70ffba3a337adce4'
