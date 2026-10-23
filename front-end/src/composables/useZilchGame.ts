@@ -251,7 +251,7 @@ export function useZilchGame() {
     scheduleComputerTurn(state.value)
   })
 
-  watch([state, isRolling], ([next]) => scheduleComputerTurn(next), { flush: 'post' })
+  watch([() => state.value, () => isRolling.value], ([next]) => scheduleComputerTurn(next), { flush: 'post' })
 
   onBeforeUnmount(() => {
     // Navigating to Tips must not discard a roll that has already happened.
