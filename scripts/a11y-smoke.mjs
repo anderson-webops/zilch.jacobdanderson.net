@@ -553,6 +553,11 @@ async function verifyMobileGameFlow(page) {
   ]))
   issues.push(...await findTapTargetIssues(page, 'rules dialog'))
   issues.push(...await findAxeIssues(page, 'rules dialog'))
+  const displayedScores = await page.$$eval('.score-list dt', terms => Object.fromEntries(
+    terms.map(term => [term.textContent?.trim(), term.nextElementSibling?.textContent?.trim()]),
+  ))
+  if (displayedScores['Three pairs'] !== '500' || displayedScores['1–2–3–4–5–6 straight'] !== '1,000')
+    issues.push('rules dialog: three pairs must show 500 while a straight remains 1,000')
   await page.click('[aria-label="Close rules"]')
 
   await stageSavedGame(page, {
@@ -946,7 +951,7 @@ async function verifyTips(page, viewport) {
     issues.push('tips: the hero should contain only the Best Tested Strategy heading')
   if (facts.rows !== 6)
     issues.push(`tips: expected 6 dice-threshold rows, found ${facts.rows}`)
-  if (facts.note !== 'Best policy found in two-player simulation; not mathematically proven optimal.')
+  if (!facts.note?.includes('have not been retuned for 500.') || !facts.note.includes('Not mathematically proven optimal.'))
     issues.push('tips: the simulation caveat is not standalone text at the bottom of the main content')
   if (facts.noteStyle?.background !== 'rgba(0, 0, 0, 0)' || facts.noteStyle?.border !== '0px' || facts.noteStyle?.shadow !== 'none')
     issues.push('tips: the simulation caveat still has a card background, border, or shadow')

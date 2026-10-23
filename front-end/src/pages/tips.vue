@@ -155,12 +155,13 @@ const stealingThresholds = [
           </table>
         </div>
         <p class="variant-note">
-          Three Pairs does not change the recommendation; use the same policy with it on or off.
+          Three pairs score 500 points and return all six dice.
         </p>
       </section>
 
       <p class="research-note">
-        Best policy found in two-player simulation; not mathematically proven optimal.
+        Targets were trained with 1,000-point three pairs and have not been retuned for 500.
+        Not mathematically proven optimal.
       </p>
     </main>
 

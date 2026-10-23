@@ -30,7 +30,12 @@ test('chain diagnostics use exact scorer outcomes and correct scoring-face risk'
   const twos = nextRollRisk(3, { 2: 3 })
   assert.equal(twos.busts, 24)
   assert.equal(twos.scoreSum / twos.busts, 1831.25)
-  assert.equal(nextRollRisk(6, {}).busts, 1080)
+  assert.deepEqual(nextRollRisk(6, {}), {
+    outcomes: 46656,
+    busts: 1080,
+    scoreSum: 17001000,
+    bustProbability: 1080 / 46656,
+  })
   assert.strictEqual(nextRollRisk(3, { 6: 3 }), sixes, 'Identical scoring contexts reuse their immutable cache.')
 })
 

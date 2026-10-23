@@ -3,7 +3,7 @@ import type { Die, DieValue } from '../src/game/types.ts'
 import assert from 'node:assert/strict'
 
 import test from 'node:test'
-import { recommendedDieIds, scoreSelection } from '../src/game/scoring.ts'
+import { recommendedDieIds, scoreSelection, scoringRules } from '../src/game/scoring.ts'
 
 function dice(values: DieValue[]): Die[] {
   return values.map((value, index) => ({ id: index + 1, value }))
@@ -53,7 +53,44 @@ test('scores a full straight and three distinct pairs', () => {
     reason: '',
   })
   assert.equal(scoreSelection(pairs, pairs.map(die => die.id)).label, 'Three pairs')
-  assert.equal(scoreSelection(pairs, pairs.map(die => die.id)).score, 1_000)
+  assert.equal(scoreSelection(pairs, pairs.map(die => die.id)).score, 500)
+  assert.equal(scoringRules.find(rule => rule.combination === 'Three pairs')?.score, '500')
+})
+
+test('three distinct pairs occur exactly 2.5 times as often as a straight', () => {
+  let pairs = 0
+  let straights = 0
+  for (let encoded = 0; encoded < 6 ** 6; encoded++) {
+    let remaining = encoded
+    const roll = dice(Array.from({ length: 6 }, () => {
+      const value = (remaining % 6 + 1) as DieValue
+      remaining = Math.floor(remaining / 6)
+      return value
+    }))
+    const result = scoreSelection(roll, roll.map(die => die.id))
+    if (result.label === 'Three pairs') {
+      pairs++
+      assert.equal(result.score, 500)
+    }
+    if (result.label === 'Straight') {
+      straights++
+      assert.equal(result.score, 1_000)
+    }
+  }
+  assert.equal(pairs, 1_800)
+  assert.equal(straights, 720)
+  assert.equal(pairs / straights, 2.5)
+})
+
+test('four matching dice plus a pair and six matching dice are not three pairs', () => {
+  const fourAndTwo = dice([6, 6, 6, 6, 5, 5])
+  const sixMatching = dice([6, 6, 6, 6, 6, 6])
+  const first = scoreSelection(fourAndTwo, fourAndTwo.map(die => die.id))
+  const second = scoreSelection(sixMatching, sixMatching.map(die => die.id))
+  assert.notEqual(first.label, 'Three pairs')
+  assert.equal(first.score, 1_300)
+  assert.notEqual(second.label, 'Three pairs')
+  assert.equal(second.score, 4_800)
 })
 
 test('rejects an incomplete non-scoring group', () => {

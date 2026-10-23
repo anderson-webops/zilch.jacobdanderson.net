@@ -1,6 +1,7 @@
 import type { Die, DieValue, MultipleChains, SelectionResult } from './types.ts'
 
 const DIE_VALUES: DieValue[] = [1, 2, 3, 4, 5, 6]
+const THREE_PAIRS_SCORE = 500
 
 function countDice(dice: Die[]) {
   const counts: MultipleChains = {}
@@ -71,7 +72,7 @@ export function scoreSelection(
   if (isThreePairs(selected)) {
     return {
       valid: true,
-      score: 1_000,
+      score: THREE_PAIRS_SCORE,
       label: 'Three pairs',
       selectedCount: 6,
       multipleUpdates: {},
@@ -177,5 +178,5 @@ export const scoringRules = [
   { combination: 'Three 2s–6s', score: 'Face × 100' },
   { combination: 'Each extra matching die', score: 'Doubles the multiple' },
   { combination: '1–2–3–4–5–6 straight', score: '1,000' },
-  { combination: 'Three pairs', score: '1,000' },
+  { combination: 'Three pairs', score: String(THREE_PAIRS_SCORE) },
 ] as const

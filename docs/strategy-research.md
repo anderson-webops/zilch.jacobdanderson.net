@@ -2,7 +2,26 @@
 
 This note records the simulator evidence used by the browser game's Hard difficulty and public Tips page. It separates the strongest tested policy from claims of mathematically optimal play.
 
-## Current Hard: multiple-aware selection, v1.3.0
+## Scoring change: three pairs now score 500
+
+Three distinct pairs now score 500; a straight remains 1,000. The exact count is
+1,800 pair rolls versus 720 straights among 46,656 ordered six-die rolls, a ratio
+of 2.5. See [the scoring note](scoring-rules.md) and the exhaustive scorer test.
+
+The policy parameters below are retained, not retrained. Their historical
+experiments used 1,000-point three pairs. Hard's exact next-roll diagnostics
+read the current scorer and therefore use 500, but the old match results do
+not establish performance or optimality under the changed rule. Raw evidence
+and archived policies remain unchanged.
+
+Focused verification checks the new reward, six hot dice, the unchanged opening
+minimum, and computer continuation in all four implementations. Browser,
+simulator, and Java exact six-die diagnostics agree on 1,080 busts and a total
+maximum collectible score of 17,001,000 across 46,656 ordered outcomes. A seeded
+200-game Hard-versus-Medium simulator run (seed `2026102101`) completed as an operational smoke
+test, not a new performance estimate or retraining campaign.
+
+## Retained Hard calibration: multiple-aware selection, v1.3.0
 
 Standard Hard compares keeping a multiple, collecting other scoring dice,
 banking, and collecting hot dice. Saved multiples use their exact next-roll
@@ -150,7 +169,7 @@ These comparisons isolate the finish heuristics from the underlying trained para
 
 ## Interpretation and limits
 
-- Use the standard policy whether Three Pairs is on or off. When enabled, take Three Pairs as its 1,000-point hot-dice score.
+- The historical experiments recommended the same standard policy with Three Pairs on or off under the former 1,000-point award. That conclusion has not been revalidated for the current 500-point award.
 - Use the separate Stealing policy when Stealing is enabled.
 - The opening requirement overrides any lower bank threshold until a player is on the board.
 - Hot dice, the current leader, distance to the finish, and Final Chase still affect an individual decision.

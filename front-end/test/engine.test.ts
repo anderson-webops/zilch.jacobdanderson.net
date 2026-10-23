@@ -152,6 +152,32 @@ test('an unopened player must reach the opening score before banking', () => {
   assert.equal(banked.players[0]!.score, 1_000)
 })
 
+test('three pairs need another scoring roll to reach the default opening minimum', () => {
+  const firstPairs = selectRecommended(roll([2, 2, 4, 4, 6, 6]))
+  assert.equal(canBank(firstPairs), false)
+  assert.throws(() => bankScore(firstPairs), /cannot be banked yet/)
+
+  const secondRoll = rollAgain(firstPairs, Math.random, [1, 1, 3, 3, 6, 6])
+  assert.equal(secondRoll.turnScore, 500)
+  assert.equal(secondRoll.diceInPlay, 6)
+  assert.deepEqual(secondRoll.scoredMultiples, {})
+  const secondPairs = selectRecommended(secondRoll)
+  assert.equal(canBank(secondPairs), true)
+  assert.equal(bankScore(secondPairs).players[0]!.score, 1_000)
+})
+
+test('opened players bank 500 for three pairs without changing previously earned points', () => {
+  const opened = bankScore(selectRecommended(roll([1, 1, 1, 2, 3, 4])))
+  const bobTurn = acknowledgePass(opened)
+  const bobBank = bankScore(selectRecommended(rollDice(bobTurn, Math.random, [1, 1, 1, 2, 3, 4])))
+  const aliceTurn = acknowledgePass(bobBank)
+  const selected = selectRecommended(rollDice(aliceTurn, Math.random, [2, 2, 4, 4, 6, 6]))
+  assert.equal(canBank(selected), true)
+  const banked = bankScore(selected)
+  assert.equal(banked.players[0]!.score, 1_500)
+  assert.deepEqual(restoreGame(JSON.parse(JSON.stringify(banked))), banked)
+})
+
 test('hot dice restore all six and clear the multiple-extension chain', () => {
   const straight = selectRecommended(roll([1, 2, 3, 4, 5, 6]))
   const nextRoll = rollAgain(straight, Math.random, [1, 5, 2, 3, 4, 6])
@@ -458,7 +484,7 @@ function hardRoll(turnScore: number, values: DieValue[], overrides: Partial<Game
 }
 
 test('refined Hard rolls the reported 2800-point hot dice with both banked scores zero', () => {
-  const game = hardRoll(1800, [2, 2, 3, 3, 4, 4])
+  const game = hardRoll(1800, [1, 2, 3, 4, 5, 6])
   assert.ok(game.players.every(player => player.score === 0))
   assert.equal(game.endgame, null)
   assert.equal(game.selectedDieIds.length, 6)
@@ -466,6 +492,25 @@ test('refined Hard rolls the reported 2800-point hot dice with both banked score
   const next = rollAgain(game, Math.random, [1, 2, 3, 4, 5, 6])
   assert.equal(next.turnScore, 2800)
   assert.equal(next.diceInPlay, 6)
+})
+
+test('every difficulty treats three pairs as 500-point hot dice and must roll to open', () => {
+  for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+    for (const stealing of [false, true]) {
+      const game = createGame([
+        { name: 'Computer', kind: 'computer', difficulty },
+        { name: 'Alice', kind: 'human' },
+      ], settings({ stealing }))
+      const selected = selectComputerRecommended(rollDice(game, Math.random, [2, 2, 3, 3, 4, 4]))
+      assert.equal(selected.selectedDieIds.length, 6)
+      assert.equal(canBank(selected), false)
+      assert.equal(shouldComputerBank(selected), false)
+      const next = rollAgain(selected, Math.random, [1, 2, 3, 4, 5, 6])
+      assert.equal(next.turnScore, 500)
+      assert.equal(next.diceInPlay, 6)
+      assert.deepEqual(next.scoredMultiples, {})
+    }
+  }
 })
 
 test('Hard collects every guaranteed scoring die before banking a partial roll', () => {

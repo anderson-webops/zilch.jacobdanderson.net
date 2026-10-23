@@ -80,8 +80,7 @@ onMounted(() => {
         <h3>Computer play</h3>
         <p>
           Easy uses a simple banking target. Medium responds to the scores and finish line. Hard uses the
-          strongest tested policies from the companion Zilch simulator, including a separate policy when
-          Stealing is on. These are tested strategies, not perfect play.
+          simulation-trained policies, including a separate policy when Stealing is on.
         </p>
         <NuxtLink class="tips-link" to="/tips" @click="dialog?.close()">
           Read the strategy guide

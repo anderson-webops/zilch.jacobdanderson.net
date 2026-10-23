@@ -8,7 +8,7 @@
 - Local pass-and-play for one to six people
 - The shared 5,000-point target and 1,000-point opening defaults
 - Preset or custom scores: a 1,000–100,000 winning target and a 0–100,000 opening minimum no higher than the target
-- Singles, multiples, later-roll multiple extensions, straights, and three pairs
+- Singles, multiples, later-roll multiple extensions, 1,000-point straights, and 500-point three pairs
 - Hot dice, first-roll mercy, Final Chase, optional ties, and optional Stealing
 - Optional 3D rolling animation, off by default and remembered on this device
 - Remembered difficulty, players, custom scores, and house rules for the next table
@@ -17,7 +17,7 @@
 - A strategy Tips page with simulation-tested banking guidance, variant findings, and clearly labeled endgame heuristics
 - Keyboard, touch, reduced-motion, and screen-reader support
 
-Hard mode ports the strongest tested policies from the companion `Computers_vs_Zilch` simulator, including multiple-aware scoring choices and a separate policy when Stealing is enabled. It compares preserving a multiple with collecting extra points or hot dice, while accounting for points at risk and game position. Medium adds score-aware finish and buffer decisions, while Easy uses a straightforward 600-point turn target. See [`docs/strategy-research.md`](docs/strategy-research.md) for the reproducible policy inputs, holdouts, and limitations.
+Hard mode ports policies from the companion `Computers_vs_Zilch` simulator, including multiple-aware scoring choices and a separate policy when Stealing is enabled. It compares preserving a multiple with collecting extra points or hot dice, while accounting for points at risk and game position. Medium adds score-aware finish and buffer decisions, while Easy uses a straightforward 600-point turn target. These policies were trained with the former 1,000-point three-pairs award; their thresholds have not been retuned for the current 500-point rule. See [`docs/strategy-research.md`](docs/strategy-research.md) for the reproducible policy inputs, holdouts, and limitations.
 
 ## Local development
 
