@@ -206,8 +206,23 @@ def setup(root, mode):
     return control,helper_parent,candidate,previous,archive,digest,recovery,nginx_config,candidate_commit
 
 
+def protected_runtime_copy(source, destination):
+    shutil.copyfile(source, destination)
+    destination.chmod(0o755)
+    metadata = destination.stat()
+    assert metadata.st_uid == 0 and stat.S_IMODE(metadata.st_mode) == 0o755
+
+
 Path('/fixture/runtime').mkdir(parents=True)
-shutil.copy2('/runtime/node', '/fixture/runtime/node')
+writable_source = Path('/fixture/writable-runtime-source')
+writable_source.write_bytes(b'fixture executable bytes')
+writable_source.chmod(0o775)
+permission_probe = Path('/fixture/protected-runtime-copy')
+protected_runtime_copy(writable_source, permission_probe)
+assert permission_probe.read_bytes() == writable_source.read_bytes()
+writable_source.unlink()
+permission_probe.unlink()
+protected_runtime_copy(Path('/runtime/node'), Path('/fixture/runtime/node'))
 Path('/usr/local/bin').mkdir(parents=True)
 for name in ['curl','systemctl','nginx','sleep','gh']:
     p=Path('/usr/local/bin')/name;p.write_text(STUB);p.chmod(0o755)
@@ -219,7 +234,7 @@ modes=['success','bad-health','ipv6-failure','interrupt','restart-failure','ngin
        'mutable-target-helper','missing-target-helper','mutable-previous-helper',
        'mutable-previous','previous-is-parent','unsupported-legacy','empty-public-identity',
        'ambiguous-runtime-promoter','ambiguous-runtime-installer','alternate-port','wrong-service-readiness',
-       'mismatched-readiness-origin','custom-probes']
+       'mismatched-readiness-origin','custom-probes','mutable-runtime']
 if len(sys.argv) > 1 and sys.argv[1] != 'all':
     assert sys.argv[1] in modes, 'Unknown isolated regression case'
     modes = [sys.argv[1]]
@@ -236,6 +251,7 @@ for mode in modes:
     if mode=='mutable-helper':(control/'deploy/systemd/promote-release.sh').chmod(0o777)
     if mode=='mutable-parent':root.chmod(0o777)
     if mode=='mutable-candidate':(candidate/'back-end/dist/server.js').chmod(0o666)
+    if mode=='mutable-runtime':Path('/fixture/runtime/node').chmod(0o775)
     if mode=='symlink-module':
         p=candidate/'back-end/dist/server.js';p.unlink();p.symlink_to('/etc/passwd')
     if mode=='wrong-digest':digest='0'*64
@@ -269,7 +285,7 @@ for mode in modes:
     sentinel=root/'UNTRUSTED_RUNTIME_EXECUTED'
     if mode.startswith('ambiguous-runtime-'):
         (root/'protected/bin').mkdir(parents=True)
-        shutil.copy2('/runtime/node',root/'protected/bin/node')
+        protected_runtime_copy(Path('/runtime/node'),root/'protected/bin/node')
         (root/'build/subdir').mkdir(parents=True)
         (root/'build/bin').mkdir()
         (root/'protected/link').symlink_to(root/'build/subdir')
@@ -301,6 +317,9 @@ for mode in modes:
     ]
     assert not sentinel.exists(),(mode,'untrusted runtime executed as root')
     assert (result.returncode==0)==success,(mode,evidence)
+    if mode=='mutable-runtime':
+        assert 'Administrative input is not protected: /fixture/runtime/node' in evidence,evidence
+        Path('/fixture/runtime/node').chmod(0o755)
     if mode=='outer-network-restore':
         assert 'Promoted' in evidence and (root/'current').resolve()==candidate,evidence
         assert json.loads((previous/'.zilch-release-prepared.json').read_text())['release']=='v1.4.3'
