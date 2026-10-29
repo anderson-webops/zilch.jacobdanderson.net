@@ -11,24 +11,69 @@ const [probe, output, simulatorRoot, commandJson] = process.argv.slice(2)
 assert(probe && simulatorRoot, 'Provide the probe artifact, evidence output path, and companion source directory.')
 // An optional command array supports the companion Java/visual probes, which
 // choose the named Hard policy from each input's actual settings.
-const command = commandJson ? JSON.parse(commandJson) : null
+const command = commandJson
+  ? JSON.parse(commandJson)
+  : null
 assert(!command || (Array.isArray(command) && command.length > 0 && command.every(value => typeof value === 'string')))
 const contexts = [
-  ...[0, 600, 950, 1000, 1300, 1800, 2700, 2800, 3500, 4500].map(turn => ({ turn })),
+  ...[
+    0,
+    600,
+    950,
+    1000,
+    1300,
+    1800,
+    2700,
+    2800,
+    3500,
+    4500,
+  ].map(turn => ({ turn })),
   { turn: 1250, opponent: 1100 },
   { turn: 0, own: 4800, opponent: 3500 },
   { turn: 0, own: 4800, opponent: 4700 },
   { turn: 0, own: 4900, opponent: 4700 },
   { turn: 1000, own: 4900, opponent: 4700 },
-  { turn: 500, own: 4900, opponent: 5500, chase: true },
-  { turn: 500, own: 4900, opponent: 5500, chase: true, ties: false },
-  { turn: 600, own: 4500, opponent: 5200, chase: true },
+  {
+    turn: 500,
+    own: 4900,
+    opponent: 5500,
+    chase: true,
+  },
+  {
+    turn: 500,
+    own: 4900,
+    opponent: 5500,
+    chase: true,
+    ties: false,
+  },
+  {
+    turn: 600,
+    own: 4500,
+    opponent: 5200,
+    chase: true,
+  },
   { turn: 4800, finalChase: false },
   { turn: 5000, target: 10000 },
   { turn: 0, opening: 0 },
-  { turn: 600, own: 1000, opponent: 1000, chains: { 2: 3 }, maxDice: 3 },
-  { turn: 1000, own: 1000, opponent: 1000, chains: { 1: 3 }, maxDice: 3 },
-  { turn: 1200, chains: { 6: 4 }, maxDice: 2 },
+  {
+    turn: 600,
+    own: 1000,
+    opponent: 1000,
+    chains: { 2: 3 },
+    maxDice: 3,
+  },
+  {
+    turn: 1000,
+    own: 1000,
+    opponent: 1000,
+    chains: { 1: 3 },
+    maxDice: 3,
+  },
+  {
+    turn: 1200,
+    chains: { 6: 4 },
+    maxDice: 2,
+  },
   ...[0, 350, 950, 1500, 2800].flatMap(turn => [
     { turn, own: 1000, opponent: 1000 },
     { turn, own: 3500, opponent: 1000 },
@@ -37,10 +82,23 @@ const contexts = [
 ]
 for (let face = 1; face <= 6; face++) {
   for (const count of [3, 4, 5]) {
-    const base = (face === 1 ? 1000 : face * 100) * 2 ** (count - 3)
+    const base = (face === 1
+      ? 1000
+      : face * 100) * 2 ** (count - 3)
     for (const extra of [0, 1000, 2500]) {
-      for (const [own, opponent] of [[1000, 1000], [3500, 1000], [1000, 3500]])
-        contexts.push({ turn: base + extra, own, opponent, chains: { [face]: count }, maxDice: 6 - count })
+      for (const [own, opponent] of [
+        [1000, 1000],
+        [3500, 1000],
+        [1000, 3500],
+      ]) {
+        contexts.push({
+          turn: base + extra,
+          own,
+          opponent,
+          chains: { [face]: count },
+          maxDice: 6 - count,
+        })
+      }
     }
   }
 }
@@ -81,7 +139,11 @@ for (const stealing of [false, true]) {
         const chainScores = Array.from({ length: 6 }, (_, index) => {
           const face = index + 1
           const chain = state.scoredMultiples[face]
-          return chain ? (face === 1 ? 1000 : face * 100) * 2 ** (chain - 3) : 0
+          return chain
+            ? (face === 1
+                ? 1000
+                : face * 100) * 2 ** (chain - 3)
+            : 0
         })
         const line = [
           context.turn,
@@ -105,19 +167,31 @@ for (const stealing of [false, true]) {
             counts[die.value - 1]++
         }
         const bust = !hasScoringOption(state.dice, state.scoredMultiples)
-        cases.push({ line, expected: {
-          selected_counts: counts,
-          action: bust ? 'Bust' : shouldComputerBank(selected) ? 'Bank' : 'Roll',
-          score_gain: scoring.score,
-          projected_turn_score: state.turnScore + scoring.score,
-          next_dice: values.length - selected.selectedDieIds.length || 6,
-          can_bank: canBank(selected),
-        } })
+        cases.push({
+          line,
+          expected: {
+            selected_counts: counts,
+            action: bust
+              ? 'Bust'
+              : shouldComputerBank(selected)
+                ? 'Bank'
+                : 'Roll',
+            score_gain: scoring.score,
+            projected_turn_score: state.turnScore + scoring.score,
+            next_dice: values.length - selected.selectedDieIds.length || 6,
+            can_bank: canBank(selected),
+          },
+        })
       }
     }
   }
   const policy = stealing ? 'stealing-hard.cfg' : 'standard-hard.cfg'
-  const stdout = execFileSync(command?.[0] ?? probe, command?.slice(1) ?? ['--policy', `docs/strategy-policies/${policy}`, '--collect', String(!stealing)], {
+  const stdout = execFileSync(command?.[0] ?? probe, command?.slice(1) ?? [
+    '--policy',
+    `docs/strategy-policies/${policy}`,
+    '--collect',
+    String(!stealing),
+  ], {
     input: `${cases.map(row => row.line).join('\n')}\n`,
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
@@ -132,10 +206,20 @@ for (const stealing of [false, true]) {
 }
 const sha256 = data => createHash('sha256').update(data).digest('hex')
 const hashes = {}
-for (const path of ['front-end/src/game/engine.ts', 'front-end/src/game/scoring.ts', 'front-end/src/game/roll-risk.ts', 'scripts/research/check-decision-parity.mjs'])
+for (const path of [
+  'front-end/src/game/engine.ts',
+  'front-end/src/game/scoring.ts',
+  'front-end/src/game/roll-risk.ts',
+  'scripts/research/check-decision-parity.mjs',
+])
   hashes[path] = sha256(await readFile(path))
 const simulatorHashes = {}
-const sourcePaths = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], { cwd: simulatorRoot, encoding: 'utf8' })
+const sourcePaths = execFileSync('git', [
+  'ls-files',
+  '--cached',
+  '--others',
+  '--exclude-standard',
+], { cwd: simulatorRoot, encoding: 'utf8' })
   .trim()
   .split('\n')
   .filter(path => /\.(?:cpp|h|java)$/.test(path) || path === 'CMakeLists.txt' || path === 'build.gradle')

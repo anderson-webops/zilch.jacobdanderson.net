@@ -15,7 +15,9 @@ const bundledFunction = path.join(temporaryRoot, 'api.cjs')
 try {
   await build({
     bundle: true,
-    entryPoints: [path.join(projectRoot, 'netlify/functions/api.ts')],
+    entryPoints: [
+      path.join(projectRoot, 'netlify/functions/api.ts'),
+    ],
     format: 'cjs',
     logLevel: 'silent',
     outfile: bundledFunction,
@@ -38,7 +40,9 @@ try {
     queryStringParameters: null,
     rawQuery: '',
     rawUrl: 'https://zilch.jacobdanderson.net/api/health',
-    requestContext: { identity: { sourceIp: '127.0.0.1' } },
+    requestContext: {
+      identity: { sourceIp: '127.0.0.1' },
+    },
   }, {})
 
   assert.equal(response.statusCode, 200)

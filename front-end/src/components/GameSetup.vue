@@ -18,7 +18,14 @@ const emit = defineEmits<{
 
 const mode = ref<'computer' | 'local'>('computer')
 const playerCount = ref(2)
-const localNames = ref(['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5', 'Player 6'])
+const localNames = ref([
+  'Player 1',
+  'Player 2',
+  'Player 3',
+  'Player 4',
+  'Player 5',
+  'Player 6',
+])
 const humanName = ref('Player 1')
 const computerName = ref('Computer')
 const computerDifficulty = ref<ComputerDifficulty>('medium')
@@ -60,13 +67,19 @@ const openingScoreError = computed(() => {
 })
 
 watch(winningScorePreset, (value, previous) => {
-  if (!restoringPreferences)
-    customWinningScore.value = value === 'custom' ? String(previous) : ''
+  if (!restoringPreferences) {
+    customWinningScore.value = value === 'custom'
+      ? String(previous)
+      : ''
+  }
 })
 
 watch(openingScorePreset, (value, previous) => {
-  if (!restoringPreferences)
-    customOpeningScore.value = value === 'custom' ? String(previous) : ''
+  if (!restoringPreferences) {
+    customOpeningScore.value = value === 'custom'
+      ? String(previous)
+      : ''
+  }
 })
 
 watch(winningScore, (value) => {
@@ -89,9 +102,13 @@ onMounted(async () => {
   humanName.value = saved.humanName
   computerName.value = saved.computerName
   computerDifficulty.value = saved.computerDifficulty
-  winningScorePreset.value = [2500, 5000, 7500, 10000].includes(saved.settings.winningScore) ? saved.settings.winningScore : 'custom'
+  winningScorePreset.value = [2500, 5000, 7500, 10000].includes(saved.settings.winningScore)
+    ? saved.settings.winningScore
+    : 'custom'
   customWinningScore.value = String(saved.settings.winningScore)
-  openingScorePreset.value = [0, 500, 1000, 1500].includes(saved.settings.openingScore) ? saved.settings.openingScore : 'custom'
+  openingScorePreset.value = [0, 500, 1000, 1500].includes(saved.settings.openingScore)
+    ? saved.settings.openingScore
+    : 'custom'
   customOpeningScore.value = String(saved.settings.openingScore)
   firstRollBust.value = saved.settings.firstRollBust
   finalChase.value = saved.settings.finalChase
@@ -104,7 +121,20 @@ onMounted(async () => {
 })
 
 watch(
-  [mode, playerCount, localNames, humanName, computerName, computerDifficulty, winningScore, openingScore, firstRollBust, finalChase, allowTies, stealing],
+  [
+    mode,
+    playerCount,
+    localNames,
+    humanName,
+    computerName,
+    computerDifficulty,
+    winningScore,
+    openingScore,
+    firstRollBust,
+    finalChase,
+    allowTies,
+    stealing,
+  ],
   () => {
     if (!preferencesReady || winningScoreError.value || openingScoreError.value)
       return
@@ -145,13 +175,17 @@ function clearError() {
 }
 
 function parseCustomScore(value: string) {
-  return value === '' ? null : Number(value)
+  return value === ''
+    ? null
+    : Number(value)
 }
 
 function updateCustomScore(event: Event, kind: 'winning' | 'opening') {
   const input = event.target as HTMLInputElement
   const digits = input.value.replace(/\D/g, '')
-  const value = Number(digits) > maximumScore ? String(maximumScore) : digits
+  const value = Number(digits) > maximumScore
+    ? String(maximumScore)
+    : digits
   input.value = value
   if (kind === 'winning')
     customWinningScore.value = value

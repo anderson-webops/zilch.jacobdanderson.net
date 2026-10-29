@@ -9,7 +9,9 @@ import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const parameters = process.argv.slice(2)
-const study = parameters[0] === '--study' ? parameters.splice(0, 2)[1] : 'hot-dice-2026-09'
+const study = parameters[0] === '--study'
+  ? parameters.splice(0, 2)[1]
+  : 'hot-dice-2026-09'
 assert(study && /^[a-z0-9-]+$/.test(study), 'Study must be a simple lowercase directory name.')
 const [simulatorRoot, executable, runId, ...args] = parameters
 assert(simulatorRoot && executable && runId, 'Provide simulator source root, executable, run ID, and research arguments.')

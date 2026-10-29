@@ -7,8 +7,18 @@ import { nextRollRisk } from '../src/game/roll-risk.ts'
 import { scoreSelection } from '../src/game/scoring.ts'
 
 function checkpoint(values: DieValue[], risk = 0, own = 1000, opponent = 1000, chains: MultipleChains = {}) {
-  const state = createGame([{ name: 'Computer', kind: 'computer', difficulty: 'hard' }, { name: 'Player', kind: 'human' }])
-  Object.assign(state, { phase: 'selecting', dice: values.map((value, id) => ({ value, id })), diceInPlay: values.length, turnScore: risk, rollNumber: risk ? 2 : 1, scoredMultiples: chains })
+  const state = createGame([
+    { name: 'Computer', kind: 'computer', difficulty: 'hard' },
+    { name: 'Player', kind: 'human' },
+  ])
+  Object.assign(state, {
+    phase: 'selecting',
+    dice: values.map((value, id) => ({ value, id })),
+    diceInPlay: values.length,
+    turnScore: risk,
+    rollNumber: risk ? 2 : 1,
+    scoredMultiples: chains,
+  })
   state.players[0]!.score = own
   state.players[1]!.score = opponent
   return state
@@ -18,12 +28,21 @@ function decision(state: GameState) {
   const before = JSON.stringify(state)
   const selected = selectComputerRecommended(state)
   assert.equal(JSON.stringify(state), before, 'Planning must not mutate live dice, chains, score, or history.')
-  return { selected: selected.dice.filter(die => selected.selectedDieIds.includes(die.id)).map(die => die.value), bank: shouldComputerBank(selected), state: selected }
+  return {
+    selected: selected.dice.filter(die => selected.selectedDieIds.includes(die.id)).map(die => die.value),
+    bank: shouldComputerBank(selected),
+    state: selected,
+  }
 }
 
 test('chain diagnostics use exact scorer outcomes and correct scoring-face risk', () => {
   const sixes = nextRollRisk(3, { 6: 3 })
-  assert.deepEqual(sixes, { outcomes: 216, busts: 24, scoreSum: 94350, bustProbability: 24 / 216 })
+  assert.deepEqual(sixes, {
+    outcomes: 216,
+    busts: 24,
+    scoreSum: 94350,
+    bustProbability: 24 / 216,
+  })
   const ones = nextRollRisk(3, { 1: 3 })
   assert.equal(ones.busts, 60)
   assert.equal(ones.scoreSum / ones.busts, 2237.5)

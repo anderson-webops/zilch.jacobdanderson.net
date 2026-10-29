@@ -66,7 +66,18 @@ async function waitForHttp(url, timeoutMs = 45_000) {
 }
 
 function startFrontend() {
-  const args = ['exec', '-w', 'front-end', '--', 'nuxt', 'dev', '--host', '127.0.0.1', '--port', String(frontendPort)]
+  const args = [
+    'exec',
+    '-w',
+    'front-end',
+    '--',
+    'nuxt',
+    'dev',
+    '--host',
+    '127.0.0.1',
+    '--port',
+    String(frontendPort),
+  ]
 
   const child = spawn('npm', args, {
     cwd: projectRoot,
@@ -93,7 +104,10 @@ async function captureScreenshot(page, filename) {
   if (!screenshotDir)
     return
   await mkdir(screenshotDir, { recursive: true })
-  await page.screenshot({ path: resolve(screenshotDir, filename), fullPage: false })
+  await page.screenshot({
+    path: resolve(screenshotDir, filename),
+    fullPage: false,
+  })
 }
 
 async function stageSavedGame(page, gameState) {
@@ -139,20 +153,7 @@ async function rollKnownDice(page, values, { selector = '.roll-button', resultSe
 async function findRolledDiceIssues(page, label, expectedValues, { expectScoring = true } = {}) {
   return await page.evaluate(({ label: stateLabel, values, expectScoring: hasScoringDice }) => {
     const issues = []
-    const dice = [...document.querySelectorAll('.dice-zone .die')]
-    if (dice.length !== values.length)
-      return [`${stateLabel}: expected ${values.length} visible dice, found ${dice.length}`]
-
-    const grid = dice[0]?.parentElement
-    if (!grid?.matches('.dice-grid') || grid.classList.contains('waiting-dice'))
-      issues.push(`${stateLabel}: rolled dice retained the waiting placeholder container`)
-    if (grid && getComputedStyle(grid).display !== 'grid')
-      issues.push(`${stateLabel}: rolled dice lost their grid layout`)
-
-    const checkedAncestors = new Set()
-    for (const [index, die] of dice.entries()) {
-      if (!die.getAttribute('aria-label')?.startsWith(`Die showing ${values[index]},`))
-        issues.push(`${stateLabel}: die ${index + 1} does not show its rolled value ${values[index]}`)
+    function inspectAncestors(die, checkedAncestors) {
       for (let element = die; element; element = element.parentElement) {
         if (checkedAncestors.has(element))
           continue
@@ -164,15 +165,40 @@ async function findRolledDiceIssues(page, label, expectedValues, { expectScoring
           issues.push(`${stateLabel}: ${element.className || element.tagName} filters the rolled dice with ${style.filter}`)
       }
     }
+    function inspectFace(die) {
+      const background = getComputedStyle(die).backgroundColor
+      const components = background.match(/[\d.]+/g)?.map(Number) ?? []
+      const alpha = components[3] ?? 1
+      if (components.length < 3 || Math.min(...components.slice(0, 3)) < 200 || alpha < 0.95)
+        issues.push(`${stateLabel}: a readable die has a dim or translucent face (${background})`)
+    }
+    function inspectGrid(dice) {
+      const grid = dice[0]?.parentElement
+      if (!grid?.matches('.dice-grid') || grid.classList.contains('waiting-dice'))
+        issues.push(`${stateLabel}: rolled dice retained the waiting placeholder container`)
+      if (grid && getComputedStyle(grid).display !== 'grid')
+        issues.push(`${stateLabel}: rolled dice lost their grid layout`)
+      const bounds = dice.map(die => die.getBoundingClientRect())
+      for (let index = 1; index < bounds.length; index++) {
+        const previous = bounds[index - 1]
+        const current = bounds[index]
+        if (Math.abs(current.top - previous.top) < 8 && current.left - previous.right < 6)
+          issues.push(`${stateLabel}: dice ${index} and ${index + 1} touch or have less than a 6px gap`)
+      }
+    }
+    const dice = [
+      ...document.querySelectorAll('.dice-zone .die'),
+    ]
+    if (dice.length !== values.length)
+      return [`${stateLabel}: expected ${values.length} visible dice, found ${dice.length}`]
 
-    // Check the visible gaps, since the old placeholder's narrow columns made
-    // full-size rolled dice touch even when their own opacity was correct.
-    const bounds = dice.map(die => die.getBoundingClientRect())
-    for (let index = 1; index < bounds.length; index++) {
-      const previous = bounds[index - 1]
-      const current = bounds[index]
-      if (Math.abs(current.top - previous.top) < 8 && current.left - previous.right < 6)
-        issues.push(`${stateLabel}: dice ${index} and ${index + 1} touch or have less than a 6px gap`)
+    inspectGrid(dice)
+
+    const checkedAncestors = new Set()
+    for (const [index, die] of dice.entries()) {
+      if (!die.getAttribute('aria-label')?.startsWith(`Die showing ${values[index]},`))
+        issues.push(`${stateLabel}: die ${index + 1} does not show its rolled value ${values[index]}`)
+      inspectAncestors(die, checkedAncestors)
     }
 
     const available = dice.filter(die => !die.disabled)
@@ -180,13 +206,8 @@ async function findRolledDiceIssues(page, label, expectedValues, { expectScoring
       issues.push(`${stateLabel}: the scoring roll has no available dice`)
     if (!hasScoringDice && (available.length || dice.some(die => die.classList.contains('muted'))))
       issues.push(`${stateLabel}: bust dice should be readable roll results without scoring controls`)
-    for (const die of hasScoringDice ? available : dice) {
-      const background = getComputedStyle(die).backgroundColor
-      const components = background.match(/[\d.]+/g)?.map(Number) ?? []
-      const alpha = components[3] ?? 1
-      if (components.length < 3 || Math.min(...components.slice(0, 3)) < 200 || alpha < 0.95)
-        issues.push(`${stateLabel}: a readable die has a dim or translucent face (${background})`)
-    }
+    for (const die of hasScoringDice ? available : dice)
+      inspectFace(die)
     return issues
   }, { label, values: expectedValues, expectScoring })
 }
@@ -282,7 +303,9 @@ async function findReflowIssues(page, label, selectors) {
 
 async function findTapTargetIssues(page, label) {
   return await page.evaluate((stateLabel) => {
-    return [...document.querySelectorAll('button, summary')]
+    return [
+      ...document.querySelectorAll('button, summary'),
+    ]
       .map((element) => {
         const rect = element.getBoundingClientRect()
         return {
@@ -321,7 +344,7 @@ async function findAxeIssues(page, label) {
 async function setInputValue(page, selector, value) {
   await page.$eval(selector, (input, nextValue) => {
     if (!(input instanceof HTMLInputElement))
-      throw new Error('The requested score input is unavailable')
+      throw new TypeError('The requested score input is unavailable')
     input.value = nextValue
     input.dispatchEvent(new Event('input', { bubbles: true }))
   }, value)
@@ -480,6 +503,13 @@ async function verifySetupControls(page, viewport, scheme) {
 }
 
 async function verifyMobileGameFlow(page) {
+  const firstRollValues = [2, 3, 3, 5, 4, 5]
+  const issues = await verifyMobileSetupAndRules(page, firstRollValues)
+  issues.push(...await verifyMobileSavedResults(page, firstRollValues))
+  return issues
+}
+
+async function verifyMobileSetupAndRules(page, firstRollValues) {
   const issues = await findReflowIssues(page, 'landing', [
     '.game-frame',
     '.welcome-card',
@@ -491,7 +521,9 @@ async function verifyMobileGameFlow(page) {
   issues.push(...await findTapTargetIssues(page, 'landing'))
 
   const undersizedFields = await page.evaluate(() => {
-    return [...document.querySelectorAll('input:not([type="radio"]), select')]
+    return [
+      ...document.querySelectorAll('input:not([type="radio"]), select'),
+    ]
       .filter(element => Number.parseFloat(getComputedStyle(element).fontSize) < 16)
       .map(element => element.getAttribute('aria-label') || element.tagName.toLowerCase())
   })
@@ -530,7 +562,6 @@ async function verifyMobileGameFlow(page) {
   if (playerNameAfterTips !== playerNameBeforeTips)
     issues.push('ready game: returning from Tips did not preserve the active table')
 
-  const firstRollValues = [2, 3, 3, 5, 4, 5]
   await rollKnownDice(page, firstRollValues)
   issues.push(...await findRolledDiceIssues(page, 'new game first roll', firstRollValues))
   issues.push(...await findReflowIssues(page, 'rolled game', [
@@ -554,12 +585,19 @@ async function verifyMobileGameFlow(page) {
   issues.push(...await findTapTargetIssues(page, 'rules dialog'))
   issues.push(...await findAxeIssues(page, 'rules dialog'))
   const displayedScores = await page.$$eval('.score-list dt', terms => Object.fromEntries(
-    terms.map(term => [term.textContent?.trim(), term.nextElementSibling?.textContent?.trim()]),
+    terms.map(term => [
+      term.textContent?.trim(),
+      term.nextElementSibling?.textContent?.trim(),
+    ]),
   ))
   if (displayedScores['Three pairs'] !== '500' || displayedScores['1–2–3–4–5–6 straight'] !== '1,000')
     issues.push('rules dialog: three pairs must show 500 while a straight remains 1,000')
   await page.click('[aria-label="Close rules"]')
+  return issues
+}
 
+async function verifyMobileSavedResults(page, firstRollValues) {
+  const issues = []
   await stageSavedGame(page, {
     schemaVersion: 2,
     settings: {
@@ -571,8 +609,22 @@ async function verifyMobileGameFlow(page) {
       stealing: false,
     },
     players: [
-      { id: 'player-1', name: 'Player 1', kind: 'human', difficulty: null, score: 0, scoreReachedAt: 0 },
-      { id: 'player-2', name: 'Computer', kind: 'computer', difficulty: 'hard', score: 0, scoreReachedAt: 0 },
+      {
+        id: 'player-1',
+        name: 'Player 1',
+        kind: 'human',
+        difficulty: null,
+        score: 0,
+        scoreReachedAt: 0,
+      },
+      {
+        id: 'player-2',
+        name: 'Computer',
+        kind: 'computer',
+        difficulty: 'hard',
+        score: 0,
+        scoreReachedAt: 0,
+      },
     ],
     currentPlayerIndex: 0,
     nextPlayerIndex: null,
@@ -598,8 +650,12 @@ async function verifyMobileGameFlow(page) {
   await delay(600)
   const diceContrastIssues = await page.evaluate(() => {
     const issues = []
-    const available = [...document.querySelectorAll('.dice-grid .die.available')]
-    const muted = [...document.querySelectorAll('.dice-grid .die.muted')]
+    const available = [
+      ...document.querySelectorAll('.dice-grid .die.available'),
+    ]
+    const muted = [
+      ...document.querySelectorAll('.dice-grid .die.muted'),
+    ]
     const total = document.querySelectorAll('.dice-grid .die').length
     if (available.length !== 4 || muted.length !== 2 || total !== 6) {
       issues.push(`scoring result: expected 4 available and 2 muted dice, found ${available.length} available, ${muted.length} muted, and ${total} total`)
@@ -633,8 +689,22 @@ async function verifyMobileGameFlow(page) {
       stealing: false,
     },
     players: [
-      { id: 'player-1', name: 'Player 1', kind: 'human', difficulty: null, score: 0, scoreReachedAt: 0 },
-      { id: 'player-2', name: 'Computer', kind: 'computer', difficulty: 'hard', score: 0, scoreReachedAt: 0 },
+      {
+        id: 'player-1',
+        name: 'Player 1',
+        kind: 'human',
+        difficulty: null,
+        score: 0,
+        scoreReachedAt: 0,
+      },
+      {
+        id: 'player-2',
+        name: 'Computer',
+        kind: 'computer',
+        difficulty: 'hard',
+        score: 0,
+        scoreReachedAt: 0,
+      },
     ],
     currentPlayerIndex: 0,
     nextPlayerIndex: 1,
@@ -664,7 +734,9 @@ async function verifyMobileGameFlow(page) {
       issues.push('bust result: rolled dice are not all visible')
     if (document.querySelectorAll('.dice-grid .die.muted').length !== 0)
       issues.push('bust result: rolled dice are visually muted')
-    if ([...document.querySelectorAll('.dice-grid .die')]
+    if ([
+      ...document.querySelectorAll('.dice-grid .die'),
+    ]
       .some(die => getComputedStyle(die).opacity !== '1')) {
       issues.push('bust result: one or more rolled dice are translucent')
     }
@@ -694,8 +766,22 @@ async function verifyMobileGameFlow(page) {
       stealing: false,
     },
     players: [
-      { id: 'player-1', name: 'Alice', kind: 'human', difficulty: null, score: 1000, scoreReachedAt: 1 },
-      { id: 'player-2', name: 'You', kind: 'human', difficulty: null, score: 0, scoreReachedAt: 0 },
+      {
+        id: 'player-1',
+        name: 'Alice',
+        kind: 'human',
+        difficulty: null,
+        score: 1000,
+        scoreReachedAt: 1,
+      },
+      {
+        id: 'player-2',
+        name: 'You',
+        kind: 'human',
+        difficulty: null,
+        score: 0,
+        scoreReachedAt: 0,
+      },
     ],
     currentPlayerIndex: 0,
     nextPlayerIndex: 1,
@@ -806,19 +892,42 @@ async function verifyMobileGameFlow(page) {
     await page.click('.phase-dialog button')
     await page.waitForSelector('.steal-card')
     await page.click(acceptSteal ? '.steal-card button:not(.fresh-button)' : '.steal-card .fresh-button')
-    const values = acceptSteal ? [2, 3, 5] : firstRollValues
+    const values = acceptSteal
+      ? [2, 3, 5]
+      : firstRollValues
     const label = acceptSteal ? 'accepted continuation first roll' : 'fresh continuation first roll'
     await rollKnownDice(page, values)
     issues.push(...await findRolledDiceIssues(page, label, values))
   }
 
+  issues.push(...await verifyHardMultipleFlow(page, savedReadyState))
+  issues.push(...await verifyMobileFinalResults(page))
+  return issues
+}
+
+async function verifyHardMultipleFlow(page, savedReadyState) {
+  const issues = []
   // Resume a legacy all-scoring selection. Refined Hard must refresh it,
   // retain just the triple, and execute the real timed three-die reroll.
   await stageSavedGame(page, {
     ...savedReadyState,
     players: [
-      { id: 'player-1', name: 'Computer', kind: 'computer', difficulty: 'hard', score: 1000, scoreReachedAt: 1 },
-      { id: 'player-2', name: 'Player 2', kind: 'human', difficulty: null, score: 1000, scoreReachedAt: 2 },
+      {
+        id: 'player-1',
+        name: 'Computer',
+        kind: 'computer',
+        difficulty: 'hard',
+        score: 1000,
+        scoreReachedAt: 1,
+      },
+      {
+        id: 'player-2',
+        name: 'Player 2',
+        kind: 'human',
+        difficulty: null,
+        score: 1000,
+        scoreReachedAt: 2,
+      },
     ],
     phase: 'selecting',
     turnScore: 950,
@@ -856,6 +965,11 @@ async function verifyMobileGameFlow(page) {
     })
   }
 
+  return issues
+}
+
+async function verifyMobileFinalResults(page) {
+  const issues = []
   await stageSavedGame(page, {
     schemaVersion: 2,
     settings: {
@@ -867,8 +981,22 @@ async function verifyMobileGameFlow(page) {
       stealing: false,
     },
     players: [
-      { id: 'player-1', name: 'You', kind: 'human', difficulty: null, score: 5000, scoreReachedAt: 1 },
-      { id: 'player-2', name: 'Computer', kind: 'computer', difficulty: 'medium', score: 4200, scoreReachedAt: 2 },
+      {
+        id: 'player-1',
+        name: 'You',
+        kind: 'human',
+        difficulty: null,
+        score: 5000,
+        scoreReachedAt: 1,
+      },
+      {
+        id: 'player-2',
+        name: 'Computer',
+        kind: 'computer',
+        difficulty: 'medium',
+        score: 4200,
+        scoreReachedAt: 2,
+      },
     ],
     currentPlayerIndex: 0,
     nextPlayerIndex: null,
@@ -906,7 +1034,9 @@ async function verifyMobileGameFlow(page) {
     hasPopup: Boolean(document.querySelector('.winner-overlay')),
     hasPlayArea: Boolean(document.querySelector('.felt-table')),
     focusedScores: document.activeElement === document.querySelector('.scoreboard ol'),
-    scores: [...document.querySelectorAll('.score-total')].map(element => element.textContent?.trim()),
+    scores: [
+      ...document.querySelectorAll('.score-total'),
+    ].map(element => element.textContent?.trim()),
     game: localStorage.getItem('zilch-browser-game-v1'),
     currentTurn: document.querySelector('.scoreboard')?.textContent?.includes('Current turn'),
   }))
@@ -983,8 +1113,11 @@ async function analyzePage(browser, route, scheme, viewport) {
   page.setDefaultTimeout(30_000)
   try {
     await page.setViewport({ width: viewport.width, height: viewport.height, deviceScaleFactor: 1 })
-    if (scheme === 'dark' || scheme === 'light')
-      await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: scheme }])
+    if (scheme === 'dark' || scheme === 'light') {
+      await page.emulateMediaFeatures([
+        { name: 'prefers-color-scheme', value: scheme },
+      ])
+    }
 
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 })
     await page.waitForNetworkIdle({ idleTime: 500, timeout: 8_000 }).catch(() => {})

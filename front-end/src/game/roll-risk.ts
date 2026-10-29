@@ -49,7 +49,12 @@ export function nextRollRisk(diceCount: number, chains: MultipleChains): RollRis
     }
   }
   visit(1)
-  const result = Object.freeze({ outcomes, busts, scoreSum, bustProbability: busts / outcomes })
+  const result = Object.freeze({
+    outcomes,
+    busts,
+    scoreSum,
+    bustProbability: busts / outcomes,
+  })
   cache.set(key, result)
   return result
 }

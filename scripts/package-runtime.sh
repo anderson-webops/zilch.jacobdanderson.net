@@ -6,8 +6,8 @@ root=$(cd -- "$(dirname -- "$0")/.." && pwd)
 cd -- "$root"
 test "$(uname -s)" = Linux
 test "$(uname -m)" = aarch64
-test "$(node --version)" = v24.18.1
-test "$(npm --version)" = 12.0.2
+test "$(node --version)" = v24.22.1
+test "$(npm --version)" = 12.2.1
 test -z "$(git status --porcelain)"
 commit=$(git rev-parse HEAD)
 output=$(realpath "${1:?Pass an empty output directory under .ai-work/runs}")
@@ -23,6 +23,8 @@ ZILCH_BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 node scripts/write-release-metadata.mjs
 cp package.json package-lock.json .zilch-release-prepared.json "$stage/"
 cp back-end/package.json back-end/package-lock.json "$stage/back-end/"
+mkdir -p "$stage/back-end/vendor"
+cp back-end/vendor/qs-6.17.2-webops.1.tgz "$stage/back-end/vendor/"
 cp front-end/package.json "$stage/front-end/"
 cp -R back-end/dist "$stage/back-end/"
 cp -R front-end/.output/public "$stage/front-end/.output/"
@@ -31,6 +33,8 @@ npm audit --prefix "$stage/back-end" --omit=dev --audit-level=low
 npm audit --prefix "$stage/back-end" --audit-level=low
 npm audit signatures --prefix "$stage/back-end"
 npm ls --prefix "$stage/back-end" --omit=dev --all > "$output/dependency-tree.txt"
+rm -- "$stage/back-end/vendor/qs-6.17.2-webops.1.tgz"
+rmdir -- "$stage/back-end/vendor"
 # This reviewed JS-only runtime has no executable dependency bins. The verifier
 # rejects any other symlinks; it never follows links into a source checkout.
 rm -rf -- "$stage/back-end/node_modules/.bin"

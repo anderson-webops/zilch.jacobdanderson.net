@@ -42,7 +42,9 @@ function integer(value: unknown, minimum: number, maximum: number, fallback: num
 }
 
 function name(value: unknown, fallback: string) {
-  return typeof value === 'string' && value.trim() ? value.trim().slice(0, 30) : fallback
+  return typeof value === 'string' && value.trim()
+    ? value.trim().slice(0, 30)
+    : fallback
 }
 
 export function restoreSetupPreferences(value: unknown): SetupPreferences {
@@ -57,9 +59,13 @@ export function restoreSetupPreferences(value: unknown): SetupPreferences {
     : defaults.settings[key] as boolean
   return {
     schemaVersion: 1,
-    mode: input.mode === 'local' ? 'local' : 'computer',
+    mode: input.mode === 'local'
+      ? 'local'
+      : 'computer',
     playerCount: integer(input.playerCount, 1, 6, defaults.playerCount),
-    localNames: defaults.localNames.map((fallback, index) => name(Array.isArray(input.localNames) ? input.localNames[index] : null, fallback)),
+    localNames: defaults.localNames.map((fallback, index) => name(Array.isArray(input.localNames)
+      ? input.localNames[index]
+      : null, fallback)),
     humanName: name(input.humanName, defaults.humanName),
     computerName: name(input.computerName, defaults.computerName),
     computerDifficulty: input.computerDifficulty === 'easy' || input.computerDifficulty === 'hard'
@@ -79,8 +85,11 @@ export function restoreSetupPreferences(value: unknown): SetupPreferences {
 export function readSetupPreferences(storage: Pick<Storage, 'getItem'> | null): SetupPreferences {
   try {
     const raw = storage?.getItem(SETUP_PREFERENCE_KEY)
-    if (raw !== null && raw !== undefined)
-      return restoreSetupPreferences(raw && raw.length <= MAX_PREFERENCE_BYTES ? JSON.parse(raw) : null)
+    if (raw !== null && raw !== undefined) {
+      return restoreSetupPreferences(raw && raw.length <= MAX_PREFERENCE_BYTES
+        ? JSON.parse(raw)
+        : null)
+    }
     // On upgrade, recover the previous setup from a valid existing saved game.
     const savedGame = storage?.getItem('zilch-browser-game-v1')
     const game = savedGame && savedGame.length <= MAX_SAVED_GAME_BYTES
@@ -97,7 +106,9 @@ export function readSetupPreferences(storage: Pick<Storage, 'getItem'> | null): 
       computerDifficulty: computer?.difficulty ?? defaults.computerDifficulty,
       computerName: computer?.name ?? defaults.computerName,
       humanName: game.players.find(player => player.kind === 'human')?.name ?? defaults.humanName,
-      localNames: computer ? defaults.localNames : game.players.map(player => player.name),
+      localNames: computer
+        ? defaults.localNames
+        : game.players.map(player => player.name),
       settings: game.settings,
     })
   }

@@ -45,7 +45,12 @@ if (git('rev-parse', 'HEAD') !== commitSha || git('status', '--porcelain'))
 if (git('cat-file', '-t', `refs/tags/${release}`) !== 'tag' || git('rev-parse', `${release}^{}`) !== commitSha)
   throw new Error('Release metadata requires an annotated tag at the exact source revision')
 
-const marker = `${JSON.stringify({ repository, release, commitSha, builtAt }, null, 2)}\n`
+const marker = `${JSON.stringify({
+  repository,
+  release,
+  commitSha,
+  builtAt,
+}, null, 2)}\n`
 const publicDirectory = new URL('../front-end/.output/public/', import.meta.url)
 const privateMarker = new URL('../.zilch-release-prepared.json', import.meta.url)
 const publicMarker = new URL('release.json', publicDirectory)
@@ -54,6 +59,9 @@ await Promise.all([
   writeFile(privateMarker, marker, { mode: 0o600 }),
   writeFile(publicMarker, marker, { mode: 0o644 }),
 ])
-await Promise.all([chmod(privateMarker, 0o600), chmod(publicMarker, 0o644)])
+await Promise.all([
+  chmod(privateMarker, 0o600),
+  chmod(publicMarker, 0o644),
+])
 
 console.log(`Prepared release identity ${release} (${commitSha})`)

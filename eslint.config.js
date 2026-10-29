@@ -4,7 +4,13 @@ export default antfu(
   {
     root: true,
     formatters: true,
-    ignores: ['**/*.d.ts', '**/dist/**', '**/.nuxt/**', '**/.output/**'],
+    antislop: true,
+    ignores: [
+      '**/*.d.ts',
+      '**/dist/**',
+      '**/.nuxt/**',
+      '**/.output/**',
+    ],
   },
   {
     files: ['back-end/**/*.{js,ts,mjs,cjs}'],

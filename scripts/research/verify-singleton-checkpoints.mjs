@@ -85,7 +85,10 @@ for (const omission of plan.omitted) {
   assert.equal(omission.reason, 'Bank branch cannot meet the opening minimum.')
 }
 assert.equal(new Set(plan.omitted.map(item => item.id)).size, 8)
-for (const [phase, size, pairs, seedBase] of [['explore', 298, 10000, 3500000000], ['confirm', 24, 100000, 3600000000]]) {
+for (const [phase, size, pairs, seedBase] of [
+  ['explore', 298, 10000, 3500000000],
+  ['confirm', 24, 100000, 3600000000],
+]) {
   const rows = plan.comparisons.filter(item => item.phase === phase)
   assert.equal(rows.length, size)
   for (const [index, item] of rows.entries()) {
@@ -95,10 +98,22 @@ for (const [phase, size, pairs, seedBase] of [['explore', 298, 10000, 3500000000
 }
 
 const treatments = {
-  '11': { both: [1, 1], one: [1] },
-  '55': { both: [5, 5], one: [5] },
-  '15-keep1': { both: [1, 5], one: [1] },
-  '15-keep5': { both: [1, 5], one: [5] },
+  '11': {
+    both: [1, 1],
+    one: [1],
+  },
+  '55': {
+    both: [5, 5],
+    one: [5],
+  },
+  '15-keep1': {
+    both: [1, 5],
+    one: [1],
+  },
+  '15-keep5': {
+    both: [1, 5],
+    one: [5],
+  },
 }
 
 function selectedIds(dice, values) {
@@ -116,7 +131,10 @@ function selectedIds(dice, values) {
 }
 
 function makeWebState(risk, own, opponent, chase, values, ties = true) {
-  const game = createGame([{ name: 'A', kind: 'computer', difficulty: 'hard' }, { name: 'B', kind: 'human' }])
+  const game = createGame([
+    { name: 'A', kind: 'computer', difficulty: 'hard' },
+    { name: 'B', kind: 'human' },
+  ])
   Object.assign(game, {
     phase: 'selecting',
     turnScore: risk,
@@ -143,7 +161,9 @@ function webDecision(state) {
   }
   return {
     selected_counts: counts,
-    action: shouldComputerBank(selected) ? 'Bank' : 'Roll',
+    action: shouldComputerBank(selected)
+      ? 'Bank'
+      : 'Roll',
     score_gain: result.score,
     projected_turn_score: state.turnScore + result.score,
     next_dice: state.dice.length - result.selectedCount || 6,
@@ -165,15 +185,22 @@ for (const item of plan.comparisons) {
   for (const score of [item.position.own, item.position.opponent])
     assert(score === 0 || (Number.isSafeInteger(score) && score >= 1000 && score % 50 === 0))
   assert(item.position.own < 5000)
-  assert(item.position.chase ? item.position.opponent >= 5000 : item.position.opponent < 5000)
+  assert(item.position.chase
+    ? item.position.opponent >= 5000
+    : item.position.opponent < 5000)
   const game = makeWebState(item.risk, item.position.own, item.position.opponent, !!item.position.chase, item.roll)
-  for (const [side, values] of [['left', treatment.both], ['right', treatment.one]]) {
+  for (const [side, values] of [
+    ['left', treatment.both],
+    ['right', treatment.one],
+  ]) {
     assert.deepEqual(item[side].selected, values)
     game.selectedDieIds = selectedIds(game.dice, values)
     const score = scoreSelection(game.dice, game.selectedDieIds)
     assert(score.valid)
     assert.deepEqual(score.multipleUpdates, {})
-    assert.equal(item[side].score_gain, values.reduce((sum, face) => sum + (face === 1 ? 100 : 50), 0))
+    assert.equal(item[side].score_gain, values.reduce((sum, face) => sum + (face === 1
+      ? 100
+      : 50), 0))
     assert.equal(score.score, item[side].score_gain)
     assert.equal(item[side].next_dice, 6 - values.length)
     assert.equal(item[side].can_bank, canBank(game))
@@ -183,10 +210,15 @@ for (const item of plan.comparisons) {
   }
   const decision = webDecision(game)
   const selected = decision.selected_counts.flatMap((count, index) => Array.from({ length: count }).fill(index + 1))
-  assert.deepEqual(item.web_recommendation, { selected_dice: selected, action: decision.action.toLowerCase() })
+  assert.deepEqual(item.web_recommendation, {
+    selected_dice: selected,
+    action: decision.action.toLowerCase(),
+  })
   if (decision.action === 'Roll') {
     assert.equal(selected.length, 1, `${item.id}: released Hard already keeps one when rolling`)
-    assert.equal(selected[0], item.treatment === '55' ? 5 : 1)
+    assert.equal(selected[0], item.treatment === '55'
+      ? 5
+      : 1)
     currentBehavior.rolling_checkpoints_keep_one++
     currentBehavior.rolling_selected_face_counts[selected[0]]++
   }
@@ -194,7 +226,13 @@ for (const item of plan.comparisons) {
     assert.deepEqual(selected, treatment.both)
     currentBehavior.banking_checkpoints_collect_both++
   }
-  const context = { risk: item.risk, own: item.position.own, opponent: item.position.opponent, chase: !!item.position.chase, ties: true }
+  const context = {
+    risk: item.risk,
+    own: item.position.own,
+    opponent: item.position.opponent,
+    chase: !!item.position.chase,
+    ties: true,
+  }
   contexts.set(JSON.stringify(context), context)
   checks += 20
 }
@@ -220,7 +258,11 @@ for (const item of primaries) {
 const trashFaces = [2, 3, 4, 6]
 const eligible = []
 const eligibleCounts = {}
-for (const pair of [[1, 1], [5, 5], [1, 5]]) {
+for (const pair of [
+  [1, 1],
+  [5, 5],
+  [1, 5],
+]) {
   const label = pair.join('')
   const validMultisets = new Set()
   let ordered = 0
@@ -243,9 +285,16 @@ for (const pair of [[1, 1], [5, 5], [1, 5]]) {
           const key = sorted.join(',')
           if (!validMultisets.has(key)) {
             validMultisets.add(key)
-            eligible.push([...pair, ...sorted])
+            eligible.push([
+              ...pair,
+              ...sorted,
+            ])
           }
-          for (const ids of [[0], [1], [0, 1]]) {
+          for (const ids of [
+            [0],
+            [1],
+            [0, 1],
+          ]) {
             const selected = scoreSelection(dice, ids)
             assert(selected.valid)
             assert.deepEqual(selected.multipleUpdates, {})
@@ -256,12 +305,25 @@ for (const pair of [[1, 1], [5, 5], [1, 5]]) {
   }
   eligibleCounts[label] = { ordered, multisets: validMultisets.size }
 }
-assert.deepEqual(eligibleCounts, { 11: { ordered: 168, multisets: 13 }, 55: { ordered: 168, multisets: 13 }, 15: { ordered: 180, multisets: 18 } })
+assert.deepEqual(eligibleCounts, {
+  11: { ordered: 168, multisets: 13 },
+  55: { ordered: 168, multisets: 13 },
+  15: { ordered: 180, multisets: 18 },
+})
 assert.equal(eligible.length, 44)
 
 const selectionHelpers = []
-for (const both of [[1, 1], [5, 5], [1, 5]]) {
-  for (const caller of ['hard', 'medium', 'easy', 'human-select-best-score']) {
+for (const both of [
+  [1, 1],
+  [5, 5],
+  [1, 5],
+]) {
+  for (const caller of [
+    'hard',
+    'medium',
+    'easy',
+    'human-select-best-score',
+  ]) {
     const game = makeWebState(0, 0, 0, false, [...both, 2, 2, 3, 4])
     let selected
     if (caller === 'human-select-best-score') {
@@ -274,8 +336,20 @@ for (const both of [[1, 1], [5, 5], [1, 5]]) {
       selected = selectComputerRecommended(game)
     }
     const selectedDice = selected.dice.filter(die => selected.selectedDieIds.includes(die.id)).map(die => die.value).sort((left, right) => left - right)
-    assert.deepEqual(selectedDice, caller === 'hard' ? [both[0] === 5 ? 5 : 1] : both)
-    selectionHelpers.push({ roll: game.dice.map(die => die.value), risk: 0, banked_scores: [0, 0], caller, selected_dice: selectedDice })
+    assert.deepEqual(selectedDice, caller === 'hard'
+      ? [
+          both[0] === 5
+            ? 5
+            : 1,
+        ]
+      : both)
+    selectionHelpers.push({
+      roll: game.dice.map(die => die.value),
+      risk: 0,
+      banked_scores: [0, 0],
+      caller,
+      selected_dice: selectedDice,
+    })
   }
 }
 
@@ -283,13 +357,28 @@ for (const both of [[1, 1], [5, 5], [1, 5]]) {
 for (const own of [4800, 4850, 4900, 4950]) {
   for (const opponent of [5000, 5050]) {
     for (const ties of [true, false]) {
-      const context = { risk: 0, own, opponent, chase: true, ties }
+      const context = {
+        risk: 0,
+        own,
+        opponent,
+        chase: true,
+        ties,
+      }
       contexts.set(JSON.stringify(context), context)
     }
   }
 }
-for (const [own, opponent] of [[0, 0], [1000, 1000]]) {
-  const context = { risk: 50, own, opponent, chase: false, ties: true }
+for (const [own, opponent] of [
+  [0, 0],
+  [1000, 1000],
+]) {
+  const context = {
+    risk: 50,
+    own,
+    opponent,
+    chase: false,
+    ties: true,
+  }
   contexts.set(JSON.stringify(context), context)
 }
 const parityCases = []
@@ -297,12 +386,32 @@ for (const context of contexts.values()) {
   for (const values of eligible) {
     const state = makeWebState(context.risk, context.own, context.opponent, context.chase, values, context.ties)
     parityCases.push({
-      line: [context.risk, context.own, context.opponent, 5000, 1000, 0, 1, Number(context.chase), Number(context.ties), 1, values.join(','), '0,0,0,0,0,0'].join(' '),
+      line: [
+        context.risk,
+        context.own,
+        context.opponent,
+        5000,
+        1000,
+        0,
+        1,
+        Number(context.chase),
+        Number(context.ties),
+        1,
+        values.join(','),
+        '0,0,0,0,0,0',
+      ].join(' '),
       expected: webDecision(state),
     })
   }
 }
-const probeArguments = ['--policy', resolve(root, 'docs/strategy-policies/standard-hard.cfg'), '--collect', 'true', '--features', 'released']
+const probeArguments = [
+  '--policy',
+  resolve(root, 'docs/strategy-policies/standard-hard.cfg'),
+  '--collect',
+  'true',
+  '--features',
+  'released',
+]
 const nativeDecisions = execFileSync(probe, probeArguments, {
   input: `${parityCases.map(item => item.line).join('\n')}\n`,
   encoding: 'utf8',
@@ -319,7 +428,14 @@ if (mode === 'plan')
   process.exit(0)
 
 function verifyOutcomes(outcome, pairs, label) {
-  for (const key of ['games', 'wins', 'ties', 'losses', 'points_for', 'points_against'])
+  for (const key of [
+    'games',
+    'wins',
+    'ties',
+    'losses',
+    'points_for',
+    'points_against',
+  ])
     assert(Number.isSafeInteger(outcome[key]) && outcome[key] >= 0, `${label}.${key}`)
   assert.equal(outcome.games, pairs)
   assert.equal(outcome.wins + outcome.ties + outcome.losses, pairs)
@@ -350,10 +466,26 @@ function verifyMoments(moment, pairs, sum, label, bounded) {
   near(moment.ci95[0], interval[0], `${label}.ci95 lower`)
   near(moment.ci95[1], interval[1], `${label}.ci95 upper`)
   checks += 5
-  return { mean, sample_variance: Math.max(0, variance), standard_error: error, ci95: interval }
+  return {
+    mean,
+    sample_variance: Math.max(0, variance),
+    standard_error: error,
+    ci95: interval,
+  }
 }
 
-const expectedRules = { target: 5000, opening_score: 1000, straight: true, multiples: true, singles: true, three_pairs: true, stealing: false, first_roll_mercy: true, final_chase: true, ties: true }
+const expectedRules = {
+  target: 5000,
+  opening_score: 1000,
+  straight: true,
+  multiples: true,
+  singles: true,
+  three_pairs: true,
+  stealing: false,
+  first_roll_mercy: true,
+  final_chase: true,
+  ties: true,
+}
 const expectedPolicy = {
   name: 'best',
   source: 'builtin',
@@ -418,7 +550,11 @@ for (const item of plan.comparisons) {
   assert.deepEqual(result.policy_b, expectedPolicy)
   assert.deepEqual(result.selection_state.roll, item.roll)
   assert.equal(result.selection_state.at_risk_before_selection, item.risk)
-  for (const [state, selected] of [[result.selection_state.state, false], [result.branches.left.state, true], [result.branches.right.state, true]]) {
+  for (const [state, selected] of [
+    [result.selection_state.state, false],
+    [result.branches.left.state, true],
+    [result.branches.right.state, true],
+  ]) {
     assert.equal(state.banked_a, item.position.own)
     assert.equal(state.banked_b, item.position.opponent)
     assert.equal(state.seat, 0)
@@ -478,8 +614,16 @@ for (const item of plan.comparisons) {
     right_match_point_rate: result.right.match_point_rate,
     match_point_difference: matchPoints,
     score_margin_difference: margin,
-    confirmation_sign_screen_3_3_se: item.phase === 'confirm' ? screen : null,
-    confirmation_sign: item.phase !== 'confirm' ? null : screen[0] > 0 ? 'right' : screen[1] < 0 ? 'left' : 'unresolved',
+    confirmation_sign_screen_3_3_se: item.phase === 'confirm'
+      ? screen
+      : null,
+    confirmation_sign: item.phase !== 'confirm'
+      ? null
+      : screen[0] > 0
+        ? 'right'
+        : screen[1] < 0
+          ? 'left'
+          : 'unresolved',
   })
   if (primaries.some(primary => primary.id === item.id))
     primaryPayloads.set(item.id, result)
@@ -495,7 +639,14 @@ for (const item of primaries) {
   const replay = JSON.parse(stdout)
   const { provenance: _provenance, run_id: _runId, ...original } = saved
   assert.deepEqual(replay, original, `Exact independent replay: ${item.id}`)
-  replays.push({ id: item.id, seed: item.seed, pairs: item.pairs, games: item.pairs * 2, exact_payload_match: true, replay_stdout_sha256: sha256(stdout) })
+  replays.push({
+    id: item.id,
+    seed: item.seed,
+    pairs: item.pairs,
+    games: item.pairs * 2,
+    exact_payload_match: true,
+    replay_stdout_sha256: sha256(stdout),
+  })
 }
 assert.equal(sha256(await readFile(executable)), plan.executable_sha256)
 assert.equal(sha256(await readFile(probe)), probeHash)
@@ -527,7 +678,14 @@ const validation = {
     probes: selectionHelpers,
     interpretation: 'For these representative unopened rolls, Hard keeps one single, while Easy, Medium, and the human Select best score helper collect both. This establishes current source behavior without inferring which control or version the user previously observed.',
   },
-  native_web_production_parity: { contexts: contexts.size, eligible_roll_multisets: eligible.length, decisions: parityCases.length, mismatches: 0, probe_sha256: probeHash, command: [probe, ...probeArguments] },
+  native_web_production_parity: {
+    contexts: contexts.size,
+    eligible_roll_multisets: eligible.length,
+    decisions: parityCases.length,
+    mismatches: 0,
+    probe_sha256: probeHash,
+    command: [probe, ...probeArguments],
+  },
   replay_games_not_new_evidence: replays.reduce((sum, item) => sum + item.games, 0),
   independent_primary_replays: replays,
   limitations: [

@@ -13,14 +13,27 @@ const frozen = JSON.parse(await readFile(resolve(study, 'frozen-candidate.json')
 const sha256 = data => createHash('sha256').update(data).digest('hex')
 assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: sourceRoot, encoding: 'utf8' }).trim(), frozen.simulator_revision)
 assert.equal(sha256(await readFile(executable)), frozen.executable_sha256)
-assert.deepEqual(frozen.features, { collect_before_bank: true, safe_finish_collection: true, chain_risk_weight: 1, chain_mode: 'blend', joint_selection: true, joint_chains_only: true })
+assert.deepEqual(frozen.features, {
+  collect_before_bank: true,
+  safe_finish_collection: true,
+  chain_risk_weight: 1,
+  chain_mode: 'blend',
+  joint_selection: true,
+  joint_chains_only: true,
+})
 
 for (const [index, run] of frozen.holdouts.entries()) {
   const flags = new Map([
     ['--mode', 'duel'],
-    ['--pairs', String(run.pairs)],
+    [
+      '--pairs',
+      String(run.pairs),
+    ],
     ['--threads', '4'],
-    ['--seed', String(frozen.primary_seed + index)],
+    [
+      '--seed',
+      String(frozen.primary_seed + index),
+    ],
     ['--collect-a', 'true'],
     ['--collect-b', 'true'],
     ['--safe-finish-a', 'true'],
@@ -35,7 +48,15 @@ for (const [index, run] of frozen.holdouts.entries()) {
   const args = [...flags].flat()
   const path = resolve(study, 'results', `${run.id}.json`)
   if (!existsSync(path)) {
-    execFileSync(process.execPath, ['scripts/research/run-experiment.mjs', '--study', 'multiple-selection-2026-09', sourceRoot, executable, run.id, ...args], { stdio: 'inherit' })
+    execFileSync(process.execPath, [
+      'scripts/research/run-experiment.mjs',
+      '--study',
+      'multiple-selection-2026-09',
+      sourceRoot,
+      executable,
+      run.id,
+      ...args,
+    ], { stdio: 'inherit' })
   }
   const result = JSON.parse(await readFile(path, 'utf8'))
   assert.equal(result.run_id, run.id)

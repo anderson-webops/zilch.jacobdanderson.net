@@ -11,7 +11,9 @@ function countDice(dice: Die[]) {
 }
 
 function multipleScore(count: number, value: DieValue) {
-  const base = value === 1 ? 1_000 : value * 100
+  const base = value === 1
+    ? 1_000
+    : value * 100
   return base * (2 ** (count - 3))
 }
 
@@ -38,7 +40,9 @@ function faceName(value: DieValue, count: number) {
     5: 'five',
     6: 'six',
   }
-  return count === 1 ? names[value] : `${names[value]}s`
+  return count === 1
+    ? names[value]
+    : `${names[value]}s`
 }
 
 export function scoreSelection(
@@ -122,7 +126,9 @@ export function scoreSelection(
     }
 
     if (value === 1 || value === 5) {
-      score += count * (value === 1 ? 100 : 50)
+      score += count * (value === 1
+        ? 100
+        : 50)
       labels.push(`${count} ${faceName(value, count)}`)
       continue
     }
@@ -143,7 +149,9 @@ export function scoreSelection(
     label: labels.join(' + '),
     selectedCount: selected.length,
     multipleUpdates,
-    reason: score > 0 ? '' : 'Those dice do not make a scoring combination.',
+    reason: score > 0
+      ? ''
+      : 'Those dice do not make a scoring combination.',
   }
 }
 
@@ -178,5 +186,8 @@ export const scoringRules = [
   { combination: 'Three 2s–6s', score: 'Face × 100' },
   { combination: 'Each extra matching die', score: 'Doubles the multiple' },
   { combination: '1–2–3–4–5–6 straight', score: '1,000' },
-  { combination: 'Three pairs', score: String(THREE_PAIRS_SCORE) },
+  {
+    combination: 'Three pairs',
+    score: String(THREE_PAIRS_SCORE),
+  },
 ] as const

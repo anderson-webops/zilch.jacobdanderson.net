@@ -64,11 +64,21 @@ const {
 
 const cspMeta = frontendIndex.match(/<meta[^>]+http-equiv=["']content-security-policy["'][^>]*>/i)?.[0] || ''
 const csp = cspMeta.match(/content="([^"]*)"/i)?.[1] || cspMeta.match(/content='([^']*)'/i)?.[1] || ''
-for (const directive of ['base-uri \'none\'', 'default-src \'none\'', 'connect-src \'self\'', 'object-src \'none\'', 'script-src-attr \'none\'', 'style-src \'self\'', 'script-src \'self\''])
+for (const directive of [
+  'base-uri \'none\'',
+  'default-src \'none\'',
+  'connect-src \'self\'',
+  'object-src \'none\'',
+  'script-src-attr \'none\'',
+  'style-src \'self\'',
+  'script-src \'self\'',
+])
   assert(csp.includes(directive), `Generated CSP must include ${directive}`)
 assert(!/https?:|\*/i.test(csp), 'Generated CSP must not authorize wildcard or external HTTP origins')
 
-const executableAssetTags = [...frontendIndex.matchAll(/<(?:script|link)[^>]+(?:src|href)=["']\/_nuxt\/[^"']+["'][^>]*>/gi)]
+const executableAssetTags = [
+  ...frontendIndex.matchAll(/<(?:script|link)[^>]+(?:src|href)=["']\/_nuxt\/[^"']+["'][^>]*>/gi),
+]
   .map(match => match[0])
   .filter(tag => /^<script/i.test(tag) || /rel=["']stylesheet["']/i.test(tag))
 assert(executableAssetTags.length > 0, 'Generated HTML must reference hashed executable assets')
@@ -87,8 +97,8 @@ assert(apiServer.includes('maxConnections = 256'), 'Compiled API must cap admitt
 assert(/^User=zilch-site$/m.test(directService), 'Direct API service must use its dedicated unprivileged account')
 assert(/^Environment=PORT=3018$/m.test(directService), 'Direct API service must use the reviewed Zilch loopback port')
 assert(/^Environment=HOST=127\.0\.0\.1$/m.test(directService), 'Direct API service must bind only to loopback')
-assert(/^ExecStart=\/opt\/node-24\.18\.1\/bin\/node back-end\/dist\/server\.js$/m.test(directService), 'Direct API service must use isolated Node 24.18.1')
-assert(/^Environment=PATH=\/opt\/node-24\.18\.1\/bin:/m.test(directService), 'Direct API service must place the isolated runtime first on PATH')
+assert(/^ExecStart=\/opt\/node-24\.22\.1\/bin\/node back-end\/dist\/server\.js$/m.test(directService), 'Direct API service must use isolated Node 24.22.1')
+assert(/^Environment=PATH=\/opt\/node-24\.22\.1\/bin:/m.test(directService), 'Direct API service must place the isolated runtime first on PATH')
 assert(/^NoNewPrivileges=true$/m.test(directService), 'Direct API service must deny privilege escalation')
 assert(/^ProtectSystem=strict$/m.test(directService), 'Direct API service must have a read-only system view')
 assert(!/0\.0\.0\.0|docker/i.test(directService), 'Direct API service must not depend on a container listener')
@@ -100,7 +110,7 @@ assert(/X-Forwarded-For \$remote_addr/.test(directNginx), 'Nginx must replace, n
 assert(!/\$proxy_add_x_forwarded_for/.test(directNginx), 'Nginx must not trust a client-supplied forwarded chain')
 
 assert(/npm audit signatures/.test(sourceValidator), 'Tagged source validation must verify package signatures')
-assert(/NODE_BIN_DIR:-\/opt\/node-24\.18\.1\/bin/.test(sourceValidator), 'Tagged source validation must default to isolated Node 24.18.1')
+assert(/NODE_BIN_DIR:-\/opt\/node-24\.22\.1\/bin/.test(sourceValidator), 'Tagged source validation must default to isolated Node 24.22.1')
 assert(/refs\/heads\/main:refs\/remotes\/origin\/main/.test(sourceValidator), 'Tagged source validation must refresh exact origin/main')
 assert(/--unset-all http\.https:\/\/github\.com\/\.extraheader/.test(sourceValidator), 'Tagged source validation must remove checkout credentials before dependency scripts run')
 assert(/node scripts\/clean\.mjs/.test(sourceValidator), 'Tagged source validation must remove stale generated output')
@@ -145,7 +155,13 @@ const deploymentContract = JSON.parse(artifactContract)
 assert(deploymentContract.version === 2 && deploymentContract.application === 'anderson-webops/zilch.jacobdanderson.net', 'Artifact contract must identify this application and its reviewed schema')
 assert(deploymentContract.runtime.os === 'linux' && deploymentContract.runtime.arch === 'arm64', 'Artifact contract must target Linux ARM64')
 assert(deploymentContract.adapter.name === 'zilch-direct' && deploymentContract.adapter.minimumContractVersion === 1, 'Artifact contract must name the required direct-host adapter')
-for (const capability of ['verified-tagged-artifact-v2', 'protected-versioned-helpers', 'candidate-runtime-acceptance', 'atomic-service-and-nginx-promotion', 'retained-artifact-rollback'])
+for (const capability of [
+  'verified-tagged-artifact-v2',
+  'protected-versioned-helpers',
+  'candidate-runtime-acceptance',
+  'atomic-service-and-nginx-promotion',
+  'retained-artifact-rollback',
+])
   assert(deploymentContract.adapter.requiredCapabilities.includes(capability), `Direct-host adapter capability is missing: ${capability}`)
 assert(deploymentContract.probes.liveness.path === '/healthz' && deploymentContract.probes.readiness.path === '/readyz', 'Artifact contract must name the public liveness and readiness paths')
 assert(deploymentContract.database.migrations === 'none', 'A database migration requires an explicit reviewed contract change')
@@ -173,7 +189,16 @@ assert(/from = "\/healthz"[\s\S]*api\/healthz/.test(netlifyConfig), 'Netlify mus
 assert(/from = "\/readyz"[\s\S]*api\/readyz/.test(netlifyConfig), 'Netlify must route root readiness to the same Express app')
 assert(/Cache-Control = "no-cache"/.test(netlifyConfig) && /Cache-Control = "no-store"/.test(netlifyConfig) && /immutable/.test(netlifyConfig), 'Netlify must preserve route, identity, probe, and hashed-asset cache policy')
 
-for (const removedPath of ['.dockerignore', 'Dockerfile', 'compose.yaml', 'docker-compose.yml', 'nginx.conf', 'front-end/public/healthz', 'deploy/systemd/prepare-release.sh', 'scripts/write-runtime-manifest.mjs']) {
+for (const removedPath of [
+  '.dockerignore',
+  'Dockerfile',
+  'compose.yaml',
+  'docker-compose.yml',
+  'nginx.conf',
+  'front-end/public/healthz',
+  'deploy/systemd/prepare-release.sh',
+  'scripts/write-runtime-manifest.mjs',
+]) {
   try {
     await access(resolve(projectRoot, removedPath))
     throw new Error(`${removedPath} must be absent from the direct production repository`)

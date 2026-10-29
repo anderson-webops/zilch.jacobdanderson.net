@@ -21,22 +21,34 @@ after(() => rm(scratch, { recursive: true, force: true }))
 async function loadModule(relativePath: string, component = false) {
   const path = resolve(sourceRoot, relativePath)
   const original = await readFile(path, 'utf8')
-  const contents = component ? compileScript(parse(original).descriptor, { id: 'setup-test' }).content : original
+  const contents = component
+    ? compileScript(parse(original).descriptor, { id: 'setup-test' }).content
+    : original
   const outfile = join(scratch, `${relativePath.replace(/[^a-z0-9]/gi, '_')}.mjs`)
   await build({
-    stdin: { contents, sourcefile: path, resolveDir: sourceRoot, loader: 'ts' },
+    stdin: {
+      contents,
+      sourcefile: path,
+      resolveDir: sourceRoot,
+      loader: 'ts',
+    },
     outfile,
     bundle: true,
     platform: 'node',
     format: 'esm',
     alias: { '~': sourceRoot },
     define: { 'import.meta.client': 'true' },
-    plugins: [{
-      name: 'shared-vue',
-      setup(builder) {
-        builder.onResolve({ filter: /^vue$/ }, () => ({ path: fileURLToPath(import.meta.resolve('vue')), external: true }))
+    plugins: [
+      {
+        name: 'shared-vue',
+        setup(builder) {
+          builder.onResolve({ filter: /^vue$/ }, () => ({
+            path: fileURLToPath(import.meta.resolve('vue')),
+            external: true,
+          }))
+        },
       },
-    }],
+    ],
     banner: { js: `import { ref, shallowRef, shallowReadonly, markRaw, computed, watch, onMounted, onBeforeUnmount, nextTick, useTemplateRef } from ${JSON.stringify(import.meta.resolve('vue'))};
       const stateCache = new Map();
       export function resetTestState() { stateCache.clear(); }
@@ -74,7 +86,10 @@ function mount<T>(setup: () => T) {
     },
   })
   app.mount({})
-  return { value: value!, unmount: () => app.unmount() }
+  return {
+    value: value!,
+    unmount: () => app.unmount(),
+  }
 }
 
 function browserFixture() {
@@ -85,9 +100,19 @@ function browserFixture() {
     removeItem: (key: string) => data.delete(key),
   }
   const listeners = new Set<() => void>()
-  const motion = { matches: false, addEventListener: (_: string, handler: () => void) => listeners.add(handler), removeEventListener: (_: string, handler: () => void) => listeners.delete(handler) }
+  const motion = {
+    matches: false,
+    addEventListener: (_: string, handler: () => void) => listeners.add(handler),
+    removeEventListener: (_: string, handler: () => void) => listeners.delete(handler),
+  }
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'window')
-  Object.defineProperty(globalThis, 'window', { configurable: true, value: { localStorage: storage, matchMedia: () => motion } })
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      localStorage: storage,
+      matchMedia: () => motion,
+    },
+  })
   return {
     storage,
     reduceMotion() {
@@ -105,7 +130,10 @@ function browserFixture() {
   }
 }
 
-const players = [{ name: 'Alice', kind: 'human' }, { name: 'Bob', kind: 'human' }]
+const players = [
+  { name: 'Alice', kind: 'human' },
+  { name: 'Bob', kind: 'human' },
+]
 
 test('finished-game review dismisses only presentation and resets for another table', async () => {
   const finished = bankScore(selectRecommended(rollDice(createGame(players, {
@@ -116,7 +144,10 @@ test('finished-game review dismisses only presentation and resets for another ta
   const before = JSON.stringify(finished)
   const props = reactive({ state: finished, rollingResult: null })
   const emitted: string[] = []
-  const setup = () => tableModule.default.setup(props, { expose() {}, emit: (name: string) => emitted.push(name) })
+  const setup = () => tableModule.default.setup(props, {
+    expose() {},
+    emit: (name: string) => emitted.push(name),
+  })
   const mounted = mount(setup)
   const table = mounted.value
   assert.equal(table.showingFinalResults.value, false, 'a resumed finished game still opens the winner popup')
@@ -144,7 +175,10 @@ test('a final chase bust and tied winners can be reviewed without advancing the 
   state.phase = 'bust'
   state.endgame = { triggerPlayerId: state.players[0]!.id, remainingTurns: 1 }
   const props = reactive({ state, rollingResult: null })
-  const mounted = mount(() => tableModule.default.setup(props, { expose() {}, emit() {} }))
+  const mounted = mount(() => tableModule.default.setup(props, {
+    expose() {},
+    emit() {},
+  }))
   assert.equal(mounted.value.nextTurnAction.value, 'Continue')
   props.state = acknowledgeBust(state)
   await nextTick()
@@ -159,7 +193,9 @@ test('a final chase bust and tied winners can be reviewed without advancing the 
 })
 
 test('animation on and off consume the same rolls and produce identical game state', (context) => {
-  context.mock.timers.enable({ apis: ['setTimeout'] })
+  context.mock.timers.enable({
+    apis: ['setTimeout'],
+  })
   const browser = browserFixture()
   const mounted = mount(() => gameModule.useZilchGame())
   const game = mounted.value
@@ -193,9 +229,19 @@ test('actual setup restores custom scores and remembers valid edits across remou
   const browser = browserFixture()
   const saved = defaultSetupPreferences()
   saved.computerDifficulty = 'hard'
-  saved.settings = { winningScore: 12345, openingScore: 650, firstRollBust: false, finalChase: false, allowTies: false, stealing: true }
+  saved.settings = {
+    winningScore: 12345,
+    openingScore: 650,
+    firstRollBust: false,
+    finalChase: false,
+    allowTies: false,
+    stealing: true,
+  }
   browser.storage.setItem(SETUP_PREFERENCE_KEY, JSON.stringify(saved))
-  const setup = () => setupModule.default.setup({}, { expose() {}, emit() {} })
+  const setup = () => setupModule.default.setup({}, {
+    expose() {},
+    emit() {},
+  })
   const first = mount(setup)
   await nextTick()
   await nextTick()
@@ -236,7 +282,9 @@ test('oversized saved game data is rejected and removed before parsing', () => {
 })
 
 test('actual game keeps animation off initially, saves pending results, and blocks actions until reveal', async (context) => {
-  context.mock.timers.enable({ apis: ['setTimeout'] })
+  context.mock.timers.enable({
+    apis: ['setTimeout'],
+  })
   const browser = browserFixture()
   const mounted = mount(() => gameModule.useZilchGame())
   const game = mounted.value
@@ -276,12 +324,17 @@ test('actual game keeps animation off initially, saves pending results, and bloc
 })
 
 test('computer automation waits for animation and then gives the bust its full viewing time', async (context) => {
-  context.mock.timers.enable({ apis: ['setTimeout'] })
+  context.mock.timers.enable({
+    apis: ['setTimeout'],
+  })
   const browser = browserFixture()
   browser.storage.setItem(ROLL_PREFERENCE_KEY, 'true')
   const mounted = mount(() => gameModule.useZilchGame())
   const game = mounted.value
-  game.startGame([{ name: 'Bot', kind: 'computer', difficulty: 'hard' }, ...players], { ...defaultSettings, firstRollBust: false })
+  game.startGame([
+    { name: 'Bot', kind: 'computer', difficulty: 'hard' },
+    ...players,
+  ], { ...defaultSettings, firstRollBust: false })
   await nextTick()
   game.roll([2, 2, 3, 3, 4, 6])
   await nextTick()
@@ -300,7 +353,9 @@ test('computer automation waits for animation and then gives the bust its full v
 })
 
 test('motion changes, navigation, and leaving cannot reroll or revive a discarded table', async (context) => {
-  context.mock.timers.enable({ apis: ['setTimeout'] })
+  context.mock.timers.enable({
+    apis: ['setTimeout'],
+  })
   const browser = browserFixture()
   const mounted = mount(() => gameModule.useZilchGame())
   const game = mounted.value

@@ -29,7 +29,10 @@ const localPlayers = [
 ]
 
 function settings(overrides: Partial<GameSettings> = {}): GameSettings {
-  return { ...defaultSettings, ...overrides }
+  return {
+    ...defaultSettings,
+    ...overrides,
+  }
 }
 
 function roll(values: DieValue[], overrides: Partial<GameSettings> = {}) {
@@ -87,7 +90,13 @@ test('saved games restore only after the complete state shape is validated', () 
     finalChase: false,
   })))
 
-  for (const validState of [game, selecting, passing, stealing, finished])
+  for (const validState of [
+    game,
+    selecting,
+    passing,
+    stealing,
+    finished,
+  ])
     assert.deepEqual(restoreGame(validState), validState)
 
   const legacy = JSON.parse(JSON.stringify(game)) as Record<string, unknown>
@@ -110,13 +119,43 @@ test('saved games restore only after the complete state shape is validated', () 
   const malformedStates = [
     { ...game, currentPlayerIndex: 9 },
     { ...game, phase: 'selecting', dice: [] },
-    { ...game, selectedDieIds: [999] },
-    { ...game, players: [{ ...game.players[0], kind: 'robot' }] },
-    { ...game, players: [{ ...game.players[0], difficulty: 'impossible' }] },
-    { ...game, settings: { ...game.settings, finalChase: 'yes' } },
-    { ...game, message: 'x'.repeat(501) },
-    { ...game, events: Array.from({ length: 9 }, (_, id) => ({ id, text: 'event', tone: 'neutral' })) },
-    { ...game, events: [{ ...game.events[0], text: 'x'.repeat(501) }] },
+    {
+      ...game,
+      selectedDieIds: [999],
+    },
+    {
+      ...game,
+      players: [
+        { ...game.players[0], kind: 'robot' },
+      ],
+    },
+    {
+      ...game,
+      players: [
+        { ...game.players[0], difficulty: 'impossible' },
+      ],
+    },
+    {
+      ...game,
+      settings: { ...game.settings, finalChase: 'yes' },
+    },
+    {
+      ...game,
+      message: 'x'.repeat(501),
+    },
+    {
+      ...game,
+      events: Array.from({ length: 9 }, (_, id) => ({ id, text: 'event', tone: 'neutral' })),
+    },
+    {
+      ...game,
+      events: [
+        {
+          ...game.events[0],
+          text: 'x'.repeat(501),
+        },
+      ],
+    },
   ]
 
   for (const malformed of malformedStates)
@@ -598,7 +637,12 @@ test('a computer in Final Chase keeps rolling until it can tie or beat the leade
   const game = createGame([
     { name: 'Computer', kind: 'computer', difficulty: 'hard' },
     { name: 'Alice', kind: 'human' },
-  ], settings({ openingScore: 0, winningScore: 5_000, finalChase: true, allowTies: true }))
+  ], settings({
+    openingScore: 0,
+    winningScore: 5_000,
+    finalChase: true,
+    allowTies: true,
+  }))
   game.players[0]!.score = 4_900
   game.players[1]!.score = 5_500
   game.turnScore = 500
@@ -613,7 +657,9 @@ test('a computer in Final Chase keeps rolling until it can tie or beat the leade
 })
 
 test('messages remain grammatical when a player chooses the legacy name You', () => {
-  const start = createGame([{ name: 'You', kind: 'human' }], settings({
+  const start = createGame([
+    { name: 'You', kind: 'human' },
+  ], settings({
     openingScore: 0,
     winningScore: 1_000,
     finalChase: false,

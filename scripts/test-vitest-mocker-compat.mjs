@@ -19,7 +19,12 @@ function interceptor(keys = ['answer']) {
   plugin.configureServer({
     config: {
       root,
-      server: { fs: { strict: true, allow: [root] } },
+      server: {
+        fs: {
+          strict: true,
+          allow: [root],
+        },
+      },
       fsDenyGlob: () => false,
       safeModulePaths: new Set(),
     },
@@ -83,7 +88,13 @@ test('redirect registration rejects slash and backslash escapes before file load
   const hook = interceptor()
   for (const redirect of ['mock:../outside.js', String.raw`mock:..\outside.js`, String.raw`mock:fixtures/..\..\outside.js`]) {
     const id = `${hook.root}/${encodeURIComponent(redirect)}.js`
-    hook.register({ type: 'redirect', raw: id, id, url: id, redirect })
+    hook.register({
+      type: 'redirect',
+      raw: id,
+      id,
+      url: id,
+      redirect,
+    })
     assert.equal(hook.registry.getById(id), undefined, `Outside-root redirect was registered: ${redirect}`)
     assert.equal(await hook.load(id), undefined)
   }
@@ -93,7 +104,13 @@ test('redirect registration preserves in-root paths with either separator', () =
   const hook = interceptor()
   for (const redirect of ['mock:fixtures/inside.js', String.raw`mock:fixtures\inside.js`]) {
     const id = `${hook.root}/${encodeURIComponent(redirect)}.js`
-    hook.register({ type: 'redirect', raw: id, id, url: id, redirect })
+    hook.register({
+      type: 'redirect',
+      raw: id,
+      id,
+      url: id,
+      redirect,
+    })
     assert.equal(hook.registry.getById(id)?.redirect, `${hook.root}/fixtures/inside.js`)
   }
 })

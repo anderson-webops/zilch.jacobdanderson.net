@@ -18,10 +18,26 @@ const sha256 = bytes => createHash('sha256').update(bytes).digest('hex')
 const simulatorRevision = '89028a3c7d9963a6924f2565d90319b0a451f60a'
 const executableHash = '33c6d95eb68ce8c50c3d19b99bcc3c795ad792b68057f1e61e6bf481379f85d3'
 const treatments = [
-  { name: '11', both: [1, 1], one: [1] },
-  { name: '55', both: [5, 5], one: [5] },
-  { name: '15-keep1', both: [1, 5], one: [1] },
-  { name: '15-keep5', both: [1, 5], one: [5] },
+  {
+    name: '11',
+    both: [1, 1],
+    one: [1],
+  },
+  {
+    name: '55',
+    both: [5, 5],
+    one: [5],
+  },
+  {
+    name: '15-keep1',
+    both: [1, 5],
+    one: [1],
+  },
+  {
+    name: '15-keep5',
+    both: [1, 5],
+    one: [5],
+  },
 ]
 const positions = [
   { name: 'unopened', own: 0, opponent: 0 },
@@ -29,7 +45,12 @@ const positions = [
   { name: 'ahead', own: 3500, opponent: 1000 },
   { name: 'behind', own: 1000, opponent: 3500 },
   { name: 'close-finish', own: 4500, opponent: 4500 },
-  { name: 'final-close', own: 4900, opponent: 5500, chase: true },
+  {
+    name: 'final-close',
+    own: 4900,
+    opponent: 5500,
+    chase: true,
+  },
 ]
 const comparisons = []
 const omitted = []
@@ -47,7 +68,10 @@ function ids(values, selected) {
 function add(phase, group, treatment, risk, position, leftAction, rightAction = 'roll') {
   const roll = [...treatment.both, 2, 2, 3, 4]
   const id = `${phase}-${group}-${treatment.name}-${position.name}-risk${risk}-${leftAction}-${rightAction}`
-  const game = createGame([{ name: 'A', kind: 'computer', difficulty: 'hard' }, { name: 'B', kind: 'human' }])
+  const game = createGame([
+    { name: 'A', kind: 'computer', difficulty: 'hard' },
+    { name: 'B', kind: 'human' },
+  ])
   Object.assign(game, {
     phase: 'selecting',
     turnScore: risk,
@@ -65,10 +89,21 @@ function add(phase, group, treatment, risk, position, leftAction, rightAction = 
     const score = scoreSelection(game.dice, game.selectedDieIds)
     assert(score.valid)
     assert.deepEqual(score.multipleUpdates, {})
-    return { selected, score_gain: score.score, next_dice: 6 - selected.length, can_bank: canBank(game) }
+    return {
+      selected,
+      score_gain: score.score,
+      next_dice: 6 - selected.length,
+      can_bank: canBank(game),
+    }
   }
-  const left = { ...selection(treatment.both), action: leftAction }
-  const right = { ...selection(treatment.one), action: rightAction }
+  const left = {
+    ...selection(treatment.both),
+    action: leftAction,
+  }
+  const right = {
+    ...selection(treatment.one),
+    action: rightAction,
+  }
   if ((leftAction === 'bank' && !left.can_bank) || (rightAction === 'bank' && !right.can_bank)) {
     omitted.push({ id, reason: 'Bank branch cannot meet the opening minimum.' })
     return
@@ -76,9 +111,22 @@ function add(phase, group, treatment, risk, position, leftAction, rightAction = 
   game.selectedDieIds = recommendedComputerDieIds(game)
   const webRecommendation = {
     selected_dice: game.dice.filter(die => game.selectedDieIds.includes(die.id)).map(die => die.value).sort(),
-    action: shouldComputerBank(game) ? 'bank' : 'roll',
+    action: shouldComputerBank(game)
+      ? 'bank'
+      : 'roll',
   }
-  comparisons.push({ id, phase, group, treatment: treatment.name, roll, risk, position, left, right, web_recommendation: webRecommendation })
+  comparisons.push({
+    id,
+    phase,
+    group,
+    treatment: treatment.name,
+    roll,
+    risk,
+    position,
+    left,
+    right,
+    web_recommendation: webRecommendation,
+  })
 }
 
 for (const treatment of treatments) {
@@ -93,7 +141,9 @@ for (const treatment of treatments) {
   add('confirm', 'highrisk', treatment, 2800, positions[1], 'bank')
 }
 for (const treatment of treatments.slice(0, 3)) {
-  const bothScore = treatment.both.reduce((sum, face) => sum + (face === 1 ? 100 : 50), 0)
+  const bothScore = treatment.both.reduce((sum, face) => sum + (face === 1
+    ? 100
+    : 50), 0)
   for (const phase of ['explore', 'confirm']) {
     add(phase, 'opening-boundary', treatment, 1000 - bothScore, positions[0], 'bank')
     add(phase, 'winning-bank', treatment, 650 - bothScore, positions[5], 'bank')
@@ -107,14 +157,23 @@ for (const treatment of treatments.slice(0, 3)) {
 }
 for (const phase of ['explore', 'confirm']) {
   for (const [index, item] of comparisons.filter(item => item.phase === phase).entries()) {
-    item.seed = (phase === 'explore' ? 3500000000 : 3600000000) + index
-    item.pairs = phase === 'explore' ? 10000 : 100000
+    item.seed = (phase === 'explore'
+      ? 3500000000
+      : 3600000000) + index
+    item.pairs = phase === 'explore'
+      ? 10000
+      : 100000
   }
 }
 assert.equal(new Set(comparisons.map(item => item.id)).size, comparisons.length)
 assert.equal(new Set(comparisons.map(item => item.seed)).size, comparisons.length)
 const sourceHashes = {}
-for (const file of ['engine.ts', 'scoring.ts', 'roll-risk.ts', 'types.ts'])
+for (const file of [
+  'engine.ts',
+  'scoring.ts',
+  'roll-risk.ts',
+  'types.ts',
+])
   sourceHashes[`front-end/src/game/${file}`] = sha256(await readFile(resolve(root, 'front-end/src/game', file)))
 const commonArgs = [
   '--mode',
@@ -179,7 +238,12 @@ else {
   await writeFile(planPath, serializedPlan, { flag: 'wx' })
 }
 if (mode === 'plan') {
-  process.stdout.write(`${JSON.stringify({ comparisons: comparisons.length, exploratory: comparisons.filter(item => item.phase === 'explore').length, confirmations: comparisons.filter(item => item.phase === 'confirm').length, omitted: omitted.length })}\n`)
+  process.stdout.write(`${JSON.stringify({
+    comparisons: comparisons.length,
+    exploratory: comparisons.filter(item => item.phase === 'explore').length,
+    confirmations: comparisons.filter(item => item.phase === 'confirm').length,
+    omitted: omitted.length,
+  })}\n`)
   process.exit(0)
 }
 assert(sourceRoot && executable)
@@ -222,7 +286,15 @@ for (const item of comparisons.filter(item => mode === 'verify' || item.phase ==
   const path = resolve(study, 'results', `${item.id}.json`)
   if (!existsSync(path)) {
     assert.notEqual(mode, 'verify', `Missing result: ${item.id}`)
-    execFileSync(process.execPath, [resolve(root, 'scripts/research/run-experiment.mjs'), '--study', studyName, sourceRoot, executable, item.id, ...args], { cwd: root, stdio: 'pipe' })
+    execFileSync(process.execPath, [
+      resolve(root, 'scripts/research/run-experiment.mjs'),
+      '--study',
+      studyName,
+      sourceRoot,
+      executable,
+      item.id,
+      ...args,
+    ], { cwd: root, stdio: 'pipe' })
   }
   const bytes = await readFile(path)
   const result = JSON.parse(bytes)
@@ -235,7 +307,13 @@ for (const item of comparisons.filter(item => mode === 'verify' || item.phase ==
   assert.equal(result.provenance.executable_sha256, executableHash)
   assert.deepEqual(result.provenance.command, [executable, ...args])
   assert.deepEqual(result.policy_a, result.policy_b)
-  for (const flag of ['collect_before_bank', 'safe_finish_collection', 'joint_selection', 'joint_chains_only', 'effective_joint_selection'])
+  for (const flag of [
+    'collect_before_bank',
+    'safe_finish_collection',
+    'joint_selection',
+    'joint_chains_only',
+    'effective_joint_selection',
+  ])
     assert.equal(result.policy_a[flag], true, flag)
   assert.equal(result.policy_a.difficulty, 'Hard')
   assert.equal(result.policy_a.chain_risk_weight, 1)

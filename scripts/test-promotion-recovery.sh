@@ -4,7 +4,7 @@ root=$(cd -- "$(dirname -- "$0")/.." && pwd)
 node=$(realpath "$(command -v node)")
 test "$(uname -s)" = Linux
 test "$(id -u)" -ne 0
-test "$(node --version)" = v24.18.1
+test "$(node --version)" = v24.22.1
 mkdir -p "$root/.ai-work/runs"
 history_root=$(mktemp -d "$root/.ai-work/runs/promotion-history.XXXXXXXX")
 cleanup() {

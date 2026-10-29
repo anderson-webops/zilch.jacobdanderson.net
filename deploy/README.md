@@ -7,7 +7,7 @@ The rollout has four distinct gates: reviewed source release, accepted Linux ARM
 ## Fixed compatibility contract
 
 - Repository: `anderson-webops/zilch.jacobdanderson.net`
-- Runtime: Node `24.18.1` from `/opt/node-24.18.1/bin` and npm `12.0.2` for builds
+- Runtime: Node `24.22.1` from `/opt/node-24.22.1/bin` and npm `12.2.1` for builds
 - Service account: `zilch-site`
 - Service: `zilch-api.service`
 - Release root: `/srv/zilch.jacobdanderson.net/releases`
@@ -54,7 +54,7 @@ Before first installation, inventory the existing A and AAAA answers, Nginx serv
 From the protected reviewed checkout:
 
 ```bash
-sudo env NODE_BIN_DIR=/opt/node-24.18.1/bin \
+sudo env NODE_BIN_DIR=/opt/node-24.22.1/bin \
   deploy/systemd/install-service.sh
 ```
 
@@ -91,7 +91,7 @@ Promote only with the installed root-owned wrapper:
 
 ```bash
 sudo env PUBLIC_HOST=zilch.jacobdanderson.net \
-  NODE_BIN_DIR=/opt/node-24.18.1/bin \
+  NODE_BIN_DIR=/opt/node-24.22.1/bin \
   /usr/local/sbin/zilch-promote-release \
   "$candidate" "$archive" "$sha256" "$commit"
 ```
@@ -104,7 +104,7 @@ If a separately executed external acceptance gate fails after deterministic orig
 
 ```bash
 sudo env PUBLIC_HOST=zilch.jacobdanderson.net \
-  NODE_BIN_DIR=/opt/node-24.18.1/bin \
+  NODE_BIN_DIR=/opt/node-24.22.1/bin \
   /usr/local/sbin/zilch-promote-release \
   --restore-retained /srv/zilch.jacobdanderson.net/releases/<retained-release>
 ```

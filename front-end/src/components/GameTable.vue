@@ -38,7 +38,9 @@ function showFinalResults() {
 }
 
 const currentPlayer = computed(() => props.state.players[props.state.currentPlayerIndex]!)
-const nextPlayer = computed(() => props.state.nextPlayerIndex === null ? null : props.state.players[props.state.nextPlayerIndex])
+const nextPlayer = computed(() => props.state.nextPlayerIndex === null
+  ? null
+  : props.state.players[props.state.nextPlayerIndex])
 const isSecondPerson = (name: string) => name.trim().toLocaleLowerCase() === 'you'
 const winnerNames = computed(() => props.state.players
   .filter(player => props.state.winnerIds.includes(player.id))
@@ -60,7 +62,9 @@ const openingNeeded = computed(() => {
 const rollButtonLabel = computed(() => {
   if (props.state.rollNumber === 0 && props.state.turnScore === 0)
     return 'Roll all six dice'
-  return `Roll ${props.state.diceInPlay} ${props.state.diceInPlay === 1 ? 'die' : 'dice'}`
+  return `Roll ${props.state.diceInPlay} ${props.state.diceInPlay === 1
+    ? 'die'
+    : 'dice'}`
 })
 const hasRolledDice = computed(() => props.state.dice.length > 0
   && ['ready', 'selecting', 'bust'].includes(props.state.phase))
@@ -72,7 +76,9 @@ const bustEndsGame = computed(() => props.state.phase === 'bust'
   && props.state.endgame.remainingTurns <= 1)
 const continuationTurnOwner = computed(() => {
   const name = props.state.continuation?.sourcePlayerName ?? ''
-  return isSecondPerson(name) ? 'your' : `${name}'s`
+  return isSecondPerson(name)
+    ? 'your'
+    : `${name}'s`
 })
 const nextTurnTitle = computed(() => {
   if (!nextPlayer.value)
@@ -99,7 +105,9 @@ const playLayout = useTemplateRef<HTMLElement>('playLayout')
 
 function trapDialogFocus(event: KeyboardEvent) {
   const dialog = event.currentTarget as HTMLElement
-  const focusable = [...dialog.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])')]
+  const focusable = [
+    ...dialog.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])'),
+  ]
   const first = focusable[0]
   const last = focusable.at(-1)
   if (!first || !last)

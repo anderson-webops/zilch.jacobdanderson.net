@@ -42,7 +42,14 @@ export interface ComputerPolicy {
 
 const easyComputerPolicy: ComputerPolicy = {
   name: 'Easy',
-  bankThresholdByDice: { 1: 600, 2: 600, 3: 600, 4: 600, 5: 600, 6: 600 },
+  bankThresholdByDice: {
+    1: 600,
+    2: 600,
+    3: 600,
+    4: 600,
+    5: 600,
+    6: 600,
+  },
   scoreWeight: 1,
   remainingDiceWeight: 0,
   hotDiceWeight: 0,
@@ -55,7 +62,14 @@ const easyComputerPolicy: ComputerPolicy = {
 
 const mediumComputerPolicy: ComputerPolicy = {
   name: 'Medium',
-  bankThresholdByDice: { 1: 350, 2: 500, 3: 700, 4: 850, 5: 1_000, 6: 1_150 },
+  bankThresholdByDice: {
+    1: 350,
+    2: 500,
+    3: 700,
+    4: 850,
+    5: 1_000,
+    6: 1_150,
+  },
   scoreWeight: 1,
   remainingDiceWeight: 55,
   hotDiceWeight: 240,
@@ -73,7 +87,14 @@ const mediumComputerPolicy: ComputerPolicy = {
  */
 export const simulationDerivedHardPolicy: ComputerPolicy = {
   name: 'Hard',
-  bankThresholdByDice: { 1: 200, 2: 1_021, 3: 1_128, 4: 1_506, 5: 2_130, 6: 5_000 },
+  bankThresholdByDice: {
+    1: 200,
+    2: 1_021,
+    3: 1_128,
+    4: 1_506,
+    5: 2_130,
+    6: 5_000,
+  },
   scoreWeight: 1.0045,
   remainingDiceWeight: 36.0805,
   hotDiceWeight: 354.561,
@@ -91,7 +112,14 @@ export const simulationDerivedHardPolicy: ComputerPolicy = {
  */
 export const simulationDerivedHardStealingPolicy: ComputerPolicy = {
   name: 'Hard with stealing',
-  bankThresholdByDice: { 1: 313, 2: 313, 3: 1_106, 4: 1_360, 5: 1_360, 6: 1_376 },
+  bankThresholdByDice: {
+    1: 313,
+    2: 313,
+    3: 1_106,
+    4: 1_360,
+    5: 1_360,
+    6: 1_376,
+  },
   scoreWeight: 0.88553,
   remainingDiceWeight: 91.2663,
   hotDiceWeight: 229.628,
@@ -132,15 +160,21 @@ function isSecondPersonName(name: string) {
 }
 
 function withPresentVerb(name: string, secondPersonVerb: string, thirdPersonVerb: string) {
-  return `${name} ${isSecondPersonName(name) ? secondPersonVerb : thirdPersonVerb}`
+  return `${name} ${isSecondPersonName(name)
+    ? secondPersonVerb
+    : thirdPersonVerb}`
 }
 
 function possessiveName(name: string) {
-  return isSecondPersonName(name) ? 'your' : `${name}'s`
+  return isSecondPersonName(name)
+    ? 'your'
+    : `${name}'s`
 }
 
 function turnOwner(name: string) {
-  return isSecondPersonName(name) ? 'Your' : `${name}'s`
+  return isSecondPersonName(name)
+    ? 'Your'
+    : `${name}'s`
 }
 
 function addEvent(state: GameState, text: string, tone: GameEvent['tone'] = 'neutral') {
@@ -268,6 +302,10 @@ function isGamePhase(value: unknown): value is GameState['phase'] {
     || value === 'finished'
 }
 
+function containsOnlyPlayerIds(winnerIds: readonly string[], playerIds: readonly string[]) {
+  return winnerIds.every(winnerId => playerIds.includes(winnerId))
+}
+
 function isRestorableGameState(value: unknown): value is GameState {
   if (!isRecord(value)
     || value.schemaVersion !== 2
@@ -309,13 +347,17 @@ function isRestorableGameState(value: unknown): value is GameState {
   const dieIds = value.dice.map(die => die.id)
   const eventIds = value.events.map(event => event.id)
   const currentPlayerIndex = Number(value.currentPlayerIndex)
-  const nextPlayerIndex = value.nextPlayerIndex === null ? null : Number(value.nextPlayerIndex)
+  const nextPlayerIndex = value.nextPlayerIndex === null
+    ? null
+    : Number(value.nextPlayerIndex)
   return Number.isSafeInteger(value.currentPlayerIndex)
     && currentPlayerIndex >= 0
     && currentPlayerIndex < value.players.length
     && (value.nextPlayerIndex === null
       || (Number.isSafeInteger(value.nextPlayerIndex) && nextPlayerIndex! >= 0 && nextPlayerIndex! < value.players.length))
-    && (value.phase === 'pass' || value.phase === 'bust' ? nextPlayerIndex !== null : nextPlayerIndex === null)
+    && (value.phase === 'pass' || value.phase === 'bust'
+      ? nextPlayerIndex !== null
+      : nextPlayerIndex === null)
     && (value.phase !== 'selecting' || value.dice.length > 0)
     && (value.phase !== 'bust' || value.dice.length > 0)
     && (value.phase !== 'steal' || value.continuation !== null)
@@ -324,7 +366,7 @@ function isRestorableGameState(value: unknown): value is GameState {
     && new Set(eventIds).size === eventIds.length
     && new Set(value.selectedDieIds).size === value.selectedDieIds.length
     && value.selectedDieIds.every(dieId => dieIds.includes(dieId))
-    && value.winnerIds.every(winnerId => playerIds.includes(winnerId))
+    && containsOnlyPlayerIds(value.winnerIds, playerIds)
     && new Set(value.winnerIds).size === value.winnerIds.length
     && (value.continuation === null || playerIds.includes(value.continuation.sourcePlayerId))
     && (value.endgame === null || playerIds.includes(value.endgame.triggerPlayerId))
@@ -374,11 +416,13 @@ export function createGame(playerDrafts: PlayerDraft[], settings: GameSettings =
     bankSequence: 0,
     eventSequence: 1,
     message: `${withPresentVerb(players[0]!.name, 'start', 'starts')}. Roll all six dice.`,
-    events: [{
-      id: 1,
-      text: `${withPresentVerb(players[0]!.name, 'start', 'starts')}. Roll all six dice.`,
-      tone: 'neutral',
-    }],
+    events: [
+      {
+        id: 1,
+        text: `${withPresentVerb(players[0]!.name, 'start', 'starts')}. Roll all six dice.`,
+        tone: 'neutral',
+      },
+    ],
     continuation: null,
     endgame: null,
     winnerIds: [],
@@ -484,7 +528,9 @@ function applySelection(state: GameState) {
   }
   else {
     state.diceInPlay = remainingDice
-    const diceMessage = remainingDice === 1 ? '1 die remains' : `${remainingDice} dice remain`
+    const diceMessage = remainingDice === 1
+      ? '1 die remains'
+      : `${remainingDice} dice remain`
     addEvent(state, `${result.label} scored ${result.score.toLocaleString()}. ${diceMessage}.`, 'good')
   }
 
@@ -647,7 +693,9 @@ export function acknowledgeBust(state: GameState) {
   next.dice = []
   next.selectedDieIds = []
   const completed = completeTurn(next, false)
-  return completed.phase === 'pass' ? acknowledgePass(completed) : completed
+  return completed.phase === 'pass'
+    ? acknowledgePass(completed)
+    : completed
 }
 
 export function chooseSteal(state: GameState, accept: boolean) {
@@ -669,7 +717,9 @@ export function chooseSteal(state: GameState, accept: boolean) {
     next.turnScore = 0
     next.diceInPlay = 6
     next.scoredMultiples = {}
-    const freshVerb = isSecondPersonName(player.name) ? 'start' : 'starts'
+    const freshVerb = isSecondPersonName(player.name)
+      ? 'start'
+      : 'starts'
     addEvent(next, `${withPresentVerb(player.name, 'decline', 'declines')} the steal and ${freshVerb} fresh.`, 'neutral')
   }
   next.continuation = null
@@ -723,7 +773,9 @@ function scoringOptions(dice: GameState['dice'], scoredMultiples: MultipleChains
     options.push({
       dieIds,
       score: result.score,
-      nextDiceCount: resetsToFullSet ? 6 : dice.length - dieIds.length,
+      nextDiceCount: resetsToFullSet
+        ? 6
+        : dice.length - dieIds.length,
       resetsToFullSet,
       isMultiple: Object.keys(result.multipleUpdates).length > 0,
       extendsMultiple: Object.keys(result.multipleUpdates)
@@ -747,7 +799,9 @@ function optionUtility(option: ComputerScoringOption, policy: ComputerPolicy) {
 
 function bestScoringOption(options: ComputerScoringOption[], policy: ComputerPolicy) {
   return options.reduce((best, option) => (
-    optionUtility(option, policy) > optionUtility(best, policy) ? option : best
+    optionUtility(option, policy) > optionUtility(best, policy)
+      ? option
+      : best
   ))
 }
 
@@ -771,7 +825,10 @@ function rollingComputerDieIds(state: GameState) {
     const choice = bestScoringOption(options, policy)
     selectedDieIds.push(...choice.dieIds)
     const result = scoreSelection(dice, choice.dieIds, scoredMultiples)
-    scoredMultiples = { ...scoredMultiples, ...result.multipleUpdates }
+    scoredMultiples = {
+      ...scoredMultiples,
+      ...result.multipleUpdates,
+    }
     dice = dice.filter(die => !choice.dieIds.includes(die.id))
 
     if (dice.length === 0)
@@ -805,7 +862,9 @@ function computerTurnDecision(state: GameState) {
   const dieIds = rollingComputerDieIds(state)
   const bank = shouldBankSelectedDice({ ...state, selectedDieIds: dieIds })
   return {
-    dieIds: bank && standardHard ? recommendedDieIds(state.dice, state.scoredMultiples) : dieIds,
+    dieIds: bank && standardHard
+      ? recommendedDieIds(state.dice, state.scoredMultiples)
+      : dieIds,
     bank,
   }
 }
@@ -846,10 +905,20 @@ function multipleSelectionDecision(state: GameState) {
       const selected = { ...state, selectedDieIds: dieIds }
       const bankable = canBank(selected)
       const nextDice = dice.length || 6
-      const endgame = bankable ? endgameBankDecision(state, 'hard', points, nextDice) : null
+      const endgame = bankable
+        ? endgameBankDecision(state, 'hard', points, nextDice)
+        : null
       const wins = guaranteedOutrightWin(selected)
-      if (bankable && (wins || endgame !== false))
-        consider({ dieIds, bank: true, utility: points, points, nextDice, wins })
+      if (bankable && (wins || endgame !== false)) {
+        consider({
+          dieIds,
+          bank: true,
+          utility: points,
+          points,
+          nextDice,
+          wins,
+        })
+      }
       if (!wins && endgame !== true) {
         const risk = nextRollRisk(nextDice, chains)
         // On a saved chain the frozen weight is exactly one: E/p replaces the
@@ -859,14 +928,29 @@ function multipleSelectionDecision(state: GameState) {
           : undefined
         const threshold = policyBankThreshold(state, simulationDerivedHardPolicy, points, nextDice, chainCutoff)
         const utility = points + risk.bustProbability * (threshold - points)
-        consider({ dieIds, bank: false, utility, points, nextDice, wins: false })
+        consider({
+          dieIds,
+          bank: false,
+          utility,
+          points,
+          nextDice,
+          wins: false,
+        })
       }
     }
     for (const option of scoringOptions(dice, chains)) {
       const result = scoreSelection(dice, option.dieIds, chains)
       const remaining = dice.filter(die => !option.dieIds.includes(die.id))
-      const nextChains = remaining.length ? { ...chains, ...result.multipleUpdates } : {}
-      visit(remaining, nextChains, [...dieIds, ...option.dieIds], points + result.score)
+      const nextChains = remaining.length
+        ? {
+            ...chains,
+            ...result.multipleUpdates,
+          }
+        : {}
+      visit(remaining, nextChains, [
+        ...dieIds,
+        ...option.dieIds,
+      ], points + result.score)
     }
   }
   visit(state.dice, state.scoredMultiples, [], state.turnScore)
@@ -925,7 +1009,9 @@ function endgameBankDecision(
     if (desiredBuffer === 0 || projectedTotal >= winningScore + desiredBuffer)
       return true
 
-    const minimumDiceToPress = difficulty === 'hard' ? 3 : 4
+    const minimumDiceToPress = difficulty === 'hard'
+      ? 3
+      : 4
     return remainingDice < minimumDiceToPress
   }
 
@@ -1027,7 +1113,9 @@ export function activePlayer(state: GameState) {
 }
 
 export function nextPlayer(state: GameState) {
-  return state.nextPlayerIndex === null ? null : state.players[state.nextPlayerIndex] ?? null
+  return state.nextPlayerIndex === null
+    ? null
+    : state.players[state.nextPlayerIndex] ?? null
 }
 
 export function projectedDiceRemaining(state: GameState) {
@@ -1051,7 +1139,9 @@ function migrateLegacyGameState(value: unknown): unknown {
       return player
     return {
       ...player,
-      difficulty: player.kind === 'computer' ? defaultComputerDifficulty : null,
+      difficulty: player.kind === 'computer'
+        ? defaultComputerDifficulty
+        : null,
     }
   })
   return migrated
@@ -1060,7 +1150,9 @@ function migrateLegacyGameState(value: unknown): unknown {
 export function restoreGame(value: unknown): GameState | null {
   try {
     const migrated = migrateLegacyGameState(value)
-    return isRestorableGameState(migrated) ? structuredClone(migrated) : null
+    return isRestorableGameState(migrated)
+      ? structuredClone(migrated)
+      : null
   }
   catch {
     return null

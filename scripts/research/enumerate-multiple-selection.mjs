@@ -78,8 +78,12 @@ function nextRollMoments(diceLeft, chains) {
     probabilityBust: busts / outcomes,
     probabilityExtendChain: chainExtensionOutcomes / outcomes,
     meanNewScoreIncludingBustZeros: maximumScoreSum / outcomes,
-    breakEvenAtRiskIgnoringUncollectedScores: busts ? maximumScoreSum / busts : null,
-    scoreWeights: Object.fromEntries([...scoreWeights.entries()].sort((a, b) => a[0] - b[0])),
+    breakEvenAtRiskIgnoringUncollectedScores: busts
+      ? maximumScoreSum / busts
+      : null,
+    scoreWeights: Object.fromEntries([
+      ...scoreWeights.entries(),
+    ].sort((a, b) => a[0] - b[0])),
     coldEnumerationMs: performance.now() - started,
   }
   momentsCache.set(key, result)
@@ -90,7 +94,9 @@ function continuation(dice, ids) {
   const selected = scoreSelection(dice, ids)
   assert(selected.valid)
   const diceLeft = dice.length - selected.selectedCount || 6
-  const chains = diceLeft === 6 ? {} : selected.multipleUpdates
+  const chains = diceLeft === 6
+    ? {}
+    : selected.multipleUpdates
   const moments = nextRollMoments(diceLeft, chains)
   return {
     selectedValues: dice.filter(die => ids.includes(die.id)).map(die => die.value),
@@ -110,17 +116,49 @@ const contexts = [
   { name: 'behind', own: 1000, opponent: 3500 },
   { name: 'near-target-leading', own: 4300, opponent: 3000 },
   { name: 'near-target-close-rival', own: 4300, opponent: 4700 },
-  { name: 'final-chase-trailing', own: 4000, opponent: 5500, chase: true },
-  { name: 'final-chase-ties-off', own: 4000, opponent: 5500, chase: true, ties: false },
-  { name: 'final-chase-extra-single-wins', own: 4900, opponent: 5500, chase: true, ties: false },
+  {
+    name: 'final-chase-trailing',
+    own: 4000,
+    opponent: 5500,
+    chase: true,
+  },
+  {
+    name: 'final-chase-ties-off',
+    own: 4000,
+    opponent: 5500,
+    chase: true,
+    ties: false,
+  },
+  {
+    name: 'final-chase-extra-single-wins',
+    own: 4900,
+    opponent: 5500,
+    chase: true,
+    ties: false,
+  },
 ]
-const turnScores = [0, 200, 350, 500, 950, 1000, 1500, 2000, 3000, 4500]
+const turnScores = [
+  0,
+  200,
+  350,
+  500,
+  950,
+  1000,
+  1500,
+  2000,
+  3000,
+  4500,
+]
 const scenarios = []
 for (let face = 1; face <= 6; face++) {
   for (const count of [3, 4, 5]) {
     for (const singleton of [1, 5].filter(value => value !== face)) {
       const fillers = [2, 3, 4, 6].filter(value => value !== face).slice(0, 5 - count)
-      const values = [...Array.from({ length: count }).fill(face), singleton, ...fillers]
+      const values = [
+        ...Array.from({ length: count }).fill(face),
+        singleton,
+        ...fillers,
+      ]
       assert.equal(values.length, 6)
       const dice = toDice(values)
       const retain = continuation(dice, dice.slice(0, count).map(die => die.id))
@@ -143,14 +181,22 @@ for (let face = 1; face <= 6; face++) {
           { name: 'Computer', kind: 'computer', difficulty: 'hard' },
           { name: 'Opponent', kind: 'human' },
         ])
-        Object.assign(state, { phase: 'selecting', dice, rollNumber: 2, turnScore })
+        Object.assign(state, {
+          phase: 'selecting',
+          dice,
+          rollNumber: 2,
+          turnScore,
+        })
         state.players[0].score = context.own
         state.players[1].score = context.opponent
         state.settings.allowTies = context.ties ?? true
         if (context.chase)
           state.endgame = { triggerPlayerId: state.players[1].id, remainingTurns: 1 }
         const chosen = selectComputerRecommended(state)
-        const all = { ...state, selectedDieIds: recommendedDieIds(dice) }
+        const all = {
+          ...state,
+          selectedDieIds: recommendedDieIds(dice),
+        }
         const allScore = scoreSelection(dice, all.selectedDieIds).score
         return {
           context: context.name,
@@ -161,10 +207,21 @@ for (let face = 1; face <= 6; face++) {
           allScoringCanBank: canBank(all),
           allScoringBankGains: allScore,
           allScoringWinsActiveFinalChase: !!context.chase && canBank(all)
-            && (context.ties === false ? context.own + turnScore + allScore > context.opponent : context.own + turnScore + allScore >= context.opponent),
+            && (context.ties === false
+              ? context.own + turnScore + allScore > context.opponent
+              : context.own + turnScore + allScore >= context.opponent),
         }
       }))
-      scenarios.push({ face, count, singleton, values, retain, collect, oneRollExpectations, hardDecisions })
+      scenarios.push({
+        face,
+        count,
+        singleton,
+        values,
+        retain,
+        collect,
+        oneRollExpectations,
+        hardDecisions,
+      })
     }
   }
 }
@@ -200,7 +257,9 @@ const result = {
   ],
   contexts,
   scenarios,
-  cachedMoments: [...momentsCache.values()],
+  cachedMoments: [
+    ...momentsCache.values(),
+  ],
 }
 const output = `${JSON.stringify(result, null, 2)}\n`
 if (process.argv[2])

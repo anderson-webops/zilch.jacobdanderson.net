@@ -15,8 +15,18 @@ const contexts = [
   { name: 'ahead', own: 3500, opponent: 1000 },
   { name: 'behind', own: 1000, opponent: 3500 },
   { name: 'close-finish', own: 4500, opponent: 4500 },
-  { name: 'final-trailing', own: 3500, opponent: 5500, chase: true },
-  { name: 'final-close', own: 4900, opponent: 5500, chase: true },
+  {
+    name: 'final-trailing',
+    own: 3500,
+    opponent: 5500,
+    chase: true,
+  },
+  {
+    name: 'final-close',
+    own: 4900,
+    opponent: 5500,
+    chase: true,
+  },
 ]
 const cases = []
 const omitted = []
@@ -57,7 +67,11 @@ function addComparison({ id, values, keep, all, risk, context, chains = {}, grou
   assert(leftScore.valid && rightScore.valid)
   const savedMultiples = Array.from({ length: 6 }, (_, index) => {
     const held = chains[index + 1] ?? 0
-    return held ? (index === 0 ? 1000 : (index + 1) * 100) * 2 ** (held - 3) : 0
+    return held
+      ? (index === 0
+          ? 1000
+          : (index + 1) * 100) * 2 ** (held - 3)
+      : 0
   })
   const spec = {
     group,
@@ -80,12 +94,21 @@ function addComparison({ id, values, keep, all, risk, context, chains = {}, grou
 for (let face = 1; face <= 6; face++) {
   for (const count of [3, 4, 5]) {
     for (const singleton of [1, 5].filter(value => value !== face)) {
-      const primary = count === 3 && singleton === (face === 5 ? 1 : 5)
+      const primary = count === 3 && singleton === (face === 5
+        ? 1
+        : 5)
       const keep = Array.from({ length: count }).fill(face)
       const all = [...keep, singleton]
-      const values = [...all, ...[2, 3, 4, 6].filter(value => value !== face).slice(0, 6 - all.length)]
-      const risks = primary ? [0, 350, 400, 950, 1500, 2800] : [0, 950, 2800]
-      const positions = primary ? contexts : [contexts[1], contexts[3], contexts[4]]
+      const values = [
+        ...all,
+        ...[2, 3, 4, 6].filter(value => value !== face).slice(0, 6 - all.length),
+      ]
+      const risks = primary
+        ? [0, 350, 400, 950, 1500, 2800]
+        : [0, 950, 2800]
+      const positions = primary
+        ? contexts
+        : [contexts[1], contexts[3], contexts[4]]
       for (const risk of risks) {
         for (const context of positions) {
           addComparison({
@@ -103,7 +126,9 @@ for (let face = 1; face <= 6; face++) {
       if (count !== 3)
         continue
       const multipleScore = scoreSelection(values.map((value, id) => ({ id, value })), [0, 1, 2]).score
-      const extraScore = singleton === 1 ? 100 : 50
+      const extraScore = singleton === 1
+        ? 100
+        : 50
       const openingRisk = 1000 - multipleScore - extraScore
       if (openingRisk >= 0) {
         addComparison({
@@ -121,8 +146,22 @@ for (let face = 1; face <= 6; face++) {
       const risk = Math.max(0, 600 - multipleScore)
       const own = 5500 - risk - multipleScore
       for (const ties of [true, false]) {
-        const context = { name: `strict-finish-ties-${ties}`, own, opponent: 5500, chase: true, ties }
-        addComparison({ id: `finish-face-${face}-single-${singleton}-ties-${ties}`, values, keep, all, risk, context, group: 'exact-finish-boundary' })
+        const context = {
+          name: `strict-finish-ties-${ties}`,
+          own,
+          opponent: 5500,
+          chase: true,
+          ties,
+        }
+        addComparison({
+          id: `finish-face-${face}-single-${singleton}-ties-${ties}`,
+          values,
+          keep,
+          all,
+          risk,
+          context,
+          group: 'exact-finish-boundary',
+        })
       }
     }
   }
@@ -131,14 +170,26 @@ for (let face = 1; face <= 6; face++) {
 // More than one unrelated scoring single can make partial collection matter.
 for (const face of [2, 3, 4, 6]) {
   const triple = [face, face, face]
-  const values = [...triple, 1, 5, [2, 3, 4, 6].find(value => value !== face)]
+  const values = [
+    ...triple,
+    1,
+    5,
+    [2, 3, 4, 6].find(value => value !== face),
+  ]
   for (const risk of [0, 950, 2800]) {
     for (const context of [contexts[1], contexts[3], contexts[4]]) {
-      for (const extras of [[], [1], [5]]) {
+      for (const extras of [
+        [],
+        [1],
+        [5],
+      ]) {
         addComparison({
           id: `both-singles-face-${face}-keep-${extras.join('') || 'triple'}-risk-${risk}-${context.name}`,
           values,
-          keep: [...triple, ...extras],
+          keep: [
+            ...triple,
+            ...extras,
+          ],
           all: [...triple, 1, 5],
           risk,
           context,
@@ -149,12 +200,25 @@ for (const face of [2, 3, 4, 6]) {
   }
   const risk = Math.max(0, 500 - face * 100)
   for (const ties of [true, false]) {
-    const context = { name: `both-singles-final-ties-${ties}`, own: 5500 - risk - face * 100 - 100, opponent: 5500, chase: true, ties }
-    for (const extras of [[], [1], [5]]) {
+    const context = {
+      name: `both-singles-final-ties-${ties}`,
+      own: 5500 - risk - face * 100 - 100,
+      opponent: 5500,
+      chase: true,
+      ties,
+    }
+    for (const extras of [
+      [],
+      [1],
+      [5],
+    ]) {
       addComparison({
         id: `both-singles-final-face-${face}-keep-${extras.join('') || 'triple'}-ties-${ties}`,
         values,
-        keep: [...triple, ...extras],
+        keep: [
+          ...triple,
+          ...extras,
+        ],
         all: [...triple, 1, 5],
         risk,
         context,
@@ -167,7 +231,9 @@ for (const face of [2, 3, 4, 6]) {
 // A later roll can trade a stronger saved multiple for a fresh six-dice roll.
 for (const face of [2, 3, 4, 6]) {
   for (const held of [3, 4]) {
-    const values = held === 3 ? [face, 1, 5] : [face, 5]
+    const values = held === 3
+      ? [face, 1, 5]
+      : [face, 5]
     const heldScore = face * 100 * 2 ** (held - 3)
     for (const extraRisk of [0, 400, 1400, 2400]) {
       for (const context of [contexts[1], contexts[3], contexts[4]]) {
@@ -187,9 +253,16 @@ for (const face of [2, 3, 4, 6]) {
 }
 
 assert.equal(new Set(cases.map(item => item.id)).size, cases.length)
-const counts = Object.fromEntries([...new Set(cases.map(item => item.group))].map(group => [group, cases.filter(item => item.group === group).length]))
+const counts = Object.fromEntries([
+  ...new Set(cases.map(item => item.group)),
+].map(group => [group, cases.filter(item => item.group === group).length]))
 if (process.argv[2] === '--list') {
-  await new Promise(resolveOutput => process.stdout.write(`${JSON.stringify({ comparisons: cases.length, counts, omitted, cases }, null, 2)}\n`, resolveOutput))
+  await new Promise(resolveOutput => process.stdout.write(`${JSON.stringify({
+    comparisons: cases.length,
+    counts,
+    omitted,
+    cases,
+  }, null, 2)}\n`, resolveOutput))
   process.exit(0)
 }
 
@@ -269,10 +342,19 @@ for (const [index, checkpoint] of cases.entries()) {
     checkpoint.savedMultiples.join(','),
   ]
   const result = JSON.parse(execFileSync(executable, args, { cwd: root, encoding: 'utf8', maxBuffer: 1024 * 1024 }))
-  await appendFile(output, `${JSON.stringify({ checkpoint, command: [executable, ...args], result })}\n`)
+  await appendFile(output, `${JSON.stringify({
+    checkpoint,
+    command: [executable, ...args],
+    result,
+  })}\n`)
   if ((index + 1) % 50 === 0)
     process.stdout.write(`${index + 1}/${cases.length} checkpoint comparisons recorded\n`)
 }
 assert.equal(sha256(await readFile(executable)), executableHash, 'Research executable changed during this panel.')
-await appendFile(output, `${JSON.stringify({ kind: 'complete', comparisons: cases.length, totalGames: cases.length * pairs * 2, elapsedSeconds: (performance.now() - started) / 1000 })}\n`)
+await appendFile(output, `${JSON.stringify({
+  kind: 'complete',
+  comparisons: cases.length,
+  totalGames: cases.length * pairs * 2,
+  elapsedSeconds: (performance.now() - started) / 1000,
+})}\n`)
 process.stdout.write(`Completed ${cases.length} comparisons (${cases.length * pairs * 2} games): ${output}\n`)

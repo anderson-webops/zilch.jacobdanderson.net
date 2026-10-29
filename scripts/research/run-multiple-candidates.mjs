@@ -11,9 +11,15 @@ assert(['greedy', 'joint', 'chains'].includes(phase))
 assert(/^\d+$/.test(pairs) && Number(pairs) > 0)
 assert(/^\d+$/.test(seed))
 
-const candidates = phase === 'greedy' ? [{ name: 'safe-finish-only', weight: 0, mode: 'raise' }] : []
+const candidates = phase === 'greedy'
+  ? [
+      { name: 'safe-finish-only', weight: 0, mode: 'raise' },
+    ]
+  : []
 for (const mode of ['raise', 'blend']) {
-  for (const weight of phase === 'greedy' ? [0.25, 0.5, 0.75, 1, 1.25] : [0, 0.25, 0.5, 0.75, 1, 1.25]) {
+  for (const weight of phase === 'greedy'
+    ? [0.25, 0.5, 0.75, 1, 1.25]
+    : [0, 0.25, 0.5, 0.75, 1, 1.25]) {
     if (weight === 0 && mode === 'blend')
       continue
     candidates.push({ name: `${phase}-${mode}-${String(weight).replace('.', '-')}`, mode, weight })

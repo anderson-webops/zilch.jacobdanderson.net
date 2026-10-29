@@ -10,7 +10,7 @@ import { recommendedDieIds, scoreSelection, scoringRules } from '../../front-end
 
 // Recompute deterministically; an existing artifact must match byte for byte.
 // Every roll is enumerated. No random draws or simulated matches are used.
-assert.equal(process.version, 'v24.18.1', 'Use the repository Node 24.18.1 runtime.')
+assert.equal(process.version, 'v24.22.1', 'Use the repository Node 24.22.1 runtime.')
 assert(process.argv.length <= 3, 'Usage: node scripts/research/enumerate-singleton-selection.mjs [output.json]')
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const outputPath = resolve(process.argv[2] ?? resolve(root, 'docs/research/singleton-selection-2026-09/exact-enumeration.json'))
@@ -31,7 +31,9 @@ const sourceHashes = await hashSources()
 const faces = [1, 2, 3, 4, 5, 6]
 const trashFaces = [2, 3, 4, 6]
 const toDice = values => values.map((value, id) => ({ value, id }))
-const baseState = createGame([{ name: 'Enumerator', kind: 'human' }])
+const baseState = createGame([
+  { name: 'Enumerator', kind: 'human' },
+])
 function noRandomDraw() {
   throw new Error('Exact enumeration must not request random dice.')
 }
@@ -74,6 +76,27 @@ function fraction(numerator, denominator) {
   }
 }
 
+function evaluateRoll(values) {
+  const dice = toDice(values)
+  let maximum = 0
+  let subsetChecks = 0
+  for (let mask = 1; mask < 2 ** values.length; mask++) {
+    const ids = dice.filter(die => mask & (1 << die.id)).map(die => die.id)
+    const result = scoreSelection(dice, ids, {})
+    if (result.valid)
+      maximum = Math.max(maximum, result.score)
+    subsetChecks++
+  }
+  const collected = scoreSelection(dice, recommendedDieIds(dice, {}), {})
+  assert.equal(collected.valid ? collected.score : 0, maximum)
+  return {
+    maximum,
+    collected,
+    subsetChecks,
+    counts: countsOf(values),
+  }
+}
+
 function enumerateNextRoll(diceCount) {
   const outcomes = 6 ** diceCount
   let busts = 0
@@ -85,22 +108,12 @@ function enumerateNextRoll(diceCount) {
   let subsetChecks = 0
   const scoreWeights = new Map()
   for (const values of orderedRolls(diceCount)) {
-    const dice = toDice(values)
-    let maximum = 0
-    for (let mask = 1; mask < 2 ** diceCount; mask++) {
-      const ids = dice.filter(die => mask & (1 << die.id)).map(die => die.id)
-      const result = scoreSelection(dice, ids, {})
-      if (result.valid)
-        maximum = Math.max(maximum, result.score)
-      subsetChecks++
-    }
-    const collected = scoreSelection(dice, recommendedDieIds(dice, {}), {})
-    assert.equal(collected.valid ? collected.score : 0, maximum)
+    const { maximum, collected, subsetChecks: checked, counts } = evaluateRoll(values)
+    subsetChecks += checked
     if (maximum === 0)
       busts++
     if (collected.valid && collected.selectedCount === diceCount)
       hotDice++
-    const counts = countsOf(values)
     if (counts.some(count => count >= 3))
       anyTriple++
     if (counts[0] >= 3)
@@ -128,9 +141,22 @@ function enumerateNextRoll(diceCount) {
   assert.equal(anyTriple, 6 * specifiedTripleFormula)
   assert.equal(maximumScoreSum, scoreFormula)
   const productionRisk = nextRollRisk(diceCount, {})
-  assert.deepEqual(productionRisk, { outcomes, busts, scoreSum: maximumScoreSum, bustProbability: busts / outcomes })
-  const expected = diceCount === 4 ? [204, 126, 21, 52, 186000] : [600, 1656, 276, 236, 1755750]
-  assert.deepEqual([busts, anyTriple, tripleOnes, hotDice, maximumScoreSum], expected)
+  assert.deepEqual(productionRisk, {
+    outcomes,
+    busts,
+    scoreSum: maximumScoreSum,
+    bustProbability: busts / outcomes,
+  })
+  const expected = diceCount === 4
+    ? [204, 126, 21, 52, 186000]
+    : [600, 1656, 276, 236, 1755750]
+  assert.deepEqual([
+    busts,
+    anyTriple,
+    tripleOnes,
+    hotDice,
+    maximumScoreSum,
+  ], expected)
   return {
     diceCount,
     chains: {},
@@ -148,7 +174,12 @@ function enumerateNextRoll(diceCount) {
     probabilityHotDice: fraction(hotDice, outcomes),
     meanMaximumNewScoreIncludingBustZeros: fraction(maximumScoreSum, outcomes),
     scoreWeights: [...scoreWeights].sort((a, b) => a[0] - b[0]).map(([score, count]) => ({ score, outcomes: count })),
-    verification: { subsetChecks, recommendationDisagreements: 0, closedFormCountsMatch: true, productionRisk },
+    verification: {
+      subsetChecks,
+      recommendationDisagreements: 0,
+      closedFormCountsMatch: true,
+      productionRisk,
+    },
   }
 }
 
@@ -180,26 +211,41 @@ function continuation(dice, ids) {
 
 function actions(dice) {
   const singles = dice.filter(die => die.value === 1 || die.value === 5)
-  const result = { keepBoth: singles.map(die => die.id) }
+  const result = {
+    keepBoth: singles.map(die => die.id),
+  }
   for (const die of singles)
     result[`keep${die.value}`] ??= [die.id]
   return result
 }
 
-const moments = [enumerateNextRoll(4), enumerateNextRoll(5)]
+const moments = [
+  enumerateNextRoll(4),
+  enumerateNextRoll(5),
+]
 const cases = []
-for (const singles of [[1, 1], [5, 5], [1, 5]]) {
+for (const singles of [
+  [1, 1],
+  [5, 5],
+  [1, 5],
+]) {
   const pair = singles.join('')
   const representativeValues = [...singles, 2, 2, 3, 4]
   const representativeDice = toDice(representativeValues)
   const continuations = Object.fromEntries(Object.entries(actions(representativeDice))
-    .map(([name, ids]) => [name, continuation(representativeDice, ids)]))
+    .map(([name, ids]) => [
+      name,
+      continuation(representativeDice, ids),
+    ]))
   const eligibleOrderedTrashPatterns = []
   const excludedOrderedTrashPatterns = { trashMultiple: 0, threePairs: 0, straight: 0 }
   let equivalentSelectionChecks = 0
   for (const trash of orderedRolls(4, trashFaces)) {
     const counts = countsOf(trash)
-    const dice = toDice([...singles, ...trash])
+    const dice = toDice([
+      ...singles,
+      ...trash,
+    ])
     let exclusion = null
     if (counts.some(count => count >= 3))
       exclusion = 'trashMultiple'
@@ -214,13 +260,21 @@ for (const singles of [[1, 1], [5, 5], [1, 5]]) {
       continue
     }
     eligibleOrderedTrashPatterns.push(trash)
-    for (const ids of [[0], [1], [0, 1]]) {
-      const name = ids.length === 2 ? 'keepBoth' : `keep${dice[ids[0]].value}`
+    for (const ids of [
+      [0],
+      [1],
+      [0, 1],
+    ]) {
+      const name = ids.length === 2
+        ? 'keepBoth'
+        : `keep${dice[ids[0]].value}`
       assert.deepEqual(continuation(dice, ids), continuations[name])
       equivalentSelectionChecks++
     }
   }
-  assert.equal(eligibleOrderedTrashPatterns.length, pair === '15' ? 180 : 168)
+  assert.equal(eligibleOrderedTrashPatterns.length, pair === '15'
+    ? 180
+    : 168)
   assert.equal(eligibleOrderedTrashPatterns.length + Object.values(excludedOrderedTrashPatterns).reduce((sum, count) => sum + count, 0), 4 ** 4)
   cases.push({
     pair,
@@ -244,8 +298,14 @@ for (const values of orderedRolls(6)) {
     continue
   const entry = cases.find(item => item.pair === singles.map(die => die.value).sort().join(''))
   entry.eligibleOrderedSixDiceRolls++
-  for (const ids of [[singles[0].id], [singles[1].id], singles.map(die => die.id)]) {
-    const name = ids.length === 2 ? 'keepBoth' : `keep${dice[ids[0]].value}`
+  for (const ids of [
+    [singles[0].id],
+    [singles[1].id],
+    singles.map(die => die.id),
+  ]) {
+    const name = ids.length === 2
+      ? 'keepBoth'
+      : `keep${dice[ids[0]].value}`
     assert.deepEqual(continuation(dice, ids), entry.continuations[name])
     sixDiceSelectionChecks++
   }
@@ -267,9 +327,18 @@ const oneRollComparisons = cases.flatMap(entry => Object.entries(entry.continuat
       action,
       selectedScore: selected.selectedScore,
       forgoneScore: entry.continuations.keepBoth.selectedScore - selected.selectedScore,
-      expectedKeepBoth: { priorTurnScoreCoefficient: fraction(fourSurvivorsScaled, denominator), constantPoints: fraction(keepBothConstant, denominator) },
-      expectedKeepOne: { priorTurnScoreCoefficient: fraction(fiveSurvivors, denominator), constantPoints: fraction(keepOneConstant, denominator) },
-      keepOneMinusKeepBoth: { priorTurnScoreCoefficient: fraction(fiveSurvivors - fourSurvivorsScaled, denominator), constantPoints: fraction(keepOneConstant - keepBothConstant, denominator) },
+      expectedKeepBoth: {
+        priorTurnScoreCoefficient: fraction(fourSurvivorsScaled, denominator),
+        constantPoints: fraction(keepBothConstant, denominator),
+      },
+      expectedKeepOne: {
+        priorTurnScoreCoefficient: fraction(fiveSurvivors, denominator),
+        constantPoints: fraction(keepOneConstant, denominator),
+      },
+      keepOneMinusKeepBoth: {
+        priorTurnScoreCoefficient: fraction(fiveSurvivors - fourSurvivorsScaled, denominator),
+        constantPoints: fraction(keepOneConstant - keepBothConstant, denominator),
+      },
     }
   }))
 assert.deepEqual(oneRollComparisons.map(entry => entry.keepOneMinusKeepBoth.constantPoints.numerator), [46950, 343350, 374550, 15750])
@@ -280,13 +349,34 @@ for (const face of [1, 5]) {
     const dice = toDice([face, face, 2, 2, 3, 4])
     const ids = Array.from({ length: keptCount }, (_, index) => index)
     const rolledCount = 3 - keptCount
-    const forcedValues = [...Array.from({ length: rolledCount }).fill(face), 2, 3, 4]
-    const next = rollAgain({ ...baseState, phase: 'selecting', dice, selectedDieIds: ids, rollNumber: 1 }, noRandomDraw, forcedValues)
+    const forcedValues = [
+      ...Array.from({ length: rolledCount }).fill(face),
+      2,
+      3,
+      4,
+    ]
+    const next = rollAgain({
+      ...baseState,
+      phase: 'selecting',
+      dice,
+      selectedDieIds: ids,
+      rollNumber: 1,
+    }, noRandomDraw, forcedValues)
     const newScore = scoreSelection(next.dice, recommendedDieIds(next.dice, next.scoredMultiples), next.scoredMultiples)
     assert.deepEqual(next.scoredMultiples, {})
     assert.deepEqual(newScore.multipleUpdates, {})
-    assert.equal(next.turnScore + newScore.score, face === 1 ? 300 : 150)
-    singleCarryoverExamples.push({ face, keptCount, nextRollMatchingDice: rolledCount, savedScore: next.turnScore, newScore: newScore.score, combinedScore: next.turnScore + newScore.score, multipleUpdates: newScore.multipleUpdates })
+    assert.equal(next.turnScore + newScore.score, face === 1
+      ? 300
+      : 150)
+    singleCarryoverExamples.push({
+      face,
+      keptCount,
+      nextRollMatchingDice: rolledCount,
+      savedScore: next.turnScore,
+      newScore: newScore.score,
+      combinedScore: next.turnScore + newScore.score,
+      multipleUpdates: newScore.multipleUpdates,
+    })
   }
 }
 

@@ -89,7 +89,9 @@ const result = {
   bankCollectionAudit: {
     atRiskBeforeRoll: 2700,
     banksLeavingPoints,
-    meanPointsLeftBehindWhenItHappens: banksLeavingPoints ? pointsLeftBehindSum / banksLeavingPoints : 0,
+    meanPointsLeftBehindWhenItHappens: banksLeavingPoints
+      ? pointsLeftBehindSum / banksLeavingPoints
+      : 0,
   },
 }
 const json = `${JSON.stringify(result, null, 2)}\n`

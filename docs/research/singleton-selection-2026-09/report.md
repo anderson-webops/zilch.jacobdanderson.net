@@ -155,6 +155,12 @@ hashes are fixed in `plan.json`; the production source remains unchanged.
 
 Reproduce using Node 24.18.1 and the recorded native revision/build:
 
+These retained results bind their original source bytes from commit
+`8278f46ec9c66eb2f62c46349373d0f118c0e060`. Use that source revision for
+byte-identical reproduction. The current maintained enumerator uses the current
+repository runtime and accepts an explicit new output path; it preserves the
+original evidence rather than overwriting a different recorded result.
+
 ```sh
 node scripts/research/enumerate-singleton-selection.mjs
 node scripts/research/run-singleton-checkpoints.mjs plan

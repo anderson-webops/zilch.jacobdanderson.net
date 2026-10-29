@@ -37,18 +37,34 @@ export function useZilchGame() {
   let motionQuery: MediaQueryList | null = null
   const isRolling = computed(() => rollingResult.value !== null)
   const presentation = createRollPresentation({
-    rolling: result => rollingResult.value = result ? markRaw(result) : null,
+    rolling: result => rollingResult.value = result
+      ? markRaw(result)
+      : null,
     reveal: setState,
   })
 
   const hasSavedGame = computed(() => savedState.value !== null)
-  const player = computed(() => state.value ? activePlayer(state.value) : null)
-  const upcomingPlayer = computed(() => state.value ? nextPlayer(state.value) : null)
-  const selection = computed(() => state.value ? currentSelection(state.value) : null)
-  const selectionCanBank = computed(() => state.value ? canBank(state.value) : false)
-  const projectedScore = computed(() => state.value ? projectedTurnScore(state.value) : 0)
-  const diceAfterSelection = computed(() => state.value ? projectedDiceRemaining(state.value) : 6)
-  const selectableIds = computed(() => state.value ? scoringDieIds(state.value) : [])
+  const player = computed(() => state.value
+    ? activePlayer(state.value)
+    : null)
+  const upcomingPlayer = computed(() => state.value
+    ? nextPlayer(state.value)
+    : null)
+  const selection = computed(() => state.value
+    ? currentSelection(state.value)
+    : null)
+  const selectionCanBank = computed(() => state.value
+    ? canBank(state.value)
+    : false)
+  const projectedScore = computed(() => state.value
+    ? projectedTurnScore(state.value)
+    : 0)
+  const diceAfterSelection = computed(() => state.value
+    ? projectedDiceRemaining(state.value)
+    : 6)
+  const selectableIds = computed(() => state.value
+    ? scoringDieIds(state.value)
+    : [])
 
   function browserStorage() {
     if (!import.meta.client)
@@ -251,7 +267,10 @@ export function useZilchGame() {
     scheduleComputerTurn(state.value)
   })
 
-  watch([() => state.value, () => isRolling.value], ([next]) => scheduleComputerTurn(next), { flush: 'post' })
+  watch([
+    () => state.value,
+    () => isRolling.value,
+  ], ([next]) => scheduleComputerTurn(next), { flush: 'post' })
 
   onBeforeUnmount(() => {
     // Navigating to Tips must not discard a roll that has already happened.

@@ -40,7 +40,14 @@ function near(actual, expected, label) {
 }
 
 function verifyOutcomes(outcomes, pairs, label) {
-  for (const key of ['games', 'wins', 'ties', 'losses', 'points_for', 'points_against']) {
+  for (const key of [
+    'games',
+    'wins',
+    'ties',
+    'losses',
+    'points_for',
+    'points_against',
+  ]) {
     assert(Number.isSafeInteger(outcomes[key]) && outcomes[key] >= 0, `${label}.${key}`)
     checks += 1
   }
@@ -66,7 +73,11 @@ function verifyMoments(moment, pairs, expectedSum, label) {
   near(moment.ci95[0], mean - normal95Quantile * standardError, `${label}.lower95`)
   near(moment.ci95[1], mean + normal95Quantile * standardError, `${label}.upper95`)
   checks += 3
-  return { mean, standard_error: standardError, ci95: [mean - normal95Quantile * standardError, mean + normal95Quantile * standardError] }
+  return {
+    mean,
+    standard_error: standardError,
+    ci95: [mean - normal95Quantile * standardError, mean + normal95Quantile * standardError],
+  }
 }
 
 const summaries = []
@@ -76,7 +87,10 @@ for (const [index, item] of plan.comparisons.entries()) {
   assert.equal(matches.length, 1, `Unique exploratory checkpoint: ${item.checkpoint_id}`)
   const row = matches[0]
   const args = row.command.slice(1)
-  for (const [flag, value] of [['--pairs', plan.pairs_per_comparison], ['--seed', item.seed]]) {
+  for (const [flag, value] of [
+    ['--pairs', plan.pairs_per_comparison],
+    ['--seed', item.seed],
+  ]) {
     assert(args.includes(flag), `Missing original argument ${flag}`)
     args[args.indexOf(flag) + 1] = String(value)
   }
@@ -105,7 +119,14 @@ for (const [index, item] of plan.comparisons.entries()) {
   assert.equal(result.provenance.executable_sha256, plan.executable_sha256)
   assert.deepEqual(result.provenance.source_sha256, header.provenance.sourceHashes)
   assert.deepEqual(result.provenance.command, [executable, ...args])
-  for (const key of ['rules', 'policy_a', 'policy_b', 'selection_state', 'branches', 'incumbent_recommendation'])
+  for (const key of [
+    'rules',
+    'policy_a',
+    'policy_b',
+    'selection_state',
+    'branches',
+    'incumbent_recommendation',
+  ])
     assert.deepEqual(result[key], row.result[key], `${item.run_id}.${key}: unchanged treatments`)
   verifyOutcomes(result.left, result.pairs, `${item.run_id}.left`)
   verifyOutcomes(result.right, result.pairs, `${item.run_id}.right`)
@@ -124,7 +145,11 @@ for (const [index, item] of plan.comparisons.entries()) {
     `${item.run_id}.score margin`,
   )
   const threeSE = [primary.mean - 3 * primary.standard_error, primary.mean + 3 * primary.standard_error]
-  const sign = threeSE[0] > 0 ? 'right' : threeSE[1] < 0 ? 'left' : 'unresolved'
+  const sign = threeSE[0] > 0
+    ? 'right'
+    : threeSE[1] < 0
+      ? 'left'
+      : 'unresolved'
   summaries.push({
     run_id: item.run_id,
     checkpoint_id: item.checkpoint_id,
@@ -135,8 +160,20 @@ for (const [index, item] of plan.comparisons.entries()) {
     context: row.checkpoint.context,
     fixed_roll: row.checkpoint.values,
     saved_multiple_scores: row.checkpoint.savedMultiples,
-    left: { selected: row.checkpoint.all, action: row.checkpoint.leftAction, score_gain: result.branches.left.score_gain, next_dice: result.branches.left.state.next_dice, match_point_rate: result.left.match_point_rate },
-    right: { selected: row.checkpoint.keep, action: 'roll', score_gain: result.branches.right.score_gain, next_dice: result.branches.right.state.next_dice, match_point_rate: result.right.match_point_rate },
+    left: {
+      selected: row.checkpoint.all,
+      action: row.checkpoint.leftAction,
+      score_gain: result.branches.left.score_gain,
+      next_dice: result.branches.left.state.next_dice,
+      match_point_rate: result.left.match_point_rate,
+    },
+    right: {
+      selected: row.checkpoint.keep,
+      action: 'roll',
+      score_gain: result.branches.right.score_gain,
+      next_dice: result.branches.right.state.next_dice,
+      match_point_rate: result.right.match_point_rate,
+    },
     difference: primary,
     score_margin_difference: margin,
     three_standard_error_interval: threeSE,
