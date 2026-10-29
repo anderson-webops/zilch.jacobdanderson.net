@@ -5,6 +5,7 @@ import io
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -289,7 +290,7 @@ class RuntimeArtifactTests(unittest.TestCase):
             output = Path(temporary)
             archive = output / "runtime.tar.gz"
             unpacked = output / "unpacked"
-            unpacked.mkdir()
+            unpacked.mkdir(mode=0o700)
             command = [sys.executable, "-B", str(Path(artifact.__file__))]
             long_path = self.root / "front-end/.output/public" / ("long-path-" + "a" * 110 + ".txt")
             long_path.write_text("synthetic long-path payload")
@@ -301,7 +302,15 @@ class RuntimeArtifactTests(unittest.TestCase):
                     if path.is_file(): target.add(path, arcname=path.relative_to(self.root).as_posix())
             sha = artifact.digest(archive)
             arguments = ["--archive", str(archive), "--sha256", sha, "--commit", "a" * 40]
-            subprocess.run([*command, "unpack", str(unpacked), *arguments], check=True, capture_output=True)
+            subprocess.run([*command, "unpack", str(unpacked), *arguments], check=True, capture_output=True, umask=0o077)
+            for directory in [unpacked, *(path for path in unpacked.rglob("*") if path.is_dir())]:
+                self.assertEqual(stat.S_IMODE(directory.stat().st_mode), 0o755, str(directory))
+                self.assertEqual(directory.stat().st_uid, os.geteuid())
+            with tarfile.open(archive, "r:gz") as source:
+                for member in source.getmembers():
+                    target = unpacked / member.name
+                    self.assertEqual(stat.S_IMODE(target.stat().st_mode), member.mode)
+                    self.assertEqual(target.stat().st_uid, os.geteuid())
             subprocess.run([*command, "verify", str(unpacked), *arguments], check=True, capture_output=True)
             self.assertEqual(os.stat(unpacked).st_mode & 0o777, 0o755)
             self.assertEqual(os.stat(unpacked / ".zilch-release-prepared.json").st_mode & 0o777, 0o600)

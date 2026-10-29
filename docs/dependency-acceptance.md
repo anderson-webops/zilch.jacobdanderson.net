@@ -48,6 +48,11 @@ The current typescript-eslint parser also declares support below 6.1.
 Reevaluate TypeScript 7 after both integrations support its compiler API.
 Type checking remains required without suppressing these compatibility checks.
 
+Direct dependency review also covers the root tools and both workspaces.
+Node declarations remain on the current 24.x types matching the supported
+runtime. `c12` stays on its stable 3.x release rather than the registry's
+4.0.0 release candidate. Express rate limiting uses the compatible 8.7.2 patch.
+
 Nuxt remains on 4.6.3. A version-scoped override uses `unimport@7.0.1` while
 7.0.2's advertised npm provenance endpoint returns 404. Version 7.0.1 has
 retrievable provenance. Full registry-signature and provenance verification

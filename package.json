@@ -1,7 +1,7 @@
 {
 	"name": "zilch-browser-game",
 	"type": "module",
-	"version": "1.4.14",
+	"version": "1.4.15",
 	"private": true,
 	"packageManager": "npm@12.2.1",
 	"engines": {

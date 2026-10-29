@@ -1,6 +1,6 @@
 {
 	"name": "zilch-back-end",
-	"version": "1.4.14",
+	"version": "1.4.15",
 	"private": true,
 	"description": "Minimal read-only health API for the Zilch browser game.",
 	"type": "module",
@@ -32,7 +32,7 @@
 	"dependencies": {
 		"dotenv": "^18.0.9",
 		"express": "^5.3.0",
-		"express-rate-limit": "^8.7.1",
+		"express-rate-limit": "^8.7.2",
 		"helmet": "^8.3.0",
 		"qs": "file:vendor/qs-6.17.2-webops.1.tgz"
 	},
