@@ -4,11 +4,11 @@ The direct adapter serves a static Nuxt tree and one compiled Express probe API.
 
 Zilch has no server-side player records, database, provider queue, generated client, native runtime binding, or durable application files. Logs remain in the existing service journal. Protected configuration, credentials, caches, and all writable state stay outside immutable releases. Adding any such dependency requires updating the contract, isolated fixtures, readiness behavior, preservation rules, and rollback compatibility.
 
-The host compatibility contract remains `zilch-site`, `/srv/zilch.jacobdanderson.net`, `127.0.0.1:3018`, and Node 24.22.1 at `/opt/node-24.22.1/bin/node`. NP Service Request remains on `127.0.0.1:3016`. Artifact adoption does not authorize replacing a live host topology, changing DNS, or combining client services.
+The release host compatibility contract retains `zilch-site`, `/srv/zilch.jacobdanderson.net`, and `127.0.0.1:3018`, while requiring reviewed Node 26.13.0 at `/opt/node-26.13.0/bin/node`. NP Service Request remains on `127.0.0.1:3016`. Artifact adoption does not authorize replacing a live host topology, changing DNS, or combining client services.
 
 ## Build and acceptance
 
-Build on an unprivileged disposable Linux ARM64 runner with Node 24.22.1, npm 12.2.1, Python 3.11 or newer, and Bubblewrap with user namespaces. Start from a clean exact commit whose annotated `v<package-version>` tag peels to that revision. Load no production environment or provider data.
+Build on an unprivileged disposable Linux ARM64 runner with Node 26.13.0, npm 12.2.1, Python 3.11 or newer, and Bubblewrap with user namespaces. Start from a clean exact commit whose annotated `v<package-version>` tag peels to that revision. Load no production environment or provider data.
 
 The release workflow runs clean installs, full and production audits, registry signatures, native-lock checks, lint, types, tests, builds, accessibility, promotion recovery tests, a fresh disposable-host bootstrap regression, and deployment checks. Artifact packing and recovery fixtures run under both `umask 0027` and `umask 0077`. The bootstrap regression verifies the versioned root helper, preserved service state, legacy cache-parent hardening, a concurrent service-account cache-swap attempt, root extraction under `umask 0077`, execution by the distinct `zilch-site` UID, and static-file readability by the distinct Nginx worker UID. The workflow then creates repository-owned scratch beneath `.ai-work/runs/` and runs:
 

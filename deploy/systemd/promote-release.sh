@@ -36,7 +36,7 @@ if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
 fi
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 helper_root="$(cd -- "$script_dir/../.." && pwd -P)"
-node_bin_dir="${NODE_BIN_DIR:-/opt/node-24.22.1/bin}"
+node_bin_dir="${NODE_BIN_DIR:-/opt/node-26.13.0/bin}"
 node="$node_bin_dir/node"
 archive_root="${ARCHIVE_ROOT:-/srv/zilch.jacobdanderson.net/quarantine}"
 legacy_release=v1.4.1
@@ -91,8 +91,8 @@ fi
 if [[ "$(/usr/bin/sha256sum "$legacy_nginx_config" | cut -d ' ' -f 1)" != "$legacy_nginx_sha256" ]]; then
   echo 'The installed legacy Nginx rollback contract does not match reviewed v1.4.1 source.' >&2; exit 1
 fi
-if [[ ! -x "$node" || "$("$node" --version)" != v24.22.1 ]]; then
-  echo 'NODE_BIN_DIR must select the approved Node24.22.1 runtime.' >&2; exit 1
+if [[ ! -x "$node" || "$("$node" --version)" != v26.13.0 ]]; then
+  echo 'NODE_BIN_DIR must select the approved Node 26.13.0 runtime.' >&2; exit 1
 fi
 if [[ "$public_host" != "zilch.jacobdanderson.net" ]]; then
 	echo "PUBLIC_HOST must be exactly zilch.jacobdanderson.net." >&2

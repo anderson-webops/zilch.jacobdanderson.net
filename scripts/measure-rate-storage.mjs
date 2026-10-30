@@ -7,7 +7,7 @@ import { resolve } from 'node:path'
 import process from 'node:process'
 import { promisify } from 'node:util'
 
-assert.equal(process.version, 'v24.22.1')
+assert.equal(process.version, 'v26.13.0')
 const run = resolve(process.env.MEASUREMENT_OUTPUT || '.ai-work/runs/20260920-zilch-security-release')
 if (process.argv[2] === 'child') {
   const { MemoryStore } = createRequire(resolve('back-end/package.json'))('express-rate-limit')

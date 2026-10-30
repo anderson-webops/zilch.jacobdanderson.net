@@ -1,11 +1,11 @@
 {
 	"name": "zilch-browser-game",
 	"type": "module",
-	"version": "1.4.15",
+	"version": "1.4.16",
 	"private": true,
 	"packageManager": "npm@12.2.1",
 	"engines": {
-		"node": ">=24.22.1 <25",
+		"node": ">=26.13.0 <27",
 		"npm": ">=12.2.1 <13"
 	},
 	"description": "Browser edition of Jacob Anderson's six-dice Zilch game",
@@ -67,7 +67,7 @@
 	"devDependencies": {
 		"@antfu/eslint-config": "^10.0.0",
 		"@netlify/functions": "^6.0.3",
-		"@types/node": "^24.19.2",
+		"@types/node": "^26.0.0",
 		"@typescript-eslint/types": "^8.72.1",
 		"axe-core": "^4.14.0",
 		"braces": "file:vendor/braces",

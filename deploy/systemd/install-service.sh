@@ -14,7 +14,7 @@ fi
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 source_root="$(cd -- "$script_dir/../.." && pwd -P)"
-node_bin_dir="${NODE_BIN_DIR:-/opt/node-24.22.1/bin}"
+node_bin_dir="${NODE_BIN_DIR:-/opt/node-26.13.0/bin}"
 node_bin="$node_bin_dir/node"
 
 /usr/bin/python3 -I "$script_dir/trusted-paths.py" --tree "$script_dir" \
@@ -22,8 +22,8 @@ node_bin="$node_bin_dir/node"
   "$source_root/deploy/nginx/zilch.jacobdanderson.net.server.conf" \
   "$source_root/deploy/nginx/zilch.jacobdanderson.net.legacy-v1.4.1.server.conf" \
   "$source_root/package.json" "$node_bin"
-if [[ ! -x "$node_bin" || "$("$node_bin" --version)" != v24.22.1 ]]; then
-  echo 'NODE_BIN_DIR must select the protected Node 24.22.1 runtime without replacing /usr/bin/node.' >&2
+if [[ ! -x "$node_bin" || "$("$node_bin" --version)" != v26.13.0 ]]; then
+  echo 'NODE_BIN_DIR must select the protected Node 26.13.0 runtime without replacing /usr/bin/node.' >&2
   exit 1
 fi
 

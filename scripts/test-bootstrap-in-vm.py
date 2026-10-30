@@ -27,7 +27,7 @@ for name in ['deploy', 'scripts']:
     shutil.copytree(source / name, control / name)
 shutil.copyfile(source / 'package.json', control / 'package.json')
 installer = control / 'deploy/systemd/install-service.sh'
-env = {'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'NODE_BIN_DIR': '/opt/node-24.22.1/bin'}
+env = {'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'NODE_BIN_DIR': '/opt/node-26.13.0/bin'}
 
 def run():
     return subprocess.run(['bash', str(installer)], env=env, text=True, capture_output=True, timeout=20)
@@ -138,7 +138,7 @@ with socket.socket() as reservation:
     acceptance_port = reservation.getsockname()[1]
 runtime = subprocess.Popen([
     'runuser', '-u', 'zilch-site', '--', 'env', 'HOST=127.0.0.1', f'PORT={acceptance_port}',
-    'NODE_ENV=production', '/opt/node-24.22.1/bin/node', 'back-end/dist/server.js',
+    'NODE_ENV=production', '/opt/node-26.13.0/bin/node', 'back-end/dist/server.js',
 ], cwd=extracted, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
 try:
     deadline = time.monotonic() + 10

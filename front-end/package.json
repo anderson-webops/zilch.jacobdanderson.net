@@ -1,7 +1,7 @@
 {
   "name": "zilch-front-end",
   "type": "module",
-  "version": "1.4.15",
+  "version": "1.4.16",
   "private": true,
   "description": "Responsive Nuxt frontend and rules engine for the Zilch browser game.",
   "author": "Jacob Anderson",
@@ -28,7 +28,7 @@
   "devDependencies": {
     "@nuxt/devtools": "^4.0.0",
     "@nuxt/eslint": "^1.17.0",
-    "@types/node": "^24.19.2",
+    "@types/node": "^26.0.0",
     "@vue/compiler-sfc": "^3.5.44",
     "c12": "^3.3.4",
     "nuxt": "^4.6.3",

@@ -1,12 +1,12 @@
 {
 	"name": "zilch-back-end",
-	"version": "1.4.15",
+	"version": "1.4.16",
 	"private": true,
 	"description": "Minimal read-only health API for the Zilch browser game.",
 	"type": "module",
 	"packageManager": "npm@12.2.1",
 	"engines": {
-		"node": ">=24.22.1 <25",
+		"node": ">=26.13.0 <27",
 		"npm": ">=12.2.1 <13"
 	},
 	"main": "dist/server.js",
@@ -38,7 +38,7 @@
 	},
 	"devDependencies": {
 		"@types/express": "^5.0.6",
-		"@types/node": "^24.19.2",
+		"@types/node": "^26.0.0",
 		"@types/supertest": "^7.2.1",
 		"globals": "^17.13.0",
 		"supertest": "^7.3.1",

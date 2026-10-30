@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: 24.22.1
+  NODE_VERSION: 26.13.0
   NPM_VERSION: 12.2.1
   PUPPETEER_SKIP_DOWNLOAD: "true"
 
@@ -35,7 +35,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Align npm with the repository policy
-        # Node 24 does not bundle the exact npm version required by this repository.
+        # Pin the exact npm version required by this repository.
         run: | # zizmor: ignore[adhoc-packages]
           npm install --global "npm@${NPM_VERSION}" --allow-scripts=npm
           node --version
