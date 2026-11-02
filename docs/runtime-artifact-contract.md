@@ -8,7 +8,7 @@ The release host compatibility contract retains `zilch-site`, `/srv/zilch.jacobd
 
 ## Build and acceptance
 
-Build on an unprivileged disposable Linux ARM64 runner with Node 26.13.0, npm 12.2.1, Python 3.11 or newer, and Bubblewrap with user namespaces. Start from a clean exact commit whose annotated `v<package-version>` tag peels to that revision. Load no production environment or provider data.
+Build on an unprivileged disposable Linux ARM64 runner with Node 26.13.0, npm 12.2.1, Python 3.11 or newer, libatomic, and Bubblewrap with user namespaces. Start from a clean exact commit whose annotated `v<package-version>` tag peels to that revision. Load no production environment or provider data.
 
 The release workflow runs clean installs, full and production audits, registry signatures, native-lock checks, lint, types, tests, builds, accessibility, promotion recovery tests, a fresh disposable-host bootstrap regression, and deployment checks. Artifact packing and recovery fixtures run under both `umask 0027` and `umask 0077`. The bootstrap regression verifies the versioned root helper, preserved service state, legacy cache-parent hardening, a concurrent service-account cache-swap attempt, root extraction under `umask 0077`, execution by the distinct `zilch-site` UID, and static-file readability by the distinct Nginx worker UID. The workflow then creates repository-owned scratch beneath `.ai-work/runs/` and runs:
 
