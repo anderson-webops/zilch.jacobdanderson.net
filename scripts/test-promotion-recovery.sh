@@ -5,6 +5,10 @@ node=$(realpath "$(command -v node)")
 test "$(uname -s)" = Linux
 test "$(id -u)" -ne 0
 test "$(node --version)" = v26.13.0
+loaderMounts=()
+if test -d /usr/lib64; then
+  loaderMounts=(--symlink usr/lib64 /lib64)
+fi
 mkdir -p "$root/.ai-work/runs"
 history_root=$(mktemp -d "$root/.ai-work/runs/promotion-history.XXXXXXXX")
 cleanup() {
@@ -28,7 +32,7 @@ done
 chmod 0644 "$history_root"/*
 # Root authority and writable system-command stubs exist only inside this namespace.
 timeout -k 5 120 bwrap --unshare-all --die-with-parent --new-session --uid 0 --gid 0 \
-  --ro-bind /usr /usr --symlink usr/bin /bin --symlink usr/lib /lib \
+  --ro-bind /usr /usr --symlink usr/bin /bin --symlink usr/lib /lib "${loaderMounts[@]}" \
 	--tmpfs /usr/local --ro-bind "$node" /runtime/node --proc /proc --dev /dev --tmpfs /tmp \
 	--ro-bind "$history_root" /history \
   --ro-bind "$root/deploy" /source/deploy --ro-bind "$root/scripts" /source/scripts \

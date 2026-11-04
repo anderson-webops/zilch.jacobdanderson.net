@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { createRequire } from 'node:module'
-import { dirname, resolve } from 'node:path'
+import { dirname, relative, resolve } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import puppeteer from 'puppeteer-core'
@@ -79,11 +79,18 @@ function startFrontend() {
     String(frontendPort),
   ]
 
+  const frontendDirectory = resolve(projectRoot, 'front-end')
+  const childTemporaryDirectory = process.env.TMPDIR
+    ? relative(frontendDirectory, resolve(process.env.TMPDIR))
+    : ''
   const child = spawn('npm', args, {
-    cwd: projectRoot,
+    cwd: frontendDirectory,
     detached: process.platform !== 'win32',
     env: {
       ...process.env,
+      ...(process.platform === 'darwin' && childTemporaryDirectory && childTemporaryDirectory.length < process.env.TMPDIR.length
+        ? { TMPDIR: childTemporaryDirectory }
+        : {}),
       BROWSER: 'none',
       NUXT_A11Y_SCAN: 'true',
       NUXT_IGNORE_LOCK: '1',
