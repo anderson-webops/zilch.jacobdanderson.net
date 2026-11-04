@@ -6,6 +6,7 @@ import { dirname, relative, resolve } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import puppeteer from 'puppeteer-core'
+import { frontendCommand } from './frontend-command.mjs'
 
 const require = createRequire(import.meta.url)
 const axeSourcePath = require.resolve('axe-core/axe.min.js')
@@ -66,11 +67,9 @@ async function waitForHttp(url, timeoutMs = 45_000) {
 }
 
 function startFrontend() {
+  const command = frontendCommand(projectRoot)
   const args = [
-    'exec',
-    '-w',
-    'front-end',
-    '--',
+    ...command.args,
     'nuxt',
     'dev',
     '--host',
@@ -79,7 +78,7 @@ function startFrontend() {
     String(frontendPort),
   ]
 
-  const frontendDirectory = resolve(projectRoot, 'front-end')
+  const frontendDirectory = command.cwd
   const childTemporaryDirectory = process.env.TMPDIR
     ? relative(frontendDirectory, resolve(process.env.TMPDIR))
     : ''
