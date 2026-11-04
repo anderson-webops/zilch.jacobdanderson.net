@@ -15,6 +15,7 @@ const projectRoot = resolve(scriptDir, '..')
 
 const siteName = 'Zilch'
 const frontendPort = Number(process.env.A11Y_FRONTEND_PORT || 3356)
+const externalServer = process.argv.includes('--external-server')
 const baseUrl = `http://127.0.0.1:${frontendPort}`
 const routes = [
   '/',
@@ -1160,7 +1161,9 @@ async function analyzePage(browser, route, scheme, viewport) {
   }
 }
 
-const frontendProcess = startFrontend()
+const frontendProcess = externalServer
+  ? undefined
+  : startFrontend()
 let browser
 
 try {
@@ -1209,5 +1212,6 @@ try {
 finally {
   if (browser)
     await browser.close()
-  await stopProcessTree(frontendProcess)
+  if (frontendProcess)
+    await stopProcessTree(frontendProcess)
 }
