@@ -7,7 +7,7 @@ The rollout has four distinct gates: reviewed source release, accepted Linux ARM
 ## Fixed compatibility contract
 
 - Repository: `anderson-webops/zilch.jacobdanderson.net`
-- Release runtime target: Node `26.13.0` from `/opt/node-26.13.0/bin` and npm `12.2.1` for builds; protected host installation and acceptance are separate
+- Release runtime target: Node `26.13.1` from `/opt/node-26.13.1/bin` and npm `12.2.2` for builds; protected host installation and acceptance are separate
 - Service account: `zilch-site`
 - Service: `zilch-api.service`
 - Release root: `/srv/zilch.jacobdanderson.net/releases`
@@ -17,6 +17,17 @@ The rollout has four distinct gates: reviewed source release, accepted Linux ARM
 - Public host: `zilch.jacobdanderson.net`
 
 Port `3016` belongs to NP Service Request and must remain untouched. Preserve the existing users, paths, ports, Nginx policy, certificates, and IPv4/IPv6 listeners. Do not replace the host-wide `/usr/bin/node`, move another service, or change DNS to make a deployment pass.
+
+Use Node 26.13.1 from the approved protected location, normally
+`/opt/node-26.13.1/bin`, and the independently locked `webops-locked-npm-v1`
+profile for npm 12.2.2 builds. Preparation selects and audits the profile before
+installing the application; the host's original npm is only the bootstrap seed.
+`NODE_BIN_DIR` can select an
+approved alternative for the helpers; an alternate service ExecStart needs its
+own review. Do not replace the host-wide `/usr/bin/node`. Existing installations
+created with build-owned deployment parents require a separate ownership and
+content review before adopting the new helper. Preserve the serving release,
+retained rollback and all state; no automatic recursive ownership migration occurs.
 
 ## Release gate
 
@@ -54,7 +65,7 @@ Before first installation, inventory the existing A and AAAA answers, Nginx serv
 From the protected reviewed checkout:
 
 ```bash
-sudo env NODE_BIN_DIR=/opt/node-26.13.0/bin \
+sudo env NODE_BIN_DIR=/opt/node-26.13.1/bin \
   deploy/systemd/install-service.sh
 ```
 
@@ -91,7 +102,7 @@ Promote only with the installed root-owned wrapper:
 
 ```bash
 sudo env PUBLIC_HOST=zilch.jacobdanderson.net \
-  NODE_BIN_DIR=/opt/node-26.13.0/bin \
+  NODE_BIN_DIR=/opt/node-26.13.1/bin \
   /usr/local/sbin/zilch-promote-release \
   "$candidate" "$archive" "$sha256" "$commit"
 ```
@@ -104,7 +115,7 @@ If a separately executed external acceptance gate fails after deterministic orig
 
 ```bash
 sudo env PUBLIC_HOST=zilch.jacobdanderson.net \
-  NODE_BIN_DIR=/opt/node-26.13.0/bin \
+  NODE_BIN_DIR=/opt/node-26.13.1/bin \
   /usr/local/sbin/zilch-promote-release \
   --restore-retained /srv/zilch.jacobdanderson.net/releases/<retained-release>
 ```

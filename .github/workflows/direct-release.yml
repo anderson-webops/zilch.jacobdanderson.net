@@ -3,7 +3,7 @@ name: Validate direct production release
 on:
   push:
     tags:
-      - "v*"
+      - "v*.*.*"
 
 permissions:
   contents: read
@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   prepare:
+    name: Validate exact tagged source
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -26,7 +27,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 26.13.0
+          node-version: 26.13.1
           package-manager-cache: false
 
       - name: Bind the workflow tag to the package version
@@ -36,9 +37,6 @@ jobs:
             echo "Release tag $GITHUB_REF_NAME must be exactly $expected_tag." >&2
             exit 1
           fi
-
-      - name: Pin npm
-        run: npm install --global npm@12.2.1 --allow-scripts=npm # zizmor: ignore[adhoc-packages]
 
       - name: Validate direct deployment configuration syntax
         run: |
@@ -57,6 +55,7 @@ jobs:
           scripts/validate-tagged-source.sh "$GITHUB_WORKSPACE"
 
   installer:
+    name: Verify protected installer recovery
     needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -70,21 +69,20 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 26.13.0
+          node-version: 26.13.1
           package-manager-cache: false
 
       - name: Stage the protected disposable-host runtime
-        run: | # zizmor: ignore[adhoc-packages]
-          npm install --global npm@12.2.1 --allow-scripts=npm
+        run: |
           sudo apt-get update -qq
           sudo apt-get install --yes --no-install-recommends nginx
           node_prefix="$(dirname "$(dirname "$(command -v node)")")"
           sudo chown root:root /opt
           sudo chmod 0755 /opt
-          sudo install -d -o root -g root -m 0755 /opt/node-26.13.0
-          sudo cp -a "$node_prefix/." /opt/node-26.13.0/
-          sudo chown -R root:root /opt/node-26.13.0
-          sudo chmod -R go-w /opt/node-26.13.0
+          sudo install -d -o root -g root -m 0755 /opt/node-26.13.1
+          sudo cp -a "$node_prefix/." /opt/node-26.13.1/
+          sudo chown -R root:root /opt/node-26.13.1
+          sudo chmod -R go-w /opt/node-26.13.1
           printf 'isolated-public-source-fixture\n' | sudo tee /run/zilch-source-validation-vm >/dev/null
           sudo chown root:root /run/zilch-source-validation-vm
           sudo chmod 0600 /run/zilch-source-validation-vm
@@ -93,6 +91,7 @@ jobs:
         run: sudo python3 -B scripts/test-bootstrap-in-vm.py --disposable-vm
 
   artifact:
+    name: Accept exact Linux ARM64 artifact
     needs: [prepare, installer]
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 45
@@ -103,11 +102,13 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 26.13.0
+          node-version: 26.13.1
           package-manager-cache: false
       - name: Prepare isolated artifact-test tools
-        run: | # zizmor: ignore[adhoc-packages]
-          npm install --global npm@12.2.1 --allow-scripts=npm
+        run: |
+          bin="$(node scripts/build-toolchain.mjs --print-bin)"
+          printf '%s\n' "$bin" >> "$GITHUB_PATH"
+          "$bin/node" scripts/check-build-toolchain.mjs
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends bubblewrap apparmor
           if test -d /sys/kernel/security/apparmor; then
@@ -122,7 +123,9 @@ jobs:
           NUXT_TELEMETRY_DISABLED: "1"
           PUPPETEER_SKIP_DOWNLOAD: "true"
         run: |
+          bash scripts/prepare-unimport-source.sh
           npm ci --include=optional --strict-allow-scripts
+          bash scripts/prepare-compiler-fixtures.sh
           npm run audit:all
           npm run audit:prod
           npm run audit:api
@@ -132,8 +135,36 @@ jobs:
           mkdir -p .ai-work/runs/tagged-artifact
           npm run package:runtime -- "$PWD/.ai-work/runs/tagged-artifact"
 
-      - name: Retain the accepted Linux ARM64 artifact
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - name: Verify exact source-release handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          output=.ai-work/runs/tagged-artifact
+          test "$(find "$output" -maxdepth 1 -type f -name '*.tar.gz' | wc -l)" -eq 1
+          (cd "$output" && sha256sum --check SHA256SUMS)
+          python3 -B - "$output" "$GITHUB_SHA" <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          import sys
+
+          output = Path(sys.argv[1])
+          commit = sys.argv[2]
+          receipt = json.loads((output / "acceptance.json").read_text())
+          manifest = json.loads((output / "runtime-manifest.json").read_text())
+          contract = json.loads(Path("deploy/runtime-artifact.json").read_text())
+          archive = output / receipt["archive"]
+          assert receipt["commit"] == manifest["commit"] == commit
+          assert receipt["sha256"] == hashlib.sha256(archive.read_bytes()).hexdigest()
+          assert manifest["contract"] == contract
+          assert receipt["buildToolchain"]["profile"] == contract["runtime"]["npmBuildProfile"]
+          assert receipt["buildToolchain"]["lockSha256"] == contract["runtime"]["npmBuildLockSha256"]
+          assert receipt["buildToolchain"]["payloadTreeSha256"] == contract["runtime"]["npmBuildPayloadSha256"]
+          assert hashlib.sha256(Path("build-toolchain/package-lock.json").read_bytes()).hexdigest() == contract["runtime"]["npmBuildLockSha256"]
+          assert contract["version"] == 2
+          assert contract["application"] == "anderson-webops/zilch.jacobdanderson.net"
+          PY
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: zilch-${{ github.ref_name }}-${{ github.sha }}-linux-arm64
           path: .ai-work/runs/tagged-artifact/*

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { access, readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { toolchainMetadata } from './build-toolchain-state.mjs'
 
 const projectRoot = resolve(import.meta.dirname, '..')
 const paths = {
@@ -96,9 +97,10 @@ assert(apiServer.includes('maxConnections = 256'), 'Compiled API must cap admitt
 
 assert(/^User=zilch-site$/m.test(directService), 'Direct API service must use its dedicated unprivileged account')
 assert(/^Environment=PORT=3018$/m.test(directService), 'Direct API service must use the reviewed Zilch loopback port')
+assert(directService.split('\n').includes(`ExecStart=/opt/node-${toolchainMetadata.node}/bin/node back-end/dist/server.js`), 'Direct API must select the approved runtime without replacing the host-wide binary')
 assert(/^Environment=HOST=127\.0\.0\.1$/m.test(directService), 'Direct API service must bind only to loopback')
-assert(/^ExecStart=\/opt\/node-26\.13\.0\/bin\/node back-end\/dist\/server\.js$/m.test(directService), 'Direct API service must use isolated Node 26.13.0')
-assert(/^Environment=PATH=\/opt\/node-26\.13\.0\/bin:/m.test(directService), 'Direct API service must place the isolated runtime first on PATH')
+assert(/^ExecStart=\/opt\/node-26\.13\.1\/bin\/node back-end\/dist\/server\.js$/m.test(directService), 'Direct API service must use isolated Node 26.13.1')
+assert(/^Environment=PATH=\/opt\/node-26\.13\.1\/bin:/m.test(directService), 'Direct API service must place the isolated runtime first on PATH')
 assert(/^NoNewPrivileges=true$/m.test(directService), 'Direct API service must deny privilege escalation')
 assert(/^ProtectSystem=strict$/m.test(directService), 'Direct API service must have a read-only system view')
 assert(!/0\.0\.0\.0|docker/i.test(directService), 'Direct API service must not depend on a container listener')
@@ -110,7 +112,7 @@ assert(/X-Forwarded-For \$remote_addr/.test(directNginx), 'Nginx must replace, n
 assert(!/\$proxy_add_x_forwarded_for/.test(directNginx), 'Nginx must not trust a client-supplied forwarded chain')
 
 assert(/npm audit signatures/.test(sourceValidator), 'Tagged source validation must verify package signatures')
-assert(/NODE_BIN_DIR:-\/opt\/node-26\.13\.0\/bin/.test(sourceValidator), 'Tagged source validation must default to isolated Node 26.13.0')
+assert(/NODE_BIN_DIR:-\/opt\/node-26\.13\.1\/bin/.test(sourceValidator), 'Tagged source validation must default to isolated Node 26.13.1')
 assert(/refs\/heads\/main:refs\/remotes\/origin\/main/.test(sourceValidator), 'Tagged source validation must refresh exact origin/main')
 assert(/--unset-all http\.https:\/\/github\.com\/\.extraheader/.test(sourceValidator), 'Tagged source validation must remove checkout credentials before dependency scripts run')
 assert(/node scripts\/clean\.mjs/.test(sourceValidator), 'Tagged source validation must remove stale generated output')

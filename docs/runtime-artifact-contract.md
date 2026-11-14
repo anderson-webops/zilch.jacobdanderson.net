@@ -4,13 +4,39 @@ The direct adapter serves a static Nuxt tree and one compiled Express probe API.
 
 Zilch has no server-side player records, database, provider queue, generated client, native runtime binding, or durable application files. Logs remain in the existing service journal. Protected configuration, credentials, caches, and all writable state stay outside immutable releases. Adding any such dependency requires updating the contract, isolated fixtures, readiness behavior, preservation rules, and rollback compatibility.
 
-The release host compatibility contract retains `zilch-site`, `/srv/zilch.jacobdanderson.net`, and `127.0.0.1:3018`, while requiring reviewed Node 26.13.0 at `/opt/node-26.13.0/bin/node`. NP Service Request remains on `127.0.0.1:3016`. Artifact adoption does not authorize replacing a live host topology, changing DNS, or combining client services.
+The release host compatibility contract retains `zilch-site`, `/srv/zilch.jacobdanderson.net`, and `127.0.0.1:3018`, while requiring reviewed Node 26.13.1 at `/opt/node-26.13.1/bin/node`. NP Service Request remains on `127.0.0.1:3016`. Artifact adoption does not authorize replacing a live host topology, changing DNS, or combining client services.
+
+Keep protected configuration and any downstream database, email spool, cache or
+uploads outside immutable releases. Preserve durable state on both promotion and
+rollback. Preserve the exact installed service users, paths and loopback ports;
+the `/srv/zilch.jacobdanderson.net` and `/opt/node-26.13.1/bin/node` source adapter defaults are
+examples for a separately reviewed installation, not instructions to overwrite a
+working host. Never change DNS, IPv4/IPv6, certificates or edge configuration to
+make artifact acceptance pass.
 
 ## Build and acceptance
 
-Build on an unprivileged disposable Linux ARM64 runner with Node 26.13.0, npm 12.2.1, Python 3.11 or newer, libatomic, and Bubblewrap with user namespaces. Start from a clean exact commit whose annotated `v<package-version>` tag peels to that revision. Load no production environment or provider data.
+Build on an unprivileged disposable Linux ARM64 runner with Node 26.13.1, npm 12.2.2, Python 3.11 or newer, libatomic, and Bubblewrap with user namespaces. Start from a clean exact commit whose annotated `v<package-version>` tag peels to that revision. Load no production environment or provider data.
 
 The release workflow runs clean installs, full and production audits, registry signatures, native-lock checks, lint, types, tests, builds, accessibility, promotion recovery tests, a fresh disposable-host bootstrap regression, and deployment checks. Artifact packing and recovery fixtures run under both `umask 0027` and `umask 0077`. The bootstrap regression verifies the versioned root helper, preserved service state, legacy cache-parent hardening, a concurrent service-account cache-swap attempt, root extraction under `umask 0077`, execution by the distinct `zilch-site` UID, and static-file readability by the distinct Nginx worker UID. The workflow then creates repository-owned scratch beneath `.ai-work/runs/` and runs:
+
+Use an unprivileged disposable Linux ARM64 builder with Node 26.13.1 and npm
+12.2.2 selected through the locked `webops-locked-npm-v1` profile. Python 3.11 or
+newer, GnuPG's `gpgv`, libatomic and Bubblewrap with user namespaces must be available. Start from a
+clean, exact source commit. Record that commit. Run the repository's clean install,
+full/production audits, signatures, lint, types, tests, build, native declarations
+and deployment-output gates. Accessibility can run on the same source in a
+supported Chrome environment. Do not load real environment files or provider data.
+
+Verify the signed-source compiler with `bash scripts/prepare-unimport-source.sh`
+before the application install. After the clean root install, use
+`bash scripts/prepare-compiler-fixtures.sh` for the complete independent tooling
+and original-version comparison graphs required by validation. Both direct
+release paths and ordinary CI use these same source-side preparation gates.
+
+Resolve the owning checkout, locally exclude `/.ai-work/` in `.git/info/exclude`,
+verify the ignore rule, and record the temporary builder directory in
+`.ai-work/INDEX.md`. Create an empty `.ai-work/runs/<run>/artifact` directory, then:
 
 ```bash
 npm run package:runtime -- "$PWD/.ai-work/runs/tagged-artifact"

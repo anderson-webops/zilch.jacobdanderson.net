@@ -21,12 +21,52 @@ Hard mode ports policies from the companion `Computers_vs_Zilch` simulator, incl
 
 ## Local development
 
+- Node.js `26.13.1`
+- npm `12.2.2` through the independently locked `webops-locked-npm-v1` build profile
+
+```sh
+export PATH="$(node scripts/build-toolchain.mjs --print-bin):$PATH"
+npm ci --include=optional --strict-allow-scripts
+```
+
+Bootstrap uses the selected Node's existing npm only to install the reviewed,
+locked build-tool graph. Application installation and checks use the repaired
+profile. The private installation survives application `npm ci`, and global
+tools remain unchanged. The bootstrap-only graph accepts the stock Node 26.13.1
+npm 11.20.0 seed; application and release commands still require the verified
+npm 12.2.2 profile. Bootstrap reuses a private installation only when its complete
+dependency payload matches the source-reviewed `build-toolchain/PAYLOAD.json`
+digest, its paired Node matches the selected executable, and current full,
+production and signature audits pass. A cache receipt alone never qualifies it.
+`NPM_CONFIG_CACHE` places profiles under that cache's `_site-toolchains/reuse-v1`,
+otherwise they stay in repository-owned scratch. Identical concurrent requests
+wait for the existing bootstrap outcome. Three fixed slots bound retained
+profiles; reaching capacity or finding failed/interrupted creation stops with
+the evidence path. Retire a slot and its matching identity directory only after
+reviewing their outcome and proving no process, worktree or consumer uses them.
+Legacy profiles are preserved, not automatically imported or evicted.
+Use a relocatable Node distribution; a dynamically linked executable without
+its required libraries cannot qualify after copying.
+Windows and hosted-editor execution require their own acceptance; source CI
+and direct release acceptance target Linux, with local macOS validation.
+Verification binds regular-file checks and reads to one no-follow, nonblocking
+file descriptor, and parses the integrity-verified byte snapshots. Platforms
+without those open capabilities fail explicitly rather than omitting protection.
+
+When changing the independent lock, reproduce the payload digest from a fresh
+locked installation with scripts disabled and optional packages included, after
+both audits and registry provenance pass. Review `inspectToolchainPayload` output
+and update `build-toolchain/PAYLOAD.json` and the artifact contract together.
+Run `npm run test:build-toolchain` for cold/warm, dependency/Node tampering,
+concurrency, interrupted creation and retention regressions.
+
 Enable **Rolling animation** below House rules before starting, or beneath the scoreboard during a game. The browser adaptation follows the original game's two-second tumble and half-second settled hold using lightweight CSS, without copying its renderer or assets. It applies to human and computer rolls, never changes dice results or strategy, and respects the device's reduced-motion preference. The bust result remains visible after the animation finishes.
 
 Setup preferences are saved as valid changes are made, separately from game progress. An existing saved game supplies the initial preferences when upgrading. Starting over does not erase them. Preferences stay in this browser on this device; private browsing, blocked storage, or clearing site data can prevent or remove them. They do not sync across devices or accounts.
 
 
-Use Node `26.13.0` and npm `12.2.1` from the repository root.
+Use Node `26.13.1` and npm `12.2.2` from the repository root.
+npm uses the explicit hoisted install strategy, with native bindings checked against their actual dependency ancestry. Direct build-time type and lint dependencies are declared explicitly rather than relying on accidental hoisting.
 
 ```bash
 npm ci
@@ -72,7 +112,7 @@ Game state is stored only in browser local storage. The API exposes no player na
 
 ## Production
 
-Production serves the generated Nuxt files directly from Nginx and proxies `/api` to a dedicated loopback-only Node process on port `3018`. The new release contract requires Node 26.13.0 from `/opt/node-26.13.0/bin` without replacing the host-wide runtime; protected host acceptance remains separate. Releases are immutable, version-tagged runtime trees under `/srv/zilch.jacobdanderson.net/releases`, promoted through an atomic `current` symlink with automatic rollback on failed health, identity, header, or dual-stack checks.
+Production serves the generated Nuxt files directly from Nginx and proxies `/api` to a dedicated loopback-only Node process on port `3018`. The new release contract requires Node 26.13.1 from `/opt/node-26.13.1/bin` without replacing the host-wide runtime; protected host acceptance remains separate. Releases are immutable, version-tagged runtime trees under `/srv/zilch.jacobdanderson.net/releases`, promoted through an atomic `current` symlink with automatic rollback on failed health, identity, header, or dual-stack checks.
 
 See [`deploy/README.md`](deploy/README.md) for the first-install and promotion procedure.
 
