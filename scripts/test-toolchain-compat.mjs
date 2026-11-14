@@ -97,6 +97,22 @@ test('the installed Nuxt provider preserves the original unimport dependency con
   assert.ok(npmPackage().require('semver').satisfies(provider.version, metadata.dependencies.unimport), `Nuxt requires ${metadata.dependencies.unimport}, resolved ${provider.version}`)
 })
 
+test('direct syntax validation and retained acceptance match this site runtime contract', () => {
+  const contract = JSON.parse(readFileSync(path.join(root, 'deploy/runtime-artifact.json'), 'utf8'))
+  const service = readFileSync(path.join(root, 'deploy/systemd/zilch-api.service'), 'utf8')
+  const syntaxValidation = readFileSync(path.join(root, 'deploy/validate-configs.sh'), 'utf8')
+  const entrypoint = `ExecStart=/opt/node-${contract.runtime.node}/bin/node back-end/dist/server.js`
+  assert.ok(service.split('\n').includes(entrypoint))
+  assert.ok(syntaxValidation.includes(`grep -Fqx '${entrypoint}'`))
+  const retained = readFileSync(path.join(root, 'scripts/test-retained-runtime.sh'), 'utf8')
+  const harness = readFileSync(path.join(root, 'scripts/artifact-acceptance/runtime.mjs'), 'utf8')
+  for (const source of [retained, harness]) {
+    assert.ok(source.includes('af63255b8fc2f6ca95df7c35ee01aef547ffe610'))
+    assert.ok(source.includes('retained-v1.4.18'))
+    assert.equal(source.includes('retained-v2.1.28'), false)
+  }
+})
+
 test('the selected npm and child commands use the patched build-only toolchain', () => {
   const selected = npmPackage()
   const manifest = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'))

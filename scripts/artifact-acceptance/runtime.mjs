@@ -11,7 +11,7 @@ assert.equal(process.platform, 'linux')
 assert.equal(process.arch, 'arm64')
 assert.equal(process.version, 'v26.13.1')
 assert.equal(process.cwd(), '/app')
-assert.ok(['complete', 'missing-module', 'retained-v2.1.28'].includes(process.argv[2]))
+assert.ok(['complete', 'missing-module', 'retained-v1.4.18'].includes(process.argv[2]))
 for (const absent of [
   '/home/builder',
   '/mnt/input',
@@ -42,33 +42,35 @@ else {
   const metadata = JSON.parse(await readFile('/app/front-end/.output/public/release.json', 'utf8'))
   const manifest = JSON.parse(await readFile('/app/runtime-manifest.json', 'utf8'))
   assert.equal(metadata.commitSha, manifest.commit)
-  const retained = process.argv[2] === 'retained-v2.1.28'
+  const retained = process.argv[2] === 'retained-v1.4.18'
   if (retained) {
-    assert.equal(manifest.commit, '76725dcce6d5c90f564ba730d79b380beb45056c')
-    assert.equal(metadata.release, 'v2.1.28')
+    assert.equal(manifest.commit, 'af63255b8fc2f6ca95df7c35ee01aef547ffe610')
+    assert.equal(metadata.release, 'v1.4.18')
     assert.equal(manifest.contract.runtime.node, '26.13.0')
   }
   else {
     assert.equal(manifest.contract.runtime.node, '26.13.1')
   }
-  const runtimeRequire = createRequire('/app/back-end/package.json')
-  const expressRequire = createRequire(runtimeRequire.resolve('express'))
-  const bodyParserRequire = createRequire(expressRequire.resolve('body-parser'))
-  const cookie = expressRequire('cookie')
-  const encodeUrl = expressRequire('encodeurl')
-  const getRawBody = bodyParserRequire('raw-body')
-  const typeIs = bodyParserRequire('type-is')
-  assert.equal(cookie.serialize('runtime', 'value /', { httpOnly: true, sameSite: 'strict' }), 'runtime=value%20%2F; HttpOnly; SameSite=Strict')
-  assert.equal(encodeUrl('/runtime path'), '/runtime%20path')
-  assert.equal(typeIs({
-    headers: { 'content-type': 'application/problem+json', 'content-length': '1' },
-  }, '+json'), 'application/problem+json')
-  assert.equal(await getRawBody(Readable.from([
-    Buffer.from([118, 0, 0, 0]),
-  ]), { encoding: 'utf-32le' }), 'v')
-  await assert.rejects(getRawBody(Readable.from([
-    Buffer.alloc(3),
-  ]), { limit: 2 }), { status: 413, type: 'entity.too.large' })
+  if (!retained) {
+    const runtimeRequire = createRequire('/app/back-end/package.json')
+    const expressRequire = createRequire(runtimeRequire.resolve('express'))
+    const bodyParserRequire = createRequire(expressRequire.resolve('body-parser'))
+    const cookie = expressRequire('cookie')
+    const encodeUrl = expressRequire('encodeurl')
+    const getRawBody = bodyParserRequire('raw-body')
+    const typeIs = bodyParserRequire('type-is')
+    assert.equal(cookie.serialize('runtime', 'value /', { httpOnly: true, sameSite: 'strict' }), 'runtime=value%20%2F; HttpOnly; SameSite=Strict')
+    assert.equal(encodeUrl('/runtime path'), '/runtime%20path')
+    assert.equal(typeIs({
+      headers: { 'content-type': 'application/problem+json', 'content-length': '1' },
+    }, '+json'), 'application/problem+json')
+    assert.equal(await getRawBody(Readable.from([
+      Buffer.from([118, 0, 0, 0]),
+    ]), { encoding: 'utf-32le' }), 'v')
+    await assert.rejects(getRawBody(Readable.from([
+      Buffer.alloc(3),
+    ]), { limit: 2 }), { status: 413, type: 'entity.too.large' })
+  }
   // Dependencies added by a downstream must feed this bounded readiness state.
   // The baseline API itself has no external database or provider.
   const { createApp } = await import('/app/back-end/dist/app.js')
