@@ -1,7 +1,7 @@
 {
 	"name": "zilch-browser-game",
 	"type": "module",
-	"version": "1.4.18",
+	"version": "1.4.19",
 	"private": true,
 	"packageManager": "npm@12.2.2",
 	"engines": {
@@ -149,6 +149,7 @@
 	"devDependencies": {
 		"@antfu/eslint-config": "^10.0.0",
 		"@babel/core": "^8.1.0",
+		"webpack": "^5.112.2",
 		"@babel/parser": "^8.1.0",
 		"@babel/plugin-syntax-jsx": "^8.0.1",
 		"@babel/plugin-syntax-typescript": "^8.0.3",

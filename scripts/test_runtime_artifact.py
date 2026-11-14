@@ -1,4 +1,5 @@
 import contextlib
+import copy
 import gzip
 import importlib.util
 import io
