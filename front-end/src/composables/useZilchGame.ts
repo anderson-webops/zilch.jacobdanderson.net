@@ -1,5 +1,16 @@
 import type { DieValue, GameSettings, GameState, PlayerDraft } from '~/game/types'
 import {
+  computed,
+  markRaw,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  shallowReadonly,
+  shallowRef,
+  watch,
+} from 'vue'
+import { useState } from '#app'
+import {
   acknowledgeBust,
   acknowledgePass,
   activePlayer,

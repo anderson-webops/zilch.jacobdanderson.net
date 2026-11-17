@@ -7,6 +7,7 @@ export default defineNuxtConfig({
   modules: [
     'nuxt-security',
     '@nuxt/eslint',
+    'nuxt-explicit-imports',
   ],
 
   devtools: {
@@ -123,6 +124,10 @@ export default defineNuxtConfig({
         sortConfigKeys: true,
       },
     },
+  },
+
+  explicitImports: {
+    mode: 'strict',
   },
 
   security: {

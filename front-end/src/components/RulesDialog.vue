@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { onMounted, useTemplateRef, watch } from 'vue'
+import { NuxtLink } from '#components'
 import { scoringRules } from '~/game/scoring'
 
 const props = defineProps<{

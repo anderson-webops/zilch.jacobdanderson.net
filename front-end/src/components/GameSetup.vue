@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { ComputerDifficulty, GameSettings, PlayerDraft } from '~/game/types'
+import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
+import RollingAnimationToggle from '~/components/RollingAnimationToggle.vue'
 import { defaultSettings } from '~/game/engine'
 import { readSetupPreferences, writeSetupPreferences } from '~/game/setup-preferences'
 

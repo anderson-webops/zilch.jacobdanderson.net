@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Die } from '~/game/types'
+import { computed } from 'vue'
 import { pipPositions } from '~/utils/diceFaces'
 
 const props = withDefaults(defineProps<{

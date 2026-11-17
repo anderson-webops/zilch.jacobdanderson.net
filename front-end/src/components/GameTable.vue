@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import type { GameState } from '~/game/types'
+import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
+import DieFace from '~/components/DieFace.vue'
+import RollingAnimationToggle from '~/components/RollingAnimationToggle.vue'
+import RollingDice from '~/components/RollingDice.vue'
 
 const props = defineProps<{
   state: GameState

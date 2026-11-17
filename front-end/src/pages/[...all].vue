@@ -1,3 +1,7 @@
+<script setup lang="ts">
+import { NuxtLink } from '#components'
+</script>
+
 <template>
   <main class="not-found">
     <span class="wordmark-mark" aria-hidden="true">0</span>

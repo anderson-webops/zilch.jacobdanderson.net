@@ -27,7 +27,7 @@ async function loadModule(relativePath: string, component = false) {
   const outfile = join(scratch, `${relativePath.replace(/[^a-z0-9]/gi, '_')}.mjs`)
   await build({
     stdin: {
-      contents,
+      contents: `${contents}\nexport { resetTestState } from '#app';`,
       sourcefile: path,
       resolveDir: sourceRoot,
       loader: 'ts',
@@ -46,16 +46,33 @@ async function loadModule(relativePath: string, component = false) {
             path: fileURLToPath(import.meta.resolve('vue')),
             external: true,
           }))
+          builder.onResolve({ filter: /^#app$/ }, () => ({
+            path: '#app',
+            namespace: 'test-nuxt-state',
+          }))
+          builder.onLoad({ filter: /.*/, namespace: 'test-nuxt-state' }, () => ({
+            contents: `import { ref } from 'vue';
+              const stateCache = new Map();
+              export function resetTestState() { stateCache.clear(); }
+              export function useState(key, initial) {
+                if (!stateCache.has(key)) stateCache.set(key, ref(initial()));
+                return stateCache.get(key);
+              }`,
+            loader: 'js',
+            resolveDir: sourceRoot,
+          }))
+          builder.onLoad({ filter: /\.vue$/ }, async ({ path: childFilename }) => {
+            const childSource = await readFile(childFilename, 'utf8')
+            const descriptor = parse(childSource, { filename: childFilename }).descriptor
+            return {
+              contents: compileScript(descriptor, { id: 'setup-test' }).content,
+              loader: 'ts',
+              resolveDir: sourceRoot,
+            }
+          })
         },
       },
     ],
-    banner: { js: `import { ref, shallowRef, shallowReadonly, markRaw, computed, watch, onMounted, onBeforeUnmount, nextTick, useTemplateRef } from ${JSON.stringify(import.meta.resolve('vue'))};
-      const stateCache = new Map();
-      export function resetTestState() { stateCache.clear(); }
-      function useState(key, initial) {
-        if (!stateCache.has(key)) stateCache.set(key, ref(initial()));
-        return stateCache.get(key);
-      }` },
   })
   return import(pathToFileURL(outfile).href)
 }

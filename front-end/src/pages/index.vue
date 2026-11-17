@@ -1,4 +1,12 @@
 <script setup lang="ts">
+import { ref, useTemplateRef } from 'vue'
+import { definePageMeta } from '#app/composables/pages'
+import { NuxtLink } from '#components'
+import GameSetup from '~/components/GameSetup.vue'
+import GameTable from '~/components/GameTable.vue'
+import RulesDialog from '~/components/RulesDialog.vue'
+import { useZilchGame } from '~/composables/useZilchGame'
+
 definePageMeta({
   layout: 'home',
 })

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { useHead } from '#app'
+import { definePageMeta } from '#app/composables/pages'
+import { NuxtLink } from '#components'
+
 definePageMeta({
   layout: 'home',
 })
