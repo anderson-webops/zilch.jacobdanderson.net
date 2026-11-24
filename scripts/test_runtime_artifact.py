@@ -27,6 +27,7 @@ class RuntimeArtifactTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(dir=base)
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
+        self.addCleanup(os.umask, os.umask(0o022))
         self.contract = json.loads(artifact.CONTRACT.read_text())
         for name in self.contract["required"]:
             path = self.root / name
