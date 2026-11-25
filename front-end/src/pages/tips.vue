@@ -201,7 +201,6 @@ const stealingThresholds = [
   align-items: center;
   padding: 10px 2px;
   color: var(--ink);
-  border-bottom: 1px solid currentcolor;
   font-size: 0.82rem;
   font-weight: 800;
   text-decoration: none;

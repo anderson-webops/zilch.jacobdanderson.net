@@ -165,7 +165,6 @@ summary:focus-visible {
   color: var(--ink);
   background: transparent;
   border: 0;
-  border-bottom: 1px solid currentColor;
   cursor: pointer;
   font-size: 0.86rem;
   font-weight: 750;
